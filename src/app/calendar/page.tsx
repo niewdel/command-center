@@ -1,0 +1,231 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { cn } from "@/lib/utils";
+import { useCalendar, type CalendarView } from "@/lib/hooks/use-calendar";
+import { CalendarWeekView } from "@/components/calendar/calendar-week-view";
+import { CalendarDayView } from "@/components/calendar/calendar-day-view";
+import { CalendarMonthView } from "@/components/calendar/calendar-month-view";
+import { CreateEventDialog } from "@/components/calendar/create-event-dialog";
+import { EventDetailSheet } from "@/components/calendar/event-detail-sheet";
+import type { CalendarEvent } from "@/types/database";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Calendar,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+const VIEW_OPTIONS: { value: CalendarView; label: string }[] = [
+  { value: "day", label: "Day" },
+  { value: "week", label: "Week" },
+  { value: "month", label: "Month" },
+];
+
+export default function CalendarPage() {
+  const {
+    events,
+    loading,
+    currentDate,
+    view,
+    setView,
+    navigateDate,
+    refetch,
+  } = useCalendar();
+
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(
+    null
+  );
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [createDefaults, setCreateDefaults] = useState<{
+    date?: Date;
+    hour?: number;
+  }>({});
+
+  // Responsive: default to day view on mobile
+  useEffect(() => {
+    if (window.innerWidth < 768) {
+      setView("day");
+    }
+  }, [setView]);
+
+  const handleSlotClick = (date: Date, hour: number) => {
+    setCreateDefaults({ date, hour });
+    setCreateDialogOpen(true);
+  };
+
+  const handleDayClick = (date: Date) => {
+    // In month view, clicking a day switches to day view for that date
+    setView("day");
+    navigateDate("today"); // Reset first
+    // We need to set the date directly, but navigateDate doesn't support arbitrary dates
+    // So we'll use a small workaround
+    setTimeout(() => {
+      const event = new CustomEvent("calendar-navigate", { detail: date });
+      window.dispatchEvent(event);
+    }, 0);
+  };
+
+  const headerTitle = (() => {
+    if (view === "day") {
+      return currentDate.toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      });
+    }
+    if (view === "week") {
+      const start = new Date(currentDate);
+      start.setDate(start.getDate() - start.getDay());
+      const end = new Date(start);
+      end.setDate(end.getDate() + 6);
+
+      if (start.getMonth() === end.getMonth()) {
+        return `${start.toLocaleDateString("en-US", {
+          month: "long",
+          year: "numeric",
+        })}`;
+      }
+      return `${start.toLocaleDateString("en-US", {
+        month: "short",
+      })} - ${end.toLocaleDateString("en-US", {
+        month: "short",
+        year: "numeric",
+      })}`;
+    }
+    return currentDate.toLocaleDateString("en-US", {
+      month: "long",
+      year: "numeric",
+    });
+  })();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="flex items-center gap-3 text-muted-foreground">
+          <div className="h-5 w-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <span className="text-sm">Loading calendar...</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-screen">
+      {/* Header */}
+      <div className="pt-10 md:pt-0 px-4 md:px-6 py-4 border-b border-border/50 flex flex-col sm:flex-row sm:items-center gap-3 bg-card/50 backdrop-blur-sm sticky top-0 z-20">
+        <div className="flex items-center gap-3 flex-1">
+          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
+            <Calendar className="h-5 w-5 text-white" />
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigateDate("prev")}
+              className="p-1.5 rounded-lg hover:bg-accent transition-colors"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <h1 className="text-lg font-semibold tracking-tight min-w-[200px] text-center">
+              {headerTitle}
+            </h1>
+            <button
+              onClick={() => navigateDate("next")}
+              className="p-1.5 rounded-lg hover:bg-accent transition-colors"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {/* Today button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigateDate("today")}
+            className="rounded-lg text-xs"
+          >
+            Today
+          </Button>
+
+          {/* View toggle */}
+          <div className="flex rounded-lg border border-border/50 overflow-hidden">
+            {VIEW_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setView(opt.value)}
+                className={cn(
+                  "px-3 py-1.5 text-xs font-medium transition-colors",
+                  view === opt.value
+                    ? "bg-accent text-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
+          {/* New event button */}
+          <Button
+            size="sm"
+            onClick={() => {
+              setCreateDefaults({});
+              setCreateDialogOpen(true);
+            }}
+            className="gap-1.5 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white border-0 shadow-lg shadow-indigo-500/25"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">New Event</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* Calendar view */}
+      <div className="flex-1 overflow-hidden">
+        {view === "week" && (
+          <CalendarWeekView
+            currentDate={currentDate}
+            events={events}
+            onEventClick={setSelectedEvent}
+            onSlotClick={handleSlotClick}
+          />
+        )}
+        {view === "day" && (
+          <CalendarDayView
+            currentDate={currentDate}
+            events={events}
+            onEventClick={setSelectedEvent}
+            onSlotClick={handleSlotClick}
+          />
+        )}
+        {view === "month" && (
+          <CalendarMonthView
+            currentDate={currentDate}
+            events={events}
+            onEventClick={setSelectedEvent}
+            onDayClick={handleDayClick}
+          />
+        )}
+      </div>
+
+      {/* Event detail sheet */}
+      <EventDetailSheet
+        event={selectedEvent}
+        onClose={() => setSelectedEvent(null)}
+        onDeleted={refetch}
+      />
+
+      {/* Create event dialog */}
+      <CreateEventDialog
+        open={createDialogOpen}
+        onClose={() => setCreateDialogOpen(false)}
+        onCreated={refetch}
+        defaultDate={createDefaults.date}
+        defaultStartHour={createDefaults.hour}
+      />
+    </div>
+  );
+}
