@@ -29,13 +29,14 @@ export type Task = {
   position: number;
   is_recurring: boolean;
   recurrence_rule: string | null;
-  source: "manual" | "telegram" | "fathom" | "hubspot" | "calendar" | "ai";
+  source: "manual" | "telegram" | "fathom" | "hubspot" | "calendar" | "ai" | "email";
   source_id: string | null;
   completed_at: string | null;
   created_at: string;
   scheduled_start: string | null;
   scheduled_end: string | null;
   calendar_event_id: string | null;
+  inbox_item_id: string | null;
 };
 
 export type TaskWithWorkspace = Task & {
@@ -237,6 +238,49 @@ export type UserSettings = {
   planning_completed_date: string | null;
   shutdown_completed_date: string | null;
   daily_intention: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type EmailConnection = {
+  id: string;
+  user_id: string;
+  provider: "google" | "microsoft";
+  account_email: string;
+  access_token: string;
+  refresh_token: string | null;
+  token_expires_at: string | null;
+  scopes: string[];
+  sync_cursor: string | null;
+  last_synced_at: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type InboxItem = {
+  id: string;
+  user_id: string;
+  connection_id: string;
+  provider: "google" | "microsoft";
+  external_id: string;
+  thread_id: string | null;
+  subject: string | null;
+  snippet: string | null;
+  sender_name: string | null;
+  sender_email: string | null;
+  recipients: { email: string; name?: string; type: "to" | "cc" | "bcc" }[];
+  received_at: string;
+  is_read: boolean;
+  is_starred: boolean;
+  has_attachments: boolean;
+  labels: string[];
+  ai_category: "action_required" | "needs_response" | "informational" | "promotional" | "trash" | null;
+  ai_confidence: number | null;
+  ai_summary: string | null;
+  ai_classified_at: string | null;
+  task_id: string | null;
+  raw_data: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
 };

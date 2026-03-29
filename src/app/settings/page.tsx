@@ -2,12 +2,12 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
-import { UserSettings } from "@/types/database";
+import { UserSettings, EmailConnection } from "@/types/database";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageLayout } from "@/components/layout/page-layout";
-import { Settings, Save, Check, Bell, BellOff, Mail } from "lucide-react";
+import { Settings, Save, Check, Bell, BellOff, Mail, RefreshCw, Trash2, Loader2 } from "lucide-react";
 import {
   requestNotificationPermission,
   getNotificationStatus,
@@ -23,14 +23,16 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
   const [notifStatus, setNotifStatus] = useState<string>("default");
+  const [emailConnections, setEmailConnections] = useState<EmailConnection[]>([]);
+  const [syncing, setSyncing] = useState<string | null>(null);
 
   const fetchSettings = useCallback(async () => {
-    const { data } = await supabase
-      .from("user_settings")
-      .select("*")
-      .limit(1)
-      .single();
+    const [{ data }, { data: connections }] = await Promise.all([
+      supabase.from("user_settings").select("*").limit(1).single(),
+      supabase.from("email_connections").select("*").order("created_at"),
+    ]);
     if (data) setSettings(data);
+    setEmailConnections(connections || []);
     setLoading(false);
   }, []);
 
@@ -38,6 +40,27 @@ export default function SettingsPage() {
     fetchSettings();
     setNotifStatus(getNotificationStatus());
   }, [fetchSettings]);
+
+  const handleDisconnect = async (connectionId: string) => {
+    await supabase.from("email_connections").delete().eq("id", connectionId);
+    fetchSettings();
+  };
+
+  const handleSyncNow = async (connectionId: string) => {
+    setSyncing(connectionId);
+    try {
+      await fetch("/api/integrations/sync-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.NEXT_PUBLIC_DIGEST_PROCESS_SECRET || ""}`,
+        },
+        body: JSON.stringify({ connectionId }),
+      });
+      fetchSettings();
+    } catch { /* ignore */ }
+    setSyncing(null);
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -221,32 +244,88 @@ export default function SettingsPage() {
         <div>
           <h2 className="text-sm font-semibold text-balance font-heading">Email Integrations</h2>
           <p className="text-xs text-muted-foreground mt-1 text-pretty">
-            Connect your email accounts for inbox integration and notifications.
+            Connect your email accounts to see all messages in one inbox.
           </p>
         </div>
-        <div className="space-y-3">
-          {[
-            { name: "Gmail", icon: "G", color: "bg-muted", status: "coming soon" },
-            { name: "Outlook", icon: "M", color: "bg-muted", status: "coming soon" },
-          ].map((email) => (
-            <div
-              key={email.name}
-              className="flex items-center gap-4 rounded-lg border border-border/50 bg-card/50 p-4"
-            >
+
+        {/* Connected accounts */}
+        {emailConnections.length > 0 && (
+          <div className="space-y-2">
+            {emailConnections.map((conn) => (
               <div
-                className={`size-10 rounded-lg ${email.color} flex items-center justify-center shadow-sm`}
+                key={conn.id}
+                className="flex items-center gap-4 rounded-lg border border-border/50 bg-card/50 p-4"
               >
-                <Mail className="size-4 text-muted-foreground" />
+                <div className="size-10 rounded-lg bg-muted flex items-center justify-center">
+                  <Mail className="size-4 text-muted-foreground" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate text-pretty">{conn.account_email}</p>
+                  <p className="text-xs text-muted-foreground text-pretty">
+                    {conn.provider === "google" ? "Gmail" : "Outlook"}
+                    {conn.last_synced_at && (
+                      <> &middot; Last synced {new Date(conn.last_synced_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</>
+                    )}
+                    {!conn.is_active && <span className="text-red-400 ml-1">Disconnected — reconnect below</span>}
+                  </p>
+                </div>
+                <div className="flex gap-1.5">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleSyncNow(conn.id)}
+                    disabled={syncing === conn.id}
+                    className="rounded-lg text-xs gap-1"
+                  >
+                    {syncing === conn.id ? <Loader2 className="size-3 animate-spin" /> : <RefreshCw className="size-3" />}
+                    Sync
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDisconnect(conn.id)}
+                    className="rounded-lg text-xs text-muted-foreground hover:text-red-400"
+                  >
+                    <Trash2 className="size-3" />
+                  </Button>
+                </div>
               </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-pretty">{email.name}</p>
-                <p className="text-xs text-muted-foreground capitalize text-pretty">{email.status}</p>
+            ))}
+          </div>
+        )}
+
+        {/* Connect new accounts */}
+        <div className="space-y-2">
+          {[
+            { name: "Gmail", provider: "google", letter: "G" },
+            { name: "Outlook", provider: "microsoft", letter: "M" },
+          ].map((svc) => {
+            const isConnected = emailConnections.some((c) => c.provider === svc.provider && c.is_active);
+            return (
+              <div
+                key={svc.provider}
+                className="flex items-center gap-4 rounded-lg border border-border/50 bg-card/50 p-4"
+              >
+                <div className="size-10 rounded-lg bg-muted flex items-center justify-center">
+                  <span className="text-sm font-semibold text-muted-foreground">{svc.letter}</span>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-pretty">Connect {svc.name}</p>
+                  <p className="text-xs text-muted-foreground text-pretty">
+                    {isConnected ? "Add another account" : "Read-only access to your inbox"}
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-lg text-xs"
+                  onClick={() => window.location.href = `/api/integrations/${svc.provider}/authorize`}
+                >
+                  Connect
+                </Button>
               </div>
-              <Button variant="outline" size="sm" disabled className="rounded-lg text-xs">
-                Coming Soon
-              </Button>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
