@@ -21,24 +21,24 @@ const workspaceMeta: Record<
   {
     logo?: string;
     logoWidth?: number;
-    gradient: string;
+    color: string;
     description: string;
   }
 > = {
   niewdel: {
     logo: "/logos/niewdel-wordmark.png",
     logoWidth: 140,
-    gradient: "from-violet-500 to-purple-600",
+    color: "bg-violet-500",
     description: "AI & Automation Consulting",
   },
   i10: {
     logo: "/logos/i10-logo.png",
     logoWidth: 160,
-    gradient: "from-emerald-500 to-teal-600",
+    color: "bg-emerald-500",
     description: "Sandler Sales Training Franchise",
   },
   personal: {
-    gradient: "from-amber-500 to-orange-600",
+    color: "bg-amber-500",
     description: "Personal tasks, notes & goals",
   },
 };
@@ -139,9 +139,9 @@ export default function WorkspacePage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-dvh">
         <div className="flex items-center gap-3 text-muted-foreground">
-          <div className="h-5 w-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <div className="size-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
           <span className="text-sm">Loading...</span>
         </div>
       </div>
@@ -150,8 +150,8 @@ export default function WorkspacePage() {
 
   if (!workspace) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-muted-foreground">Workspace not found</p>
+      <div className="flex items-center justify-center min-h-dvh">
+        <p className="text-pretty text-muted-foreground">Workspace not found</p>
       </div>
     );
   }
@@ -172,11 +172,11 @@ export default function WorkspacePage() {
   // Determine which tabs to show (hide empty clients/projects for workspaces that don't use them)
   const hasTabs = clients.length > 0 || projects.length > 0 || slug === "niewdel";
   const tabs: { id: Tab; label: string; icon: React.ReactNode; count: number }[] = [
-    { id: "tasks", label: "Tasks", icon: <ListTodo className="h-3.5 w-3.5" />, count: activeTasks.length },
+    { id: "tasks", label: "Tasks", icon: <ListTodo className="size-3.5" />, count: activeTasks.length },
     ...(hasTabs
       ? [
-          { id: "clients" as Tab, label: "Clients", icon: <Users className="h-3.5 w-3.5" />, count: clients.length },
-          { id: "projects" as Tab, label: "Projects", icon: <FolderKanban className="h-3.5 w-3.5" />, count: projects.length },
+          { id: "clients" as Tab, label: "Clients", icon: <Users className="size-3.5" />, count: clients.length },
+          { id: "projects" as Tab, label: "Projects", icon: <FolderKanban className="size-3.5" />, count: projects.length },
         ]
       : []),
   ];
@@ -186,7 +186,7 @@ export default function WorkspacePage() {
       {/* Header */}
       <div className="pt-10 md:pt-2 space-y-4">
         <div
-          className={`inline-flex items-center gap-4 rounded-2xl bg-gradient-to-r ${meta.gradient} p-[1px]`}
+          className={`inline-flex items-center gap-4 rounded-2xl ${meta.color} p-[1px]`}
         >
           <div className="flex items-center gap-4 rounded-2xl bg-background px-5 py-3">
             {meta.logo ? (
@@ -200,16 +200,16 @@ export default function WorkspacePage() {
             ) : (
               <div className="flex items-center gap-3">
                 <div
-                  className={`h-10 w-10 rounded-xl bg-gradient-to-br ${meta.gradient} flex items-center justify-center shadow-lg`}
+                  className={`size-10 rounded-lg ${meta.color} flex items-center justify-center shadow-md`}
                 >
-                  <User className="h-5 w-5 text-white" />
+                  <User className="size-5 text-white" />
                 </div>
-                <h1 className="text-xl font-bold">{workspace.name}</h1>
+                <h1 className="text-balance text-xl font-bold">{workspace.name}</h1>
               </div>
             )}
           </div>
         </div>
-        <p className="text-muted-foreground text-sm">{meta.description}</p>
+        <p className="text-pretty text-muted-foreground text-sm">{meta.description}</p>
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
           <span>
             <span className="text-foreground font-semibold">
@@ -246,9 +246,9 @@ export default function WorkspacePage() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200",
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
                 activeTab === tab.id
-                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
+                  ? "bg-foreground text-background shadow-sm"
                   : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
               )}
             >
@@ -264,7 +264,7 @@ export default function WorkspacePage() {
       {activeTab === "tasks" && (
         <>
           <div className="flex items-center justify-between">
-            <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
+            <h2 className="text-balance text-xs font-medium text-muted-foreground uppercase">
               Tasks
             </h2>
             <ViewToggle view={taskView} onChange={setTaskView} />
@@ -293,12 +293,12 @@ export default function WorkspacePage() {
               />
 
               <div className="space-y-3">
-                <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
+                <h2 className="text-balance text-xs font-medium text-muted-foreground uppercase">
                   Active Tasks
                 </h2>
                 {activeTasks.length === 0 ? (
                   <div className="text-center py-12">
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-pretty text-sm text-muted-foreground">
                       No active tasks. Nice work.
                     </p>
                   </div>
@@ -321,12 +321,12 @@ export default function WorkspacePage() {
                 <div className="space-y-3">
                   <button
                     onClick={() => setShowDone(!showDone)}
-                    className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-widest hover:text-foreground transition-colors"
+                    className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase hover:text-foreground transition-colors"
                   >
                     {showDone ? (
-                      <ChevronUp className="h-3.5 w-3.5" />
+                      <ChevronUp className="size-3.5" />
                     ) : (
-                      <ChevronDown className="h-3.5 w-3.5" />
+                      <ChevronDown className="size-3.5" />
                     )}
                     Completed ({doneTasks.length})
                   </button>

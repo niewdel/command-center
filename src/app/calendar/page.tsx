@@ -105,7 +105,7 @@ export default function CalendarPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex items-center gap-3 text-muted-foreground">
-          <div className="h-5 w-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <div className="size-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
           <span className="text-sm">Loading calendar...</span>
         </div>
       </div>
@@ -113,28 +113,28 @@ export default function CalendarPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col h-dvh">
       {/* Header */}
-      <div className="pt-10 md:pt-0 px-4 md:px-6 py-4 border-b border-border/50 flex flex-col sm:flex-row sm:items-center gap-3 bg-card/50 backdrop-blur-sm sticky top-0 z-20">
+      <div className="pt-10 md:pt-0 px-4 md:px-6 py-4 border-b border-border/50 flex flex-col sm:flex-row sm:items-center gap-3 bg-card/50 sticky top-0 z-20">
         <div className="flex items-center gap-3 flex-1">
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
-            <Calendar className="h-5 w-5 text-white" />
+          <div className="size-10 rounded-lg bg-foreground flex items-center justify-center shadow-md">
+            <Calendar className="size-5 text-background" />
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => navigateDate("prev")}
               className="p-1.5 rounded-lg hover:bg-accent transition-colors"
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="size-4" />
             </button>
-            <h1 className="text-lg font-semibold tracking-tight min-w-[200px] text-center">
+            <h1 className="text-lg font-semibold text-balance min-w-[200px] text-center">
               {headerTitle}
             </h1>
             <button
               onClick={() => navigateDate("next")}
               className="p-1.5 rounded-lg hover:bg-accent transition-colors"
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="size-4" />
             </button>
           </div>
         </div>
@@ -175,9 +175,9 @@ export default function CalendarPage() {
               setCreateDefaults({});
               setCreateDialogOpen(true);
             }}
-            className="gap-1.5 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white border-0 shadow-lg shadow-indigo-500/25"
+            className="gap-1.5 rounded-lg bg-foreground hover:bg-foreground/90 text-background border-0 shadow-md"
           >
-            <Plus className="h-3.5 w-3.5" />
+            <Plus className="size-3.5" />
             <span className="hidden sm:inline">New Event</span>
           </Button>
         </div>

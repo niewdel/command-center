@@ -124,9 +124,9 @@ export default function ClientDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-dvh">
         <div className="flex items-center gap-3 text-muted-foreground">
-          <div className="h-5 w-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <div className="size-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
           <span className="text-sm">Loading...</span>
         </div>
       </div>
@@ -135,8 +135,8 @@ export default function ClientDetailPage() {
 
   if (!client || !workspace) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-muted-foreground">Client not found</p>
+      <div className="flex items-center justify-center min-h-dvh">
+        <p className="text-pretty text-muted-foreground">Client not found</p>
       </div>
     );
   }
@@ -155,13 +155,13 @@ export default function ClientDetailPage() {
           onClick={() => router.push(`/workspace/${slug}`)}
           className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
-          <ArrowLeft className="h-3.5 w-3.5" />
+          <ArrowLeft className="size-3.5" />
           {workspace.name}
         </button>
         <div className="flex items-start justify-between">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight">{client.name}</h1>
+              <h1 className="text-balance text-2xl font-bold">{client.name}</h1>
               <span
                 className={cn(
                   "text-[10px] font-medium px-2 py-0.5 rounded-full",
@@ -188,8 +188,8 @@ export default function ClientDetailPage() {
 
       {/* Overdue alert */}
       {overdueTasks.length > 0 && (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-3">
-          <p className="text-xs font-semibold text-red-400">
+        <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-3">
+          <p className="text-pretty text-xs font-semibold text-red-400">
             {overdueTasks.length} overdue task{overdueTasks.length > 1 ? "s" : ""}
           </p>
         </div>
@@ -198,7 +198,7 @@ export default function ClientDetailPage() {
       {/* Important Notes */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
+          <h2 className="text-balance text-xs font-medium text-muted-foreground uppercase">
             Important Notes
           </h2>
           {!editingNotes && (
@@ -224,7 +224,7 @@ export default function ClientDetailPage() {
               autoFocus
             />
             <div className="flex gap-2">
-              <Button size="sm" onClick={saveNotes} className="h-7 rounded-lg bg-gradient-to-r from-violet-500 to-purple-600 text-white border-0 text-xs">
+              <Button size="sm" onClick={saveNotes} className="h-7 rounded-lg bg-foreground text-background border-0 text-xs">
                 Save
               </Button>
               <Button size="sm" variant="ghost" onClick={() => { setEditingNotes(false); setNotesText(client.notes || ""); }} className="h-7 rounded-lg text-xs">
@@ -233,12 +233,12 @@ export default function ClientDetailPage() {
             </div>
           </div>
         ) : client.notes ? (
-          <div className="rounded-xl border border-border/50 bg-card/50 p-4">
-            <p className="text-sm whitespace-pre-wrap">{client.notes}</p>
+          <div className="rounded-lg border border-border/50 bg-card/50 p-4">
+            <p className="text-pretty text-sm whitespace-pre-wrap">{client.notes}</p>
           </div>
         ) : (
-          <div className="rounded-xl border border-dashed border-border/50 p-4 text-center">
-            <p className="text-xs text-muted-foreground/60">No notes yet. Click edit to add some.</p>
+          <div className="rounded-lg border border-dashed border-border/50 p-4 text-center">
+            <p className="text-pretty text-xs text-muted-foreground/60">No notes yet. Click edit to add some.</p>
           </div>
         )}
       </div>
@@ -246,8 +246,8 @@ export default function ClientDetailPage() {
       {/* Important Links */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-            <LinkIcon className="h-3.5 w-3.5" />
+          <h2 className="text-balance text-xs font-medium text-muted-foreground uppercase flex items-center gap-1.5">
+            <LinkIcon className="size-3.5" />
             Links
           </h2>
           {!editingLinks && (
@@ -273,7 +273,7 @@ export default function ClientDetailPage() {
               autoFocus
             />
             <div className="flex gap-2">
-              <Button size="sm" onClick={saveLinks} className="h-7 rounded-lg bg-gradient-to-r from-violet-500 to-purple-600 text-white border-0 text-xs">
+              <Button size="sm" onClick={saveLinks} className="h-7 rounded-lg bg-foreground text-background border-0 text-xs">
                 Save
               </Button>
               <Button size="sm" variant="ghost" onClick={() => { setEditingLinks(false); setLinksText(client.links ? client.links.map((l: { label: string; url: string }) => `${l.label}: ${l.url}`).join("\n") : ""); }} className="h-7 rounded-lg text-xs">
@@ -289,7 +289,7 @@ export default function ClientDetailPage() {
                 href={link.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border/50 bg-card/50 text-xs font-medium hover:bg-card hover:border-border transition-all"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border/50 bg-card/50 text-xs font-medium hover:bg-card hover:border-border transition-colors"
               >
                 <ExternalLink className="h-3 w-3 text-primary" />
                 {link.label}
@@ -297,8 +297,8 @@ export default function ClientDetailPage() {
             ))}
           </div>
         ) : (
-          <div className="rounded-xl border border-dashed border-border/50 p-4 text-center">
-            <p className="text-xs text-muted-foreground/60">No links yet. Click edit to add some.</p>
+          <div className="rounded-lg border border-dashed border-border/50 p-4 text-center">
+            <p className="text-pretty text-xs text-muted-foreground/60">No links yet. Click edit to add some.</p>
           </div>
         )}
       </div>
@@ -306,8 +306,8 @@ export default function ClientDetailPage() {
       {/* Projects */}
       {projects.length > 0 && (
         <div className="space-y-3">
-          <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-            <FolderKanban className="h-3.5 w-3.5" />
+          <h2 className="text-balance text-xs font-medium text-muted-foreground uppercase flex items-center gap-1.5">
+            <FolderKanban className="size-3.5" />
             Projects ({projects.length})
           </h2>
           <div className="grid gap-2">
@@ -315,12 +315,12 @@ export default function ClientDetailPage() {
               <button
                 key={project.id}
                 onClick={() => router.push(`/workspace/${slug}/project/${project.id}`)}
-                className="flex items-center justify-between rounded-xl border border-border/50 bg-card/50 p-3 hover:bg-card hover:border-border transition-all text-left"
+                className="flex items-center justify-between rounded-lg border border-border/50 bg-card/50 p-3 hover:bg-card hover:border-border transition-colors text-left"
               >
                 <div className="space-y-0.5">
-                  <p className="text-sm font-medium">{project.name}</p>
+                  <p className="text-pretty text-sm font-medium">{project.name}</p>
                   {project.description && (
-                    <p className="text-xs text-muted-foreground line-clamp-1">{project.description}</p>
+                    <p className="text-pretty text-xs text-muted-foreground line-clamp-1">{project.description}</p>
                   )}
                 </div>
                 <span
@@ -342,21 +342,21 @@ export default function ClientDetailPage() {
       {/* Meeting Notes */}
       {notes.length > 0 && (
         <div className="space-y-3">
-          <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-            <FileText className="h-3.5 w-3.5" />
+          <h2 className="text-balance text-xs font-medium text-muted-foreground uppercase flex items-center gap-1.5">
+            <FileText className="size-3.5" />
             Notes ({notes.length})
           </h2>
           <div className="grid gap-2">
             {notes.map((note) => (
               <div
                 key={note.id}
-                className="rounded-xl border border-border/50 bg-card/50 p-3 hover:bg-card hover:border-border transition-all"
+                className="rounded-lg border border-border/50 bg-card/50 p-3 hover:bg-card hover:border-border transition-colors"
               >
-                <p className="text-sm font-medium">{note.title}</p>
+                <p className="text-pretty text-sm font-medium">{note.title}</p>
                 {note.content && (
-                  <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{note.content}</p>
+                  <p className="text-pretty text-xs text-muted-foreground line-clamp-2 mt-0.5">{note.content}</p>
                 )}
-                <p className="text-[10px] text-muted-foreground/60 mt-1">
+                <p className="text-pretty text-[10px] text-muted-foreground/60 mt-1">
                   {new Date(note.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                   {note.type === "meeting" && " \u00b7 Meeting"}
                 </p>
@@ -368,7 +368,7 @@ export default function ClientDetailPage() {
 
       {/* Tasks */}
       <div className="space-y-3">
-        <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
+        <h2 className="text-balance text-xs font-medium text-muted-foreground uppercase">
           Tasks
         </h2>
         <AddTaskForm
@@ -386,7 +386,7 @@ export default function ClientDetailPage() {
         />
         {activeTasks.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-sm text-muted-foreground">No active tasks for this client.</p>
+            <p className="text-pretty text-sm text-muted-foreground">No active tasks for this client.</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -407,9 +407,9 @@ export default function ClientDetailPage() {
           <div className="space-y-3">
             <button
               onClick={() => setShowDone(!showDone)}
-              className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-widest hover:text-foreground transition-colors"
+              className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase hover:text-foreground transition-colors"
             >
-              {showDone ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+              {showDone ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
               Completed ({doneTasks.length})
             </button>
             {showDone && (

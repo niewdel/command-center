@@ -68,9 +68,9 @@ export default function NotesPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-dvh">
         <div className="flex items-center gap-3 text-muted-foreground">
-          <div className="h-5 w-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <div className="size-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
           <span className="text-sm">Loading...</span>
         </div>
       </div>
@@ -82,10 +82,10 @@ export default function NotesPage() {
       <div className="pt-10 md:pt-2 flex items-start justify-between">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/25">
-              <FileText className="h-5 w-5 text-white" />
+            <div className="size-10 rounded-lg bg-foreground flex items-center justify-center shadow-md">
+              <FileText className="size-5 text-background" />
             </div>
-            <h1 className="text-2xl font-bold tracking-tight">Notes</h1>
+            <h1 className="text-2xl font-bold text-balance">Notes</h1>
           </div>
         </div>
         <Button
@@ -93,10 +93,10 @@ export default function NotesPage() {
             setEditingNote(null);
             setShowEditor(true);
           }}
-          className="gap-2 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white border-0 rounded-xl shadow-lg shadow-amber-500/25"
+          className="gap-2 bg-foreground hover:bg-foreground/90 text-background border-0 rounded-lg shadow-md"
           size="sm"
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="size-4" />
           New Note
         </Button>
       </div>
@@ -111,9 +111,9 @@ export default function NotesPage() {
             key={item.id}
             onClick={() => setFilterWorkspace(item.id)}
             className={cn(
-              "px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200",
+              "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
               filterWorkspace === item.id
-                ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
+                ? "bg-primary text-primary-foreground shadow-sm"
                 : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
             )}
           >
@@ -125,11 +125,11 @@ export default function NotesPage() {
       {/* Notes list */}
       {filtered.length === 0 ? (
         <div className="text-center py-16">
-          <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-muted/50 mb-4">
-            <FileText className="h-7 w-7 text-muted-foreground" />
+          <div className="inline-flex size-14 items-center justify-center rounded-2xl bg-muted/50 mb-4">
+            <FileText className="size-7 text-muted-foreground" />
           </div>
-          <p className="text-sm font-medium">No notes yet</p>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-sm font-medium text-pretty">No notes yet</p>
+          <p className="text-xs text-muted-foreground mt-1 text-pretty">
             Capture thoughts, meeting notes, and plans.
           </p>
         </div>
@@ -140,7 +140,7 @@ export default function NotesPage() {
             return (
               <div
                 key={note.id}
-                className="group rounded-xl border border-border/50 bg-card/50 p-4 hover:bg-card hover:border-border transition-all cursor-pointer"
+                className="group rounded-lg border border-border/50 bg-card/50 p-4 hover:bg-card hover:border-border transition-colors cursor-pointer"
                 onClick={() => {
                   setEditingNote(note);
                   setShowEditor(true);
@@ -150,7 +150,7 @@ export default function NotesPage() {
                   <div className="space-y-1 flex-1 min-w-0">
                     <h3 className="text-sm font-semibold truncate">{note.title}</h3>
                     {note.content && (
-                      <p className="text-xs text-muted-foreground line-clamp-2">
+                      <p className="text-xs text-muted-foreground line-clamp-2 text-pretty">
                         {note.content}
                       </p>
                     )}
@@ -171,17 +171,17 @@ export default function NotesPage() {
                       </span>
                     </div>
                   </div>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all ml-2">
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10"
+                      className="size-8 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDelete(note.id);
                       }}
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <Trash2 className="size-3.5" />
                     </Button>
                   </div>
                 </div>
@@ -259,7 +259,7 @@ function NoteEditor({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] bg-card border-border rounded-2xl shadow-2xl shadow-black/30">
+      <DialogContent className="sm:max-w-[600px] bg-card border-border rounded-lg shadow-md">
         <DialogHeader>
           <DialogTitle>{note ? "Edit Note" : "New Note"}</DialogTitle>
         </DialogHeader>
@@ -275,7 +275,7 @@ function NoteEditor({
             <SelectTrigger className="w-[180px] bg-background/50 border-border/50 rounded-lg">
               <SelectValue placeholder="Workspace" />
             </SelectTrigger>
-            <SelectContent className="bg-popover border-border rounded-xl">
+            <SelectContent className="bg-popover border-border rounded-lg">
               {workspaces.map((ws) => (
                 <SelectItem key={ws.id} value={ws.id} className="rounded-lg">
                   {ws.name}
@@ -298,7 +298,7 @@ function NoteEditor({
           <Button
             onClick={handleSave}
             disabled={!title.trim() || saving}
-            className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white border-0 rounded-lg shadow-lg shadow-amber-500/25"
+            className="bg-foreground hover:bg-foreground/90 text-background border-0 rounded-lg shadow-sm"
           >
             {saving ? "Saving..." : note ? "Save Changes" : "Create Note"}
           </Button>

@@ -85,9 +85,9 @@ export default function GoalsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-dvh">
         <div className="flex items-center gap-3 text-muted-foreground">
-          <div className="h-5 w-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <div className="size-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
           <span className="text-sm">Loading...</span>
         </div>
       </div>
@@ -99,12 +99,12 @@ export default function GoalsPage() {
       <div className="pt-10 md:pt-2 flex items-start justify-between">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center shadow-lg shadow-rose-500/25">
-              <Target className="h-5 w-5 text-white" />
+            <div className="size-10 rounded-lg bg-foreground flex items-center justify-center shadow-md">
+              <Target className="size-5 text-background" />
             </div>
-            <h1 className="text-2xl font-bold tracking-tight">Goals</h1>
+            <h1 className="text-2xl font-bold text-balance">Goals</h1>
           </div>
-          <p className="text-sm text-muted-foreground mt-2">
+          <p className="text-sm text-muted-foreground mt-2 text-pretty">
             What are you working toward? Link tasks to goals to track your progress.
           </p>
         </div>
@@ -113,10 +113,10 @@ export default function GoalsPage() {
             setEditingGoal(null);
             setShowAdd(true);
           }}
-          className="gap-2 bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white border-0 rounded-xl shadow-lg shadow-rose-500/25"
+          className="gap-2 bg-foreground hover:bg-foreground/90 text-background border-0 rounded-lg shadow-md"
           size="sm"
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="size-4" />
           New Goal
         </Button>
       </div>
@@ -124,11 +124,11 @@ export default function GoalsPage() {
       {/* Active Goals */}
       {activeGoals.length === 0 && completedGoals.length === 0 && (
         <div className="text-center py-16">
-          <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-muted/50 mb-4">
-            <Target className="h-7 w-7 text-muted-foreground" />
+          <div className="inline-flex size-14 items-center justify-center rounded-2xl bg-muted/50 mb-4">
+            <Target className="size-7 text-muted-foreground" />
           </div>
-          <p className="text-sm font-medium">No goals yet</p>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-sm font-medium text-pretty">No goals yet</p>
+          <p className="text-xs text-muted-foreground mt-1 text-pretty">
             Set a goal to connect your daily tasks to what really matters.
           </p>
         </div>
@@ -136,7 +136,7 @@ export default function GoalsPage() {
 
       {activeGoals.length > 0 && (
         <div className="space-y-4">
-          <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
+          <h2 className="text-xs font-medium text-muted-foreground uppercase text-balance">
             Active Goals
           </h2>
           {activeGoals.map((goal) => {
@@ -145,42 +145,42 @@ export default function GoalsPage() {
             return (
               <div
                 key={goal.id}
-                className="group rounded-xl border border-border/50 bg-card/50 p-5 space-y-3 hover:bg-card hover:border-border transition-all"
+                className="group rounded-lg border border-border/50 bg-card/50 p-5 space-y-3 hover:bg-card hover:border-border transition-colors"
               >
                 <div className="flex items-start justify-between">
                   <div className="space-y-1">
                     <h3 className="text-sm font-semibold">{goal.title}</h3>
                     {goal.description && (
-                      <p className="text-xs text-muted-foreground">{goal.description}</p>
+                      <p className="text-xs text-muted-foreground text-pretty">{goal.description}</p>
                     )}
                   </div>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 rounded-lg"
+                      className="size-8 rounded-lg"
                       onClick={() => {
                         setEditingGoal(goal);
                         setShowAdd(true);
                       }}
                     >
-                      <Pencil className="h-3.5 w-3.5" />
+                      <Pencil className="size-3.5" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 rounded-lg text-emerald-400"
+                      className="size-8 rounded-lg text-emerald-400"
                       onClick={() => handleComplete(goal.id)}
                     >
-                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      <CheckCircle2 className="size-3.5" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 rounded-lg text-muted-foreground hover:text-red-400"
+                      className="size-8 rounded-lg text-muted-foreground hover:text-red-400"
                       onClick={() => handleDelete(goal.id)}
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <Trash2 className="size-3.5" />
                     </Button>
                   </div>
                 </div>
@@ -210,7 +210,7 @@ export default function GoalsPage() {
                     </div>
                     <div className="h-2 rounded-full bg-muted/50 overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-gradient-to-r from-rose-500 to-pink-500 transition-all duration-500"
+                        className="h-full rounded-full bg-foreground transition-all duration-500"
                         style={{ width: `${progress.percent}%` }}
                       />
                     </div>
@@ -224,16 +224,16 @@ export default function GoalsPage() {
 
       {completedGoals.length > 0 && (
         <div className="space-y-4">
-          <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
+          <h2 className="text-xs font-medium text-muted-foreground uppercase text-balance">
             Completed
           </h2>
           {completedGoals.map((goal) => (
             <div
               key={goal.id}
-              className="rounded-xl border border-border/30 bg-card/30 p-4 opacity-60"
+              className="rounded-lg border border-border/30 bg-card/30 p-4 opacity-60"
             >
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                <CheckCircle2 className="size-4 text-emerald-400" />
                 <span className="text-sm font-medium line-through">{goal.title}</span>
               </div>
             </div>
@@ -317,13 +317,13 @@ function GoalDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[460px] bg-card border-border rounded-2xl shadow-2xl shadow-black/30">
+      <DialogContent className="sm:max-w-[460px] bg-card border-border rounded-2xl shadow-md">
         <DialogHeader>
           <DialogTitle>{goal ? "Edit Goal" : "New Goal"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-2">
-            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <Label className="text-xs font-medium text-muted-foreground uppercase">
               What&apos;s the goal?
             </Label>
             <Input
@@ -335,7 +335,7 @@ function GoalDialog({
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <Label className="text-xs font-medium text-muted-foreground uppercase">
               Description
             </Label>
             <Textarea
@@ -348,14 +348,14 @@ function GoalDialog({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <Label className="text-xs font-medium text-muted-foreground uppercase">
                 Workspace
               </Label>
               <Select value={workspaceId} onValueChange={(v) => v && setWorkspaceId(v)}>
                 <SelectTrigger className="bg-background/50 border-border/50 rounded-lg">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-popover border-border rounded-xl">
+                <SelectContent className="bg-popover border-border rounded-lg">
                   {workspaces.map((ws) => (
                     <SelectItem key={ws.id} value={ws.id} className="rounded-lg">
                       {ws.name}
@@ -365,14 +365,14 @@ function GoalDialog({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <Label className="text-xs font-medium text-muted-foreground uppercase">
                 Type
               </Label>
               <Select value={type} onValueChange={(v) => setType(v as "business" | "personal")}>
                 <SelectTrigger className="bg-background/50 border-border/50 rounded-lg">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-popover border-border rounded-xl">
+                <SelectContent className="bg-popover border-border rounded-lg">
                   <SelectItem value="business" className="rounded-lg">Business</SelectItem>
                   <SelectItem value="personal" className="rounded-lg">Personal</SelectItem>
                 </SelectContent>
@@ -380,7 +380,7 @@ function GoalDialog({
             </div>
           </div>
           <div className="space-y-2">
-            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <Label className="text-xs font-medium text-muted-foreground uppercase">
               Target Date
             </Label>
             <Input
@@ -398,7 +398,7 @@ function GoalDialog({
           <Button
             onClick={handleSave}
             disabled={!title.trim() || saving}
-            className="bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white border-0 rounded-lg shadow-lg shadow-rose-500/25"
+            className="bg-foreground hover:bg-foreground/90 text-background border-0 rounded-lg shadow-md"
           >
             {saving ? "Saving..." : goal ? "Save Changes" : "Create Goal"}
           </Button>

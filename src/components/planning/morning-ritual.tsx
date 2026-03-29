@@ -272,17 +272,17 @@ export function MorningRitual({
   }, [todayTasks, estimates, tasks, td, settings]);
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-dvh flex flex-col">
       {/* Header */}
-      <div className="border-b border-border/50 bg-card/30 backdrop-blur-sm sticky top-0 z-10">
+      <div className="border-b border-border/50 bg-card/30 sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/25">
-              <Sunrise className="h-4.5 w-4.5 text-white" />
+            <div className="size-9 rounded-lg bg-foreground flex items-center justify-center shadow-sm">
+              <Sunrise className="h-4.5 w-4.5 text-background" />
             </div>
             <div>
-              <h1 className="text-sm font-semibold">Morning Planning</h1>
-              <p className="text-xs text-muted-foreground">
+              <h1 className="text-sm font-semibold text-balance">Morning Planning</h1>
+              <p className="text-xs text-muted-foreground text-pretty">
                 Step {currentStep + 1} of {STEPS.length}
               </p>
             </div>
@@ -299,7 +299,7 @@ export function MorningRitual({
         {/* Progress bar */}
         <div className="h-1 bg-muted/30">
           <div
-            className="h-full bg-gradient-to-r from-indigo-500 to-purple-600 transition-all duration-500"
+            className="h-full bg-foreground transition-colors"
             style={{
               width: `${((currentStep + 1) / STEPS.length) * 100}%`,
             }}
@@ -314,10 +314,10 @@ export function MorningRitual({
           <div className="space-y-6">
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-red-400">
-                <AlertCircle className="h-5 w-5" />
-                <h2 className="text-lg font-semibold">Review Overdue</h2>
+                <AlertCircle className="size-5" />
+                <h2 className="text-lg font-semibold text-balance">Review Overdue</h2>
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground text-pretty">
                 These tasks are past their due date. Decide what to do with each one.
               </p>
             </div>
@@ -343,10 +343,10 @@ export function MorningRitual({
           <div className="space-y-6">
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-amber-400">
-                <CalendarClock className="h-5 w-5" />
-                <h2 className="text-lg font-semibold">Yesterday&apos;s Unfinished</h2>
+                <CalendarClock className="size-5" />
+                <h2 className="text-lg font-semibold text-balance">Yesterday&apos;s Unfinished</h2>
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground text-pretty">
                 These tasks were planned but not completed. Move them to today, reschedule, or let them go.
               </p>
             </div>
@@ -372,16 +372,16 @@ export function MorningRitual({
           <div className="space-y-6">
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-indigo-400">
-                <Star className="h-5 w-5" />
-                <h2 className="text-lg font-semibold">Pick Your Focus</h2>
+                <Star className="size-5" />
+                <h2 className="text-lg font-semibold text-balance">Pick Your Focus</h2>
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground text-pretty">
                 Choose up to 3 tasks as today&apos;s priorities. These will be highlighted at the top of your day.
               </p>
             </div>
             {todayTasks.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground text-pretty">
                   No tasks planned for today yet. You can add tasks after planning.
                 </p>
               </div>
@@ -392,7 +392,7 @@ export function MorningRitual({
                     key={task.id}
                     onClick={() => toggleFocus(task.id)}
                     className={cn(
-                      "w-full flex items-center gap-3 rounded-xl border p-4 text-left transition-all duration-200",
+                      "w-full flex items-center gap-3 rounded-lg border p-4 text-left transition-colors",
                       focusIds.has(task.id)
                         ? "border-indigo-500/30 bg-indigo-500/5 ring-1 ring-indigo-500/10"
                         : "border-border/50 bg-card/50 hover:bg-card hover:border-border"
@@ -400,14 +400,14 @@ export function MorningRitual({
                   >
                     <div
                       className={cn(
-                        "h-6 w-6 rounded-full border-2 flex items-center justify-center transition-all",
+                        "size-6 rounded-full border-2 flex items-center justify-center transition-colors",
                         focusIds.has(task.id)
                           ? "border-indigo-500 bg-indigo-500"
                           : "border-muted-foreground/30"
                       )}
                     >
                       {focusIds.has(task.id) && (
-                        <Star className="h-3 w-3 text-white fill-white" />
+                        <Star className="size-3 text-white fill-white" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -422,7 +422,7 @@ export function MorningRitual({
                 ))}
               </div>
             )}
-            <p className="text-xs text-muted-foreground text-center">
+            <p className="text-xs text-muted-foreground text-center text-pretty">
               {focusIds.size}/3 selected
             </p>
           </div>
@@ -433,16 +433,16 @@ export function MorningRitual({
           <div className="space-y-6">
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-emerald-400">
-                <Clock className="h-5 w-5" />
-                <h2 className="text-lg font-semibold">Estimate Time</h2>
+                <Clock className="size-5" />
+                <h2 className="text-lg font-semibold text-balance">Estimate Time</h2>
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground text-pretty">
                 How long will each task take? This helps you avoid overcommitting.
               </p>
             </div>
             {todayTasks.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground text-pretty">
                   No tasks to estimate.
                 </p>
               </div>
@@ -453,7 +453,7 @@ export function MorningRitual({
                   return (
                     <div
                       key={task.id}
-                      className="rounded-xl border border-border/50 bg-card/50 p-4 space-y-3"
+                      className="rounded-lg border border-border/50 bg-card/50 p-4 space-y-3"
                     >
                       <div className="flex items-center gap-2">
                         {focusIds.has(task.id) && (
@@ -468,7 +468,7 @@ export function MorningRitual({
                             type="button"
                             onClick={() => setEstimate(task.id, preset.value)}
                             className={cn(
-                              "px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200",
+                              "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
                               est === preset.value
                                 ? "bg-primary text-primary-foreground shadow-sm"
                                 : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -490,21 +490,21 @@ export function MorningRitual({
         {step === "Capacity Check" && (
           <div className="space-y-6">
             <div className="space-y-2">
-              <h2 className="text-lg font-semibold">Capacity Check</h2>
-              <p className="text-sm text-muted-foreground">
+              <h2 className="text-lg font-semibold text-balance">Capacity Check</h2>
+              <p className="text-sm text-muted-foreground text-pretty">
                 Here&apos;s how your day looks based on your estimates.
               </p>
             </div>
             <CapacityBar capacity={capacityWithEstimates} />
             {capacityWithEstimates.level === "red" && (
-              <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
-                <p className="text-sm text-amber-400">
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4">
+                <p className="text-sm text-amber-400 text-pretty">
                   You&apos;re overbooked. Consider moving some tasks to another day or reducing your estimates. It&apos;s better to finish 3 things well than start 8.
                 </p>
               </div>
             )}
             <div className="space-y-2">
-              <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
+              <h3 className="text-xs font-medium text-muted-foreground uppercase">
                 Today&apos;s Plan ({todayTasks.length} tasks)
               </h3>
               {todayTasks.map((task) => {
@@ -523,7 +523,7 @@ export function MorningRitual({
                     <span className="text-sm flex-1">{task.title}</span>
                     {est && (
                       <span className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
+                        <Clock className="size-3" />
                         {formatMinutes(est)}
                       </span>
                     )}
@@ -539,10 +539,10 @@ export function MorningRitual({
           <div className="space-y-6">
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-purple-400">
-                <Sparkles className="h-5 w-5" />
-                <h2 className="text-lg font-semibold">Set Your Intention</h2>
+                <Sparkles className="size-5" />
+                <h2 className="text-lg font-semibold text-balance">Set Your Intention</h2>
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground text-pretty">
                 In one sentence — what does a great day look like?
               </p>
             </div>
@@ -551,24 +551,24 @@ export function MorningRitual({
               value={intention}
               onChange={(e) => setIntention(e.target.value)}
               placeholder="e.g., Finish the proposal and take a real lunch break"
-              className="bg-background/50 border-border/50 rounded-xl h-12 text-sm focus-visible:ring-primary/50"
+              className="bg-background/50 border-border/50 rounded-lg h-12 text-sm focus-visible:ring-primary/50"
             />
-            <div className="rounded-xl border border-border/50 bg-card/30 p-5 space-y-3">
+            <div className="rounded-lg border border-border/50 bg-card/30 p-5 space-y-3">
               <h3 className="text-sm font-semibold">Your day at a glance</h3>
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
                   <p className="text-2xl font-bold">{todayTasks.length}</p>
-                  <p className="text-xs text-muted-foreground">Tasks</p>
+                  <p className="text-xs text-muted-foreground text-pretty">Tasks</p>
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{focusIds.size}</p>
-                  <p className="text-xs text-muted-foreground">Focus</p>
+                  <p className="text-xs text-muted-foreground text-pretty">Focus</p>
                 </div>
                 <div>
                   <p className="text-2xl font-bold">
                     {formatMinutes(capacityWithEstimates.estimatedMinutes)}
                   </p>
-                  <p className="text-xs text-muted-foreground">Estimated</p>
+                  <p className="text-xs text-muted-foreground text-pretty">Estimated</p>
                 </div>
               </div>
             </div>
@@ -577,7 +577,7 @@ export function MorningRitual({
       </div>
 
       {/* Navigation footer */}
-      <div className="border-t border-border/50 bg-card/30 backdrop-blur-sm sticky bottom-0">
+      <div className="border-t border-border/50 bg-card/30 sticky bottom-0">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
           <Button
             variant="ghost"
@@ -586,7 +586,7 @@ export function MorningRitual({
             disabled={currentStep === 0 || (currentStep === 1 && overdueTasks.length === 0)}
             className="gap-2"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="size-4" />
             Back
           </Button>
 
@@ -594,14 +594,14 @@ export function MorningRitual({
             <Button
               onClick={handleFinish}
               disabled={saving}
-              className="gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white border-0 rounded-xl shadow-lg shadow-indigo-500/25"
+              className="gap-2 bg-foreground hover:bg-foreground/90 text-background border-0 rounded-lg shadow-sm"
               size="sm"
             >
               {saving ? (
                 "Saving..."
               ) : (
                 <>
-                  <Check className="h-4 w-4" />
+                  <Check className="size-4" />
                   Start My Day
                 </>
               )}
@@ -610,11 +610,11 @@ export function MorningRitual({
             <Button
               onClick={nextStep}
               disabled={!canProceed()}
-              className="gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white border-0 rounded-xl shadow-lg shadow-indigo-500/25"
+              className="gap-2 bg-foreground hover:bg-foreground/90 text-background border-0 rounded-lg shadow-sm"
               size="sm"
             >
               Continue
-              <ArrowRight className="h-4 w-4" />
+              <ArrowRight className="size-4" />
             </Button>
           )}
         </div>
@@ -641,7 +641,7 @@ function TriageCard({
   return (
     <div
       className={cn(
-        "rounded-xl border bg-card/50 p-4 space-y-3 transition-all duration-200",
+        "rounded-lg border bg-card/50 p-4 space-y-3 transition-colors",
         triage?.action === "today" && "border-emerald-500/30 bg-emerald-500/5",
         triage?.action === "reschedule" && "border-amber-500/30 bg-amber-500/5",
         triage?.action === "drop" && "border-muted opacity-50",
@@ -669,7 +669,7 @@ function TriageCard({
         <button
           onClick={() => onAction("today")}
           className={cn(
-            "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+            "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
             triage?.action === "today"
               ? "bg-emerald-500 text-white"
               : "bg-muted/50 text-muted-foreground hover:bg-emerald-500/20 hover:text-emerald-400"
@@ -677,7 +677,7 @@ function TriageCard({
         >
           <Checkbox
             checked={triage?.action === "today"}
-            className="h-3 w-3 border-current data-[state=checked]:bg-transparent data-[state=checked]:border-current"
+            className="size-3 border-current data-[state=checked]:bg-transparent data-[state=checked]:border-current"
           />
           Do Today
         </button>
@@ -691,13 +691,13 @@ function TriageCard({
             }
           }}
           className={cn(
-            "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+            "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
             triage?.action === "reschedule"
               ? "bg-amber-500 text-white"
               : "bg-muted/50 text-muted-foreground hover:bg-amber-500/20 hover:text-amber-400"
           )}
         >
-          <CalendarClock className="h-3 w-3" />
+          <CalendarClock className="size-3" />
           Reschedule
         </button>
         <button
@@ -706,13 +706,13 @@ function TriageCard({
             onAction("drop");
           }}
           className={cn(
-            "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+            "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
             triage?.action === "drop"
               ? "bg-muted text-foreground"
               : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
           )}
         >
-          <Trash2 className="h-3 w-3" />
+          <Trash2 className="size-3" />
           Drop
         </button>
       </div>

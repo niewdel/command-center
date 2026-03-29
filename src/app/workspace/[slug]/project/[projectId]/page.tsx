@@ -104,9 +104,9 @@ export default function ProjectDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-dvh">
         <div className="flex items-center gap-3 text-muted-foreground">
-          <div className="h-5 w-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <div className="size-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
           <span className="text-sm">Loading...</span>
         </div>
       </div>
@@ -115,8 +115,8 @@ export default function ProjectDetailPage() {
 
   if (!project || !workspace) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-muted-foreground">Project not found</p>
+      <div className="flex items-center justify-center min-h-dvh">
+        <p className="text-pretty text-muted-foreground">Project not found</p>
       </div>
     );
   }
@@ -143,12 +143,12 @@ export default function ProjectDetailPage() {
           onClick={() => router.push(backPath)}
           className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
-          <ArrowLeft className="h-3.5 w-3.5" />
+          <ArrowLeft className="size-3.5" />
           {backLabel}
         </button>
         <div className="flex items-start justify-between">
           <div className="space-y-1">
-            <h1 className="text-2xl font-bold tracking-tight">{project.name}</h1>
+            <h1 className="text-balance text-2xl font-bold">{project.name}</h1>
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
               {client && <span>Client: {client.name}</span>}
               <span>
@@ -160,7 +160,7 @@ export default function ProjectDetailPage() {
             <SelectTrigger className={cn("w-[130px] h-8 rounded-lg text-xs font-medium border-0", statusConfig[project.status].className)}>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-popover border-border rounded-xl">
+            <SelectContent className="bg-popover border-border rounded-lg">
               <SelectItem value="active" className="rounded-lg text-xs">Active</SelectItem>
               <SelectItem value="on_hold" className="rounded-lg text-xs">On Hold</SelectItem>
               <SelectItem value="completed" className="rounded-lg text-xs">Completed</SelectItem>
@@ -172,7 +172,7 @@ export default function ProjectDetailPage() {
       {/* Description */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
+          <h2 className="text-balance text-xs font-medium text-muted-foreground uppercase">
             Description
           </h2>
           {!editingDescription && (
@@ -198,7 +198,7 @@ export default function ProjectDetailPage() {
               autoFocus
             />
             <div className="flex gap-2">
-              <Button size="sm" onClick={saveDescription} className="h-7 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 text-white border-0 text-xs">
+              <Button size="sm" onClick={saveDescription} className="h-7 rounded-lg bg-foreground text-background border-0 text-xs">
                 Save
               </Button>
               <Button size="sm" variant="ghost" onClick={() => { setEditingDescription(false); setDescriptionText(project.description || ""); }} className="h-7 rounded-lg text-xs">
@@ -207,12 +207,12 @@ export default function ProjectDetailPage() {
             </div>
           </div>
         ) : project.description ? (
-          <div className="rounded-xl border border-border/50 bg-card/50 p-4">
-            <p className="text-sm whitespace-pre-wrap">{project.description}</p>
+          <div className="rounded-lg border border-border/50 bg-card/50 p-4">
+            <p className="text-pretty text-sm whitespace-pre-wrap">{project.description}</p>
           </div>
         ) : (
-          <div className="rounded-xl border border-dashed border-border/50 p-4 text-center">
-            <p className="text-xs text-muted-foreground/60">No description yet.</p>
+          <div className="rounded-lg border border-dashed border-border/50 p-4 text-center">
+            <p className="text-pretty text-xs text-muted-foreground/60">No description yet.</p>
           </div>
         )}
       </div>
@@ -220,21 +220,21 @@ export default function ProjectDetailPage() {
       {/* Notes */}
       {notes.length > 0 && (
         <div className="space-y-3">
-          <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-            <FileText className="h-3.5 w-3.5" />
+          <h2 className="text-balance text-xs font-medium text-muted-foreground uppercase flex items-center gap-1.5">
+            <FileText className="size-3.5" />
             Notes ({notes.length})
           </h2>
           <div className="grid gap-2">
             {notes.map((note) => (
               <div
                 key={note.id}
-                className="rounded-xl border border-border/50 bg-card/50 p-3 hover:bg-card hover:border-border transition-all"
+                className="rounded-lg border border-border/50 bg-card/50 p-3 hover:bg-card hover:border-border transition-colors"
               >
-                <p className="text-sm font-medium">{note.title}</p>
+                <p className="text-pretty text-sm font-medium">{note.title}</p>
                 {note.content && (
-                  <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{note.content}</p>
+                  <p className="text-pretty text-xs text-muted-foreground line-clamp-2 mt-0.5">{note.content}</p>
                 )}
-                <p className="text-[10px] text-muted-foreground/60 mt-1">
+                <p className="text-pretty text-[10px] text-muted-foreground/60 mt-1">
                   {new Date(note.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                 </p>
               </div>
@@ -245,7 +245,7 @@ export default function ProjectDetailPage() {
 
       {/* Tasks */}
       <div className="space-y-3">
-        <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
+        <h2 className="text-balance text-xs font-medium text-muted-foreground uppercase">
           Tasks
         </h2>
         <AddTaskForm
@@ -264,7 +264,7 @@ export default function ProjectDetailPage() {
         />
         {activeTasks.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-sm text-muted-foreground">No active tasks for this project.</p>
+            <p className="text-pretty text-sm text-muted-foreground">No active tasks for this project.</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -285,9 +285,9 @@ export default function ProjectDetailPage() {
           <div className="space-y-3">
             <button
               onClick={() => setShowDone(!showDone)}
-              className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-widest hover:text-foreground transition-colors"
+              className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase hover:text-foreground transition-colors"
             >
-              {showDone ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+              {showDone ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
               Completed ({doneTasks.length})
             </button>
             {showDone && (

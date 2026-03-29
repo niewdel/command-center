@@ -27,19 +27,19 @@ const STEPS = [
     title: "Welcome to Command Center",
     subtitle: "Your daily rhythm starts here.",
     icon: Sparkles,
-    color: "from-indigo-500 to-purple-600",
+    color: "bg-foreground",
   },
   {
     title: "How It Works",
     subtitle: "Three rituals to take back your day.",
     icon: Sunrise,
-    color: "from-indigo-500 to-purple-600",
+    color: "bg-foreground",
   },
   {
     title: "Set Your Capacity",
     subtitle: "How many productive hours do you have?",
     icon: Clock,
-    color: "from-emerald-500 to-teal-600",
+    color: "bg-foreground",
   },
 ];
 
@@ -70,28 +70,28 @@ export function WelcomeFlow({ workspaces, onComplete }: WelcomeFlowProps) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
+    <div className="min-h-dvh flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-8">
         {/* Step 0: Welcome */}
         {step === 0 && (
           <div className="text-center space-y-6">
-            <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/25">
-              <Sparkles className="h-8 w-8 text-white" />
+            <div className="inline-flex size-16 items-center justify-center rounded-2xl bg-foreground shadow-sm">
+              <Sparkles className="size-8 text-background" />
             </div>
             <div className="space-y-2">
-              <h1 className="text-2xl font-bold tracking-tight">
+              <h1 className="text-2xl font-bold text-balance">
                 Welcome to Command Center
               </h1>
-              <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+              <p className="text-sm text-muted-foreground max-w-sm mx-auto text-pretty">
                 One calm, intentional view of your entire life. Work and personal, unified.
               </p>
             </div>
             <Button
               onClick={() => setStep(1)}
-              className="gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white border-0 rounded-xl shadow-lg shadow-indigo-500/25"
+              className="gap-2 bg-foreground hover:bg-foreground/90 text-background border-0 rounded-lg shadow-sm"
             >
               Get Started
-              <ArrowRight className="h-4 w-4" />
+              <ArrowRight className="size-4" />
             </Button>
           </div>
         )}
@@ -100,8 +100,8 @@ export function WelcomeFlow({ workspaces, onComplete }: WelcomeFlowProps) {
         {step === 1 && (
           <div className="space-y-8">
             <div className="text-center space-y-2">
-              <h2 className="text-xl font-bold">Your Daily Rhythm</h2>
-              <p className="text-sm text-muted-foreground">
+              <h2 className="text-xl font-bold text-balance">Your Daily Rhythm</h2>
+              <p className="text-sm text-muted-foreground text-pretty">
                 Three intentional moments that change everything.
               </p>
             </div>
@@ -109,45 +109,42 @@ export function WelcomeFlow({ workspaces, onComplete }: WelcomeFlowProps) {
               {[
                 {
                   icon: Sunrise,
-                  color: "from-indigo-500 to-purple-600",
                   title: "Morning Planning",
                   desc: "Review overdue, pick your top 3, estimate time, check capacity. Know exactly what your day looks like before it starts.",
                 },
                 {
                   icon: Star,
-                  color: "from-amber-500 to-orange-600",
                   title: "Focused Execution",
                   desc: "Your Today view shows only what matters. Focus tasks highlighted, capacity bar keeps you honest.",
                 },
                 {
                   icon: Moon,
-                  color: "from-violet-500 to-indigo-700",
                   title: "Evening Shutdown",
                   desc: "Celebrate wins, process what didn't get done, capture loose ends. Create a clean break between work and life.",
                 },
               ].map((item, i) => (
                 <div
                   key={i}
-                  className="flex items-start gap-4 rounded-xl border border-border/50 bg-card/50 p-4"
+                  className="flex items-start gap-4 rounded-lg border border-border/50 bg-card/50 p-4"
                 >
                   <div
-                    className={`h-10 w-10 rounded-lg bg-gradient-to-br ${item.color} flex items-center justify-center shadow-lg shrink-0`}
+                    className="size-10 rounded-lg bg-foreground flex items-center justify-center shadow-sm shrink-0"
                   >
-                    <item.icon className="h-5 w-5 text-white" />
+                    <item.icon className="size-5 text-background" />
                   </div>
                   <div>
                     <h3 className="text-sm font-semibold">{item.title}</h3>
-                    <p className="text-xs text-muted-foreground mt-1">{item.desc}</p>
+                    <p className="text-xs text-muted-foreground mt-1 text-pretty">{item.desc}</p>
                   </div>
                 </div>
               ))}
             </div>
             <Button
               onClick={() => setStep(2)}
-              className="w-full gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white border-0 rounded-xl shadow-lg shadow-indigo-500/25"
+              className="w-full gap-2 bg-foreground hover:bg-foreground/90 text-background border-0 rounded-lg shadow-sm"
             >
               Continue
-              <ArrowRight className="h-4 w-4" />
+              <ArrowRight className="size-4" />
             </Button>
           </div>
         )}
@@ -156,15 +153,15 @@ export function WelcomeFlow({ workspaces, onComplete }: WelcomeFlowProps) {
         {step === 2 && (
           <div className="space-y-8">
             <div className="text-center space-y-2">
-              <h2 className="text-xl font-bold">Set Your Capacity</h2>
-              <p className="text-sm text-muted-foreground">
+              <h2 className="text-xl font-bold text-balance">Set Your Capacity</h2>
+              <p className="text-sm text-muted-foreground text-pretty">
                 This helps us warn you before you overcommit.
               </p>
             </div>
             <div className="space-y-5">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <label className="text-xs font-medium text-muted-foreground uppercase">
                     Weekday Hours
                   </label>
                   <Input
@@ -178,7 +175,7 @@ export function WelcomeFlow({ workspaces, onComplete }: WelcomeFlowProps) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <label className="text-xs font-medium text-muted-foreground uppercase">
                     Weekend Hours
                   </label>
                   <Input
@@ -193,7 +190,7 @@ export function WelcomeFlow({ workspaces, onComplete }: WelcomeFlowProps) {
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <label className="text-xs font-medium text-muted-foreground uppercase">
                   When does your day end?
                 </label>
                 <Input
@@ -207,13 +204,13 @@ export function WelcomeFlow({ workspaces, onComplete }: WelcomeFlowProps) {
             <Button
               onClick={handleFinish}
               disabled={saving}
-              className="w-full gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white border-0 rounded-xl shadow-lg shadow-indigo-500/25"
+              className="w-full gap-2 bg-foreground hover:bg-foreground/90 text-background border-0 rounded-lg shadow-sm"
             >
               {saving ? (
                 "Setting up..."
               ) : (
                 <>
-                  <Check className="h-4 w-4" />
+                  <Check className="size-4" />
                   Start Using Command Center
                 </>
               )}
@@ -227,8 +224,8 @@ export function WelcomeFlow({ workspaces, onComplete }: WelcomeFlowProps) {
             <div
               key={i}
               className={cn(
-                "h-1.5 rounded-full transition-all duration-300",
-                i === step ? "w-6 bg-indigo-500" : "w-1.5 bg-muted"
+                "h-1.5 rounded-full transition-colors",
+                i === step ? "w-6 bg-foreground" : "w-1.5 bg-muted"
               )}
             />
           ))}

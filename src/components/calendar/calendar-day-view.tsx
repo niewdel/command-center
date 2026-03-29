@@ -61,7 +61,7 @@ export function CalendarDayView({
       <div className="px-4 py-3 border-b border-border/50 sticky top-0 bg-card z-10">
         <p
           className={cn(
-            "text-lg font-semibold",
+            "text-lg font-semibold text-pretty",
             isToday && "text-indigo-400"
           )}
         >
@@ -77,7 +77,7 @@ export function CalendarDayView({
       {/* All day events */}
       {allDayEvents.length > 0 && (
         <div className="px-4 py-2 border-b border-border/50 space-y-1">
-          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">
+          <p className="text-[10px] font-medium text-muted-foreground uppercase text-pretty mb-1">
             All Day
           </p>
           {allDayEvents.map((event) => (
@@ -159,7 +159,7 @@ export function CalendarDayView({
                 className="absolute left-0 right-0 z-20 flex items-center"
                 style={{ top: currentTimeTop }}
               >
-                <div className="h-2.5 w-2.5 rounded-full bg-red-500 -ml-1" />
+                <div className="size-2.5 rounded-full bg-red-500 -ml-1" />
                 <div className="flex-1 h-[2px] bg-red-500" />
               </div>
             )}

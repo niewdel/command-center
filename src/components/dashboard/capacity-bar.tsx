@@ -36,19 +36,19 @@ export function CapacityBar({ capacity }: CapacityBarProps) {
   return (
     <div
       className={cn(
-        "rounded-xl border p-4 space-y-3",
+        "rounded-lg border p-4 space-y-3",
         config.border,
         config.bg
       )}
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Clock className={cn("h-4 w-4", config.text)} />
+          <Clock className={cn("size-4", config.text)} />
           <span className="text-sm font-medium">Today&apos;s Capacity</span>
         </div>
         <div className="flex items-center gap-2">
           {capacity.level === "red" && (
-            <AlertTriangle className="h-3.5 w-3.5 text-red-400" />
+            <AlertTriangle className="size-3.5 text-red-400" />
           )}
           <span className={cn("text-sm font-semibold", config.text)}>
             {formatMinutes(capacity.estimatedMinutes)} /{" "}

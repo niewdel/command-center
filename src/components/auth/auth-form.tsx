@@ -104,17 +104,17 @@ export function AuthForm({ mode }: { mode: Mode }) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
+    <div className="min-h-dvh flex items-center justify-center p-4">
       <div className="w-full max-w-sm space-y-8">
         {/* Logo */}
         <div className="text-center space-y-2">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/25">
-            <span className="text-white font-bold text-lg">CC</span>
+          <div className="inline-flex size-12 items-center justify-center rounded-lg bg-foreground shadow-sm">
+            <span className="text-background font-bold text-lg">CC</span>
           </div>
-          <h1 className="text-xl font-semibold tracking-tight">
+          <h1 className="text-xl font-semibold text-balance">
             Command Center
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground text-pretty">
             {isLogin ? "Welcome back" : "Create your account"}
           </p>
         </div>
@@ -126,9 +126,9 @@ export function AuthForm({ mode }: { mode: Mode }) {
             variant="outline"
             onClick={() => handleOAuth("google")}
             disabled={!!oauthLoading}
-            className="w-full h-11 gap-3 rounded-xl border-border/50 bg-card/50 hover:bg-accent/50 font-medium"
+            className="w-full h-11 gap-3 rounded-lg border-border/50 bg-card/50 hover:bg-accent/50 font-medium"
           >
-            <GoogleIcon className="h-5 w-5" />
+            <GoogleIcon className="size-5" />
             {oauthLoading === "google"
               ? "Redirecting..."
               : `Continue with Google`}
@@ -138,9 +138,9 @@ export function AuthForm({ mode }: { mode: Mode }) {
             variant="outline"
             onClick={() => handleOAuth("azure")}
             disabled={!!oauthLoading}
-            className="w-full h-11 gap-3 rounded-xl border-border/50 bg-card/50 hover:bg-accent/50 font-medium"
+            className="w-full h-11 gap-3 rounded-lg border-border/50 bg-card/50 hover:bg-accent/50 font-medium"
           >
-            <MicrosoftIcon className="h-4 w-4" />
+            <MicrosoftIcon className="size-4" />
             {oauthLoading === "azure"
               ? "Redirecting..."
               : `Continue with Microsoft`}
@@ -185,7 +185,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
           </div>
 
           {error && (
-            <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+            <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 text-pretty">
               {error}
             </p>
           )}
@@ -193,7 +193,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
           <Button
             type="submit"
             disabled={loading}
-            className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-lg shadow-indigo-500/25 border-0"
+            className="w-full bg-foreground hover:bg-foreground/90 text-background shadow-sm border-0"
           >
             {loading
               ? isLogin
@@ -206,13 +206,13 @@ export function AuthForm({ mode }: { mode: Mode }) {
         </form>
 
         {/* Toggle login/signup */}
-        <p className="text-center text-sm text-muted-foreground">
+        <p className="text-center text-sm text-muted-foreground text-pretty">
           {isLogin ? (
             <>
               Don&apos;t have an account?{" "}
               <Link
                 href="/signup"
-                className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors"
+                className="text-foreground hover:text-foreground/80 font-medium underline underline-offset-4 transition-colors"
               >
                 Sign up
               </Link>
@@ -222,7 +222,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
               Already have an account?{" "}
               <Link
                 href="/login"
-                className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors"
+                className="text-foreground hover:text-foreground/80 font-medium underline underline-offset-4 transition-colors"
               >
                 Sign in
               </Link>

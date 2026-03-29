@@ -100,19 +100,20 @@ export function CreateEventDialog({
   return (
     <>
       <div
-        className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm"
+        className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
       />
-      <div className="fixed inset-x-0 top-[10%] z-[101] flex justify-center px-4">
-        <div className="w-full max-w-md rounded-2xl border border-border bg-card shadow-2xl shadow-black/40 overflow-hidden">
+      <div className="fixed inset-x-0 top-[10%] z-40 flex justify-center px-4">
+        <div className="w-full max-w-md rounded-lg border border-border bg-card shadow-md overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
-            <h2 className="text-sm font-semibold">New Event</h2>
+            <h2 className="text-sm font-semibold text-balance">New Event</h2>
             <button
               onClick={onClose}
+              aria-label="Close dialog"
               className="rounded-lg p-1 hover:bg-accent transition-colors"
             >
-              <X className="h-4 w-4 text-muted-foreground" />
+              <X className="size-4 text-muted-foreground" />
             </button>
           </div>
 
@@ -132,7 +133,7 @@ export function CreateEventDialog({
             {/* Date + Time */}
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+                <Calendar className="size-4 text-muted-foreground shrink-0" />
                 <Input
                   type="date"
                   value={date}
@@ -154,7 +155,7 @@ export function CreateEventDialog({
 
               {!allDay && (
                 <div className="flex items-center gap-3">
-                  <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <Clock className="size-4 text-muted-foreground shrink-0" />
                   <Input
                     type="time"
                     value={startTime}
@@ -174,7 +175,7 @@ export function CreateEventDialog({
 
             {/* Location */}
             <div className="flex items-center gap-3">
-              <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+              <MapPin className="size-4 text-muted-foreground shrink-0" />
               <Input
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
@@ -185,7 +186,7 @@ export function CreateEventDialog({
 
             {/* Meeting type */}
             <div className="flex items-center gap-3">
-              <Video className="h-4 w-4 text-muted-foreground shrink-0" />
+              <Video className="size-4 text-muted-foreground shrink-0" />
               <select
                 value={meetingType}
                 onChange={(e) => setMeetingType(e.target.value)}
@@ -253,7 +254,7 @@ export function CreateEventDialog({
               size="sm"
               onClick={handleSave}
               disabled={!title.trim() || saving}
-              className="rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white border-0 shadow-lg shadow-indigo-500/25"
+              className="rounded-lg bg-foreground text-background hover:bg-foreground/90 border-0 shadow-sm"
             >
               {saving ? "Creating..." : "Create Event"}
             </Button>

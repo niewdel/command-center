@@ -76,7 +76,7 @@ function KanbanCard({
       className={cn(
         "rounded-lg border border-border/50 bg-card p-3 space-y-2 cursor-grab active:cursor-grabbing transition-shadow",
         isDragging && "opacity-30",
-        isDragOverlay && "shadow-2xl shadow-black/30 rotate-2",
+        isDragOverlay && "shadow-md rotate-2",
         !isDragging && "hover:border-border hover:shadow-md"
       )}
       onClick={() => !isDragging && onEdit(task)}
@@ -86,14 +86,14 @@ function KanbanCard({
           {...(isDragOverlay ? {} : { ...attributes, ...listeners })}
           className="mt-0.5 text-muted-foreground/40 hover:text-muted-foreground shrink-0"
         >
-          <GripVertical className="h-3.5 w-3.5" />
+          <GripVertical className="size-3.5" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
             {task.priority !== "none" && (
-              <div className={cn("h-1.5 w-1.5 rounded-full shrink-0", priorityColors[task.priority])} />
+              <div className={cn("size-1.5 rounded-full shrink-0", priorityColors[task.priority])} />
             )}
-            <p className={cn("text-xs font-medium truncate", task.status === "done" && "line-through opacity-60")}>
+            <p className={cn("text-xs font-medium truncate text-pretty", task.status === "done" && "line-through opacity-60")}>
               {task.title}
             </p>
           </div>
@@ -107,12 +107,12 @@ function KanbanCard({
         )}
         {task.estimated_minutes && (
           <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground/60">
-            <Clock className="h-2.5 w-2.5" />
+            <Clock className="size-2.5" />
             {formatMinutes(task.estimated_minutes)}
           </span>
         )}
         {task.is_recurring && (
-          <Repeat className="h-2.5 w-2.5 text-muted-foreground/60" />
+          <Repeat className="size-2.5 text-muted-foreground/60" />
         )}
         {task.due_date && (
           <span
@@ -153,13 +153,13 @@ function Column({
     <div
       ref={setNodeRef}
       className={cn(
-        "flex-1 min-w-[220px] rounded-xl border border-border/30 bg-muted/20 overflow-hidden transition-colors",
+        "flex-1 min-w-[220px] rounded-lg border border-border/30 bg-muted/20 overflow-hidden transition-colors",
         isOver && "bg-primary/5 border-primary/30"
       )}
     >
       <div className={cn("border-t-2 px-3 py-2.5", column.borderColor)}>
         <div className="flex items-center justify-between">
-          <span className={cn("text-xs font-semibold uppercase tracking-wider", column.color)}>
+          <span className={cn("text-xs font-semibold uppercase", column.color)}>
             {column.label}
           </span>
           <span className="text-[10px] text-muted-foreground/60 font-medium">
@@ -179,7 +179,7 @@ function Column({
         ))}
         {tasks.length === 0 && (
           <div className="text-center py-8">
-            <p className="text-[11px] text-muted-foreground/40">
+            <p className="text-[11px] text-muted-foreground/40 text-pretty">
               Drop tasks here
             </p>
           </div>

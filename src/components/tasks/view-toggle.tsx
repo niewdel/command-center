@@ -14,26 +14,26 @@ export function ViewToggle({ view, onChange }: ViewToggleProps) {
       <button
         onClick={() => onChange("list")}
         className={cn(
-          "p-1.5 rounded-md transition-all duration-200",
+          "p-1.5 rounded-md transition-colors",
           view === "list"
             ? "bg-background shadow-sm text-foreground"
             : "text-muted-foreground hover:text-foreground"
         )}
-        title="List view"
+        aria-label="List view"
       >
-        <List className="h-3.5 w-3.5" />
+        <List className="size-3.5" />
       </button>
       <button
         onClick={() => onChange("kanban")}
         className={cn(
-          "p-1.5 rounded-md transition-all duration-200",
+          "p-1.5 rounded-md transition-colors",
           view === "kanban"
             ? "bg-background shadow-sm text-foreground"
             : "text-muted-foreground hover:text-foreground"
         )}
-        title="Kanban view"
+        aria-label="Kanban view"
       >
-        <Columns3 className="h-3.5 w-3.5" />
+        <Columns3 className="size-3.5" />
       </button>
     </div>
   );

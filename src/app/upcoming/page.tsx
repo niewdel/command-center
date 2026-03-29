@@ -115,9 +115,9 @@ export default function UpcomingPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-dvh">
         <div className="flex items-center gap-3 text-muted-foreground">
-          <div className="h-5 w-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <div className="size-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
           <span className="text-sm">Loading...</span>
         </div>
       </div>
@@ -128,18 +128,18 @@ export default function UpcomingPage() {
     <div className="p-4 md:p-8 max-w-3xl mx-auto space-y-6">
       <div className="pt-10 md:pt-2 space-y-1">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/25">
-            <CalendarDays className="h-5 w-5 text-white" />
+          <div className="size-10 rounded-lg bg-foreground flex items-center justify-center shadow-sm">
+            <CalendarDays className="size-5 text-background" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">Upcoming</h1>
+          <h1 className="text-2xl font-bold text-balance">Upcoming</h1>
         </div>
-        <p className="text-sm text-muted-foreground mt-2">Your next 7 days at a glance.</p>
+        <p className="text-sm text-muted-foreground mt-2 text-pretty">Your next 7 days at a glance.</p>
       </div>
 
       {/* Overdue */}
       {overdue.length > 0 && (
         <div className="space-y-3">
-          <h2 className="text-xs font-semibold text-red-400 uppercase tracking-widest">
+          <h2 className="text-xs font-semibold text-red-400 uppercase text-balance">
             Overdue
           </h2>
           <div className="space-y-2">
@@ -165,7 +165,7 @@ export default function UpcomingPage() {
           <div key={day} className="space-y-3">
             <h2
               className={cn(
-                "text-xs font-medium uppercase tracking-widest",
+                "text-xs font-medium uppercase text-balance",
                 isToday ? "text-indigo-400" : "text-muted-foreground"
               )}
             >
@@ -190,8 +190,8 @@ export default function UpcomingPage() {
                 ))}
               </div>
             ) : (
-              <div className="rounded-xl border border-dashed border-border/40 bg-card/20 p-4 text-center">
-                <p className="text-xs text-muted-foreground/60">Nothing planned</p>
+              <div className="rounded-lg border border-dashed border-border/40 bg-card/20 p-4 text-center">
+                <p className="text-xs text-muted-foreground/60 text-pretty">Nothing planned</p>
               </div>
             )}
           </div>

@@ -59,7 +59,7 @@ export function CalendarMonthView({
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
           <div
             key={day}
-            className="text-center py-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
+            className="text-center py-2 text-[10px] font-medium uppercase text-pretty text-muted-foreground"
           >
             {day}
           </div>
@@ -87,7 +87,7 @@ export function CalendarMonthView({
                 >
                   <span
                     className={cn(
-                      "inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium",
+                      "inline-flex size-6 items-center justify-center rounded-full text-xs font-medium",
                       isToday
                         ? "bg-indigo-500 text-white"
                         : "text-foreground"
@@ -123,7 +123,7 @@ export function CalendarMonthView({
                       </button>
                     ))}
                     {dayEvents.length > 3 && (
-                      <p className="text-[9px] text-muted-foreground/60 px-1.5">
+                      <p className="text-[9px] text-muted-foreground/60 text-pretty px-1.5">
                         +{dayEvents.length - 3} more
                       </p>
                     )}

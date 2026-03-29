@@ -68,10 +68,10 @@ export function AddTaskForm({
     return (
       <button
         onClick={() => setExpanded(true)}
-        className="w-full flex items-center gap-3 rounded-xl border border-dashed border-border/60 bg-card/30 p-4 text-sm text-muted-foreground hover:bg-card/60 hover:border-primary/30 hover:text-foreground transition-all duration-200 group"
+        className="w-full flex items-center gap-3 rounded-lg border border-dashed border-border/60 bg-card/30 p-4 text-sm text-muted-foreground hover:bg-card/60 hover:border-primary/30 hover:text-foreground transition-colors group"
       >
-        <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors duration-200">
-          <Plus className="h-4 w-4 text-primary" />
+        <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+          <Plus className="size-4 text-primary" />
         </div>
         Add a task...
       </button>
@@ -81,7 +81,7 @@ export function AddTaskForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="rounded-xl border border-border bg-card p-4 space-y-3 shadow-lg shadow-black/10"
+      className="rounded-lg border border-border bg-card p-4 space-y-3 shadow-md"
     >
       <Input
         autoFocus
@@ -96,7 +96,7 @@ export function AddTaskForm({
             <SelectTrigger className="w-[140px] bg-background/50 border-border/50 rounded-lg h-9 text-xs">
               <SelectValue placeholder="Workspace" />
             </SelectTrigger>
-            <SelectContent className="bg-popover border-border rounded-xl">
+            <SelectContent className="bg-popover border-border rounded-lg">
               {workspaces.map((ws) => (
                 <SelectItem key={ws.id} value={ws.id} className="rounded-lg text-xs">
                   {ws.name}
@@ -109,7 +109,7 @@ export function AddTaskForm({
           <SelectTrigger className="w-[120px] bg-background/50 border-border/50 rounded-lg h-9 text-xs">
             <SelectValue placeholder="Priority" />
           </SelectTrigger>
-          <SelectContent className="bg-popover border-border rounded-xl">
+          <SelectContent className="bg-popover border-border rounded-lg">
             <SelectItem value="none" className="rounded-lg text-xs">No priority</SelectItem>
             <SelectItem value="low" className="rounded-lg text-xs">Low</SelectItem>
             <SelectItem value="medium" className="rounded-lg text-xs">Medium</SelectItem>
@@ -137,7 +137,7 @@ export function AddTaskForm({
               )
             }
             className={cn(
-              "px-2.5 py-1 rounded-lg text-xs font-medium transition-all duration-200",
+              "px-2.5 py-1 rounded-lg text-xs font-medium transition-colors",
               estimateMinutes === preset.value
                 ? "bg-primary text-primary-foreground shadow-sm"
                 : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -153,9 +153,9 @@ export function AddTaskForm({
           type="submit"
           size="sm"
           disabled={!title.trim()}
-          className="gap-1.5 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white border-0 rounded-lg h-9 px-4 font-medium shadow-lg shadow-indigo-500/25 transition-all duration-200 hover:shadow-indigo-500/40"
+          className="gap-1.5 bg-foreground hover:bg-foreground/90 text-background border-0 rounded-lg h-9 px-4 font-medium shadow-sm transition-colors"
         >
-          <Zap className="h-3.5 w-3.5" />
+          <Zap className="size-3.5" />
           Add Task
         </Button>
         <Button

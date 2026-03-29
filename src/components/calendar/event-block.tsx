@@ -50,7 +50,7 @@ export function EventBlock({
     <button
       onClick={onClick}
       className={cn(
-        "w-full text-left px-2.5 py-1.5 rounded-lg border transition-all hover:brightness-110 hover:shadow-md overflow-hidden",
+        "w-full text-left px-2.5 py-1.5 rounded-lg border transition-colors hover:brightness-110 hover:shadow-md overflow-hidden",
         colorClass
       )}
       style={{
@@ -59,17 +59,17 @@ export function EventBlock({
     >
       <div className="flex items-start justify-between gap-1">
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-medium truncate">{event.title}</p>
+          <p className="text-xs font-medium truncate text-pretty">{event.title}</p>
           {durationMin >= 30 && (
-            <p className="text-[10px] opacity-70">{timeStr}</p>
+            <p className="text-[10px] opacity-70 text-pretty">{timeStr}</p>
           )}
         </div>
         <div className="flex items-center gap-1 shrink-0">
           {event.meeting_url && (
-            <Video className="h-3 w-3 opacity-60" />
+            <Video className="size-3 opacity-60" />
           )}
           {event.location && (
-            <MapPin className="h-3 w-3 opacity-60" />
+            <MapPin className="size-3 opacity-60" />
           )}
         </div>
       </div>

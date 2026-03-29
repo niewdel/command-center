@@ -17,14 +17,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   useNotifications(!isAuthPage && getNotificationStatus() === "granted");
 
   if (isAuthPage) {
-    return <main className="min-h-screen">{children}</main>;
+    return <main className="min-h-dvh">{children}</main>;
   }
 
   return (
     <ToastProvider>
       <TooltipProvider>
         <Sidebar />
-        <main className="md:ml-[280px] min-h-screen">{children}</main>
+        <main className="md:ml-[280px] min-h-dvh">{children}</main>
         <CommandPalette />
       </TooltipProvider>
     </ToastProvider>

@@ -65,7 +65,7 @@ export function CommandPalette() {
       type: "action",
       title: "Plan My Day",
       subtitle: "Start morning planning ritual",
-      icon: <Sunrise className="h-4 w-4 text-indigo-400" />,
+      icon: <Sunrise className="size-4 text-indigo-400" />,
       href: "/dashboard",
     },
     {
@@ -73,7 +73,7 @@ export function CommandPalette() {
       type: "action",
       title: "Evening Shutdown",
       subtitle: "Close out your day",
-      icon: <Moon className="h-4 w-4 text-violet-400" />,
+      icon: <Moon className="size-4 text-violet-400" />,
       href: "/dashboard",
     },
     {
@@ -81,28 +81,28 @@ export function CommandPalette() {
       type: "action",
       title: "Calendar",
       subtitle: "View your schedule",
-      icon: <Calendar className="h-4 w-4 text-blue-400" />,
+      icon: <Calendar className="size-4 text-blue-400" />,
       href: "/calendar",
     },
     {
       id: "action-goals",
       type: "action",
       title: "View Goals",
-      icon: <Target className="h-4 w-4 text-rose-400" />,
+      icon: <Target className="size-4 text-rose-400" />,
       href: "/goals",
     },
     {
       id: "action-upcoming",
       type: "action",
       title: "Upcoming Week",
-      icon: <CalendarDays className="h-4 w-4 text-cyan-400" />,
+      icon: <CalendarDays className="size-4 text-cyan-400" />,
       href: "/upcoming",
     },
     {
       id: "action-settings",
       type: "action",
       title: "Settings",
-      icon: <Settings className="h-4 w-4 text-muted-foreground" />,
+      icon: <Settings className="size-4 text-muted-foreground" />,
       href: "/settings",
     },
   ];
@@ -179,7 +179,7 @@ export function CommandPalette() {
           type: "task",
           title: t.title,
           subtitle: t.status === "done" ? "Completed" : "Active",
-          icon: <ListTodo className="h-4 w-4 text-indigo-400" />,
+          icon: <ListTodo className="size-4 text-indigo-400" />,
           href: `/dashboard?task=${t.id}`,
         })
       );
@@ -199,7 +199,7 @@ export function CommandPalette() {
           type: "goal",
           title: g.title,
           subtitle: g.status,
-          icon: <Target className="h-4 w-4 text-rose-400" />,
+          icon: <Target className="size-4 text-rose-400" />,
           href: "/goals",
         })
       );
@@ -218,7 +218,7 @@ export function CommandPalette() {
           id: n.id,
           type: "note",
           title: n.title,
-          icon: <FileText className="h-4 w-4 text-amber-400" />,
+          icon: <FileText className="size-4 text-amber-400" />,
           href: "/notes",
         })
       );
@@ -244,7 +244,7 @@ export function CommandPalette() {
             hour: "numeric",
             minute: "2-digit",
           }),
-          icon: <Calendar className="h-4 w-4 text-blue-400" />,
+          icon: <Calendar className="size-4 text-blue-400" />,
           href: "/calendar",
         })
       );
@@ -379,19 +379,19 @@ export function CommandPalette() {
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm"
+        className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm"
         onClick={() => setOpen(false)}
       />
 
       {/* Palette */}
-      <div className="fixed inset-x-0 top-[15%] z-[101] flex justify-center px-4">
-        <div className="w-full max-w-lg rounded-2xl border border-border bg-card shadow-2xl shadow-black/40 overflow-hidden">
+      <div className="fixed inset-x-0 top-[15%] z-40 flex justify-center px-4">
+        <div className="w-full max-w-lg rounded-lg border border-border bg-card shadow-md overflow-hidden">
           {/* Input */}
           <div className="flex items-center gap-3 border-b border-border/50 px-4">
             {aiMode ? (
-              <Sparkles className="h-4 w-4 text-purple-400 shrink-0" />
+              <Sparkles className="size-4 text-purple-400 shrink-0" />
             ) : (
-              <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+              <Search className="size-4 text-muted-foreground shrink-0" />
             )}
             <input
               ref={inputRef}
@@ -422,6 +422,7 @@ export function CommandPalette() {
               {isSupported && (
                 <button
                   onClick={handleVoiceToggle}
+                  aria-label={isListening ? "Stop listening" : "Start voice input"}
                   className={cn(
                     "p-1.5 rounded-lg transition-colors",
                     isListening
@@ -449,7 +450,7 @@ export function CommandPalette() {
               {/* Parsing state */}
               {aiState === "parsing" && (
                 <div className="flex items-center gap-3 py-4">
-                  <Loader2 className="h-5 w-5 text-purple-400 animate-spin" />
+                  <Loader2 className="size-5 text-purple-400 animate-spin" />
                   <span className="text-sm text-muted-foreground">
                     Understanding your command...
                   </span>
@@ -459,12 +460,12 @@ export function CommandPalette() {
               {/* Preview state */}
               {aiState === "preview" && aiResult && (
                 <div className="space-y-3">
-                  <div className="rounded-xl border border-border/50 bg-background/50 p-4 space-y-2">
+                  <div className="rounded-lg border border-border/50 bg-background/50 p-4 space-y-2">
                     {/* Intent badge */}
                     <div className="flex items-center gap-2">
                       <span
                         className={cn(
-                          "text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full",
+                          "text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full",
                           aiResult.intent === "create_event" &&
                             "bg-blue-500/20 text-blue-400",
                           aiResult.intent === "create_task" &&
@@ -487,13 +488,13 @@ export function CommandPalette() {
                     </div>
 
                     {/* Display text */}
-                    <p className="text-sm font-medium">{aiResult.display_text}</p>
+                    <p className="text-sm font-medium text-pretty">{aiResult.display_text}</p>
 
                     {/* Event details */}
                     {aiResult.event && (
                       <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
+                          <Clock className="size-3" />
                           {new Date(aiResult.event.start_time).toLocaleTimeString(
                             "en-US",
                             { hour: "numeric", minute: "2-digit" }
@@ -506,7 +507,7 @@ export function CommandPalette() {
                         </span>
                         {aiResult.event.location && (
                           <span className="flex items-center gap-1">
-                            <MapPin className="h-3 w-3" />
+                            <MapPin className="size-3" />
                             {aiResult.event.location}
                           </span>
                         )}
@@ -518,7 +519,7 @@ export function CommandPalette() {
                       <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                         {aiResult.task.due_date && (
                           <span className="flex items-center gap-1">
-                            <CalendarDays className="h-3 w-3" />
+                            <CalendarDays className="size-3" />
                             Due{" "}
                             {new Date(
                               aiResult.task.due_date + "T00:00:00"
@@ -543,7 +544,7 @@ export function CommandPalette() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={handleAiConfirm}
-                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-sm font-medium hover:from-indigo-600 hover:to-purple-700 transition-all shadow-lg shadow-indigo-500/25"
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-foreground text-background text-sm font-medium hover:bg-foreground/90 transition-colors shadow-sm"
                     >
                       <Check className="h-3.5 w-3.5" />
                       Confirm
@@ -555,14 +556,15 @@ export function CommandPalette() {
                         setAiResult(null);
                         inputRef.current?.focus();
                       }}
-                      className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border/50 text-sm text-muted-foreground hover:bg-accent transition-colors"
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border/50 text-sm text-muted-foreground hover:bg-accent transition-colors"
                     >
                       <Pencil className="h-3.5 w-3.5" />
                       Edit
                     </button>
                     <button
                       onClick={() => setOpen(false)}
-                      className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+                      aria-label="Close"
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm text-muted-foreground/60 hover:text-muted-foreground transition-colors"
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
@@ -573,7 +575,7 @@ export function CommandPalette() {
               {/* Executing state */}
               {aiState === "executing" && (
                 <div className="flex items-center gap-3 py-4">
-                  <Loader2 className="h-5 w-5 text-purple-400 animate-spin" />
+                  <Loader2 className="size-5 text-purple-400 animate-spin" />
                   <span className="text-sm text-muted-foreground">
                     Creating...
                   </span>
@@ -584,8 +586,8 @@ export function CommandPalette() {
               {aiState === "done" && (
                 <div className="space-y-3">
                   <div className="flex items-center gap-3 py-2">
-                    <div className="h-5 w-5 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                      <Check className="h-3 w-3 text-emerald-400" />
+                    <div className="size-5 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                      <Check className="size-3 text-emerald-400" />
                     </div>
                     <span className="text-sm text-emerald-400 font-medium">
                       {aiResponseData?.action_taken || "Done!"}
@@ -594,11 +596,11 @@ export function CommandPalette() {
 
                   {/* Query schedule results */}
                   {aiResponseData?.events && aiResponseData.events.length > 0 && (
-                    <div className="rounded-xl border border-border/50 bg-background/50 p-3 space-y-2 max-h-[200px] overflow-y-auto">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Events</p>
+                    <div className="rounded-lg border border-border/50 bg-background/50 p-3 space-y-2 max-h-[200px] overflow-y-auto">
+                      <p className="text-[10px] font-semibold uppercase text-muted-foreground">Events</p>
                       {aiResponseData.events.map((e: { id: string; title: string; start_time: string; end_time: string; location?: string; all_day?: boolean }) => (
                         <div key={e.id} className="flex items-center gap-2 text-xs">
-                          <Calendar className="h-3 w-3 text-blue-400 shrink-0" />
+                          <Calendar className="size-3 text-blue-400 shrink-0" />
                           <span className="font-medium">{e.title}</span>
                           <span className="text-muted-foreground">
                             {e.all_day ? "All day" : `${new Date(e.start_time).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })} - ${new Date(e.end_time).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`}
@@ -609,11 +611,11 @@ export function CommandPalette() {
                   )}
 
                   {aiResponseData?.tasks && aiResponseData.tasks.length > 0 && (
-                    <div className="rounded-xl border border-border/50 bg-background/50 p-3 space-y-2 max-h-[200px] overflow-y-auto">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Tasks</p>
+                    <div className="rounded-lg border border-border/50 bg-background/50 p-3 space-y-2 max-h-[200px] overflow-y-auto">
+                      <p className="text-[10px] font-semibold uppercase text-muted-foreground">Tasks</p>
                       {aiResponseData.tasks.map((t: { id: string; title: string; due_date?: string; priority?: string }) => (
                         <div key={t.id} className="flex items-center gap-2 text-xs">
-                          <ListTodo className="h-3 w-3 text-indigo-400 shrink-0" />
+                          <ListTodo className="size-3 text-indigo-400 shrink-0" />
                           <span className="font-medium">{t.title}</span>
                           {t.due_date && (
                             <span className="text-muted-foreground">
@@ -627,11 +629,11 @@ export function CommandPalette() {
 
                   {/* Free time results */}
                   {aiResponseData?.free_slots && aiResponseData.free_slots.length > 0 && (
-                    <div className="rounded-xl border border-border/50 bg-background/50 p-3 space-y-2 max-h-[200px] overflow-y-auto">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Available Slots</p>
+                    <div className="rounded-lg border border-border/50 bg-background/50 p-3 space-y-2 max-h-[200px] overflow-y-auto">
+                      <p className="text-[10px] font-semibold uppercase text-muted-foreground">Available Slots</p>
                       {aiResponseData.free_slots.map((s: { start: string; end: string; duration_minutes: number }, i: number) => (
                         <div key={i} className="flex items-center gap-2 text-xs">
-                          <Clock className="h-3 w-3 text-emerald-400 shrink-0" />
+                          <Clock className="size-3 text-emerald-400 shrink-0" />
                           <span className="font-medium">
                             {new Date(s.start).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
                           </span>
@@ -661,8 +663,8 @@ export function CommandPalette() {
               {aiState === "error" && (
                 <div className="space-y-3">
                   <div className="flex items-center gap-3 py-2">
-                    <div className="h-5 w-5 rounded-full bg-red-500/20 flex items-center justify-center">
-                      <X className="h-3 w-3 text-red-400" />
+                    <div className="size-5 rounded-full bg-red-500/20 flex items-center justify-center">
+                      <X className="size-3 text-red-400" />
                     </div>
                     <span className="text-sm text-red-400">
                       {aiError || "Something went wrong"}
@@ -686,7 +688,7 @@ export function CommandPalette() {
           {/* AI Mode - Idle hints */}
           {aiMode && aiState === "idle" && (
             <div className="p-4">
-              <p className="text-xs text-muted-foreground/60 mb-3">
+              <p className="text-xs text-muted-foreground/60 mb-3 text-pretty">
                 Press <kbd className="bg-muted/50 px-1 rounded text-[10px]">Enter</kbd> to
                 send your command
               </p>
@@ -716,16 +718,16 @@ export function CommandPalette() {
           {!aiMode && (
             <div className="max-h-[320px] overflow-y-auto py-2">
               {!query.trim() && (
-                <p className="px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase tracking-widest">
+                <p className="px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase">
                   Quick Actions
                 </p>
               )}
               {query.trim() && results.length === 0 && (
                 <div className="px-4 py-8 text-center">
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground text-pretty">
                     No results found
                   </p>
-                  <p className="text-xs text-muted-foreground/60 mt-1">
+                  <p className="text-xs text-muted-foreground/60 mt-1 text-pretty">
                     Try typing a natural language command instead
                   </p>
                 </div>
@@ -761,7 +763,7 @@ export function CommandPalette() {
           {/* Voice listening indicator */}
           {isListening && (
             <div className="border-t border-border/50 px-4 py-2 flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+              <div className="size-2 rounded-full bg-red-500 animate-pulse" />
               <span className="text-xs text-muted-foreground">
                 Listening... speak your command
               </span>

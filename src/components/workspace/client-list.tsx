@@ -46,7 +46,7 @@ export function ClientList({ clients, workspaceId, onRefresh }: ClientListProps)
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
+        <h2 className="text-balance text-xs font-medium text-muted-foreground uppercase">
           Clients ({clients.length})
         </h2>
         <Button
@@ -58,24 +58,24 @@ export function ClientList({ clients, workspaceId, onRefresh }: ClientListProps)
           }}
           className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
         >
-          <Plus className="h-3.5 w-3.5" />
+          <Plus className="size-3.5" />
           Add Client
         </Button>
       </div>
 
       {clients.length === 0 ? (
         <div className="text-center py-8">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/50 mb-3">
-            <User2 className="h-6 w-6 text-muted-foreground" />
+          <div className="inline-flex size-12 items-center justify-center rounded-2xl bg-muted/50 mb-3">
+            <User2 className="size-6 text-muted-foreground" />
           </div>
-          <p className="text-sm text-muted-foreground">No clients yet</p>
+          <p className="text-pretty text-sm text-muted-foreground">No clients yet</p>
         </div>
       ) : (
         <div className="grid gap-3">
           {clients.map((client) => (
             <div
               key={client.id}
-              className="group rounded-xl border border-border/50 bg-card/50 p-4 hover:bg-card hover:border-border transition-all cursor-pointer"
+              className="group rounded-lg border border-border/50 bg-card/50 p-4 hover:bg-card hover:border-border transition-colors cursor-pointer"
               onClick={() => router.push(`/workspace/${slug}/client/${client.id}`)}
             >
               <div className="flex items-start justify-between">
@@ -94,7 +94,7 @@ export function ClientList({ clients, workspaceId, onRefresh }: ClientListProps)
                     </span>
                   </div>
                   {client.notes && (
-                    <p className="text-xs text-muted-foreground line-clamp-2">
+                    <p className="text-pretty text-xs text-muted-foreground line-clamp-2">
                       {client.notes}
                     </p>
                   )}
@@ -108,36 +108,38 @@ export function ClientList({ clients, workspaceId, onRefresh }: ClientListProps)
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline"
                         >
-                          <ExternalLink className="h-3 w-3" />
+                          <ExternalLink className="size-3" />
                           {link.label}
                         </a>
                       ))}
                     </div>
                   )}
                 </div>
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all ml-2">
+                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 rounded-lg"
+                    className="size-8 rounded-lg"
+                    aria-label="Edit client"
                     onClick={(e) => {
                       e.stopPropagation();
                       setEditing(client);
                       setShowDialog(true);
                     }}
                   >
-                    <Pencil className="h-3.5 w-3.5" />
+                    <Pencil className="size-3.5" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 rounded-lg text-muted-foreground hover:text-red-400"
+                    className="size-8 rounded-lg text-muted-foreground hover:text-red-400"
+                    aria-label="Delete client"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDelete(client.id);
                     }}
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 className="size-3.5" />
                   </Button>
                 </div>
               </div>
@@ -238,13 +240,13 @@ function ClientDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[460px] bg-card border-border rounded-2xl shadow-2xl shadow-black/30">
+      <DialogContent className="sm:max-w-[460px] bg-card border-border rounded-2xl shadow-md">
         <DialogHeader>
           <DialogTitle>{client ? "Edit Client" : "New Client"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-2">
-            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <Label className="text-xs font-medium text-muted-foreground uppercase">
               Name
             </Label>
             <Input
@@ -256,21 +258,21 @@ function ClientDialog({
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <Label className="text-xs font-medium text-muted-foreground uppercase">
               Type
             </Label>
             <Select value={type} onValueChange={(v) => setType(v as "full" | "lightweight")}>
               <SelectTrigger className="bg-background/50 border-border/50 rounded-lg">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-popover border-border rounded-xl">
+              <SelectContent className="bg-popover border-border rounded-lg">
                 <SelectItem value="full" className="rounded-lg">Full (notes, links, projects)</SelectItem>
                 <SelectItem value="lightweight" className="rounded-lg">Lightweight (tasks + notes)</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
-            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <Label className="text-xs font-medium text-muted-foreground uppercase">
               Notes
             </Label>
             <Textarea
@@ -282,7 +284,7 @@ function ClientDialog({
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <Label className="text-xs font-medium text-muted-foreground uppercase">
               Links (one per line: Label: URL)
             </Label>
             <Textarea
@@ -301,7 +303,7 @@ function ClientDialog({
           <Button
             onClick={handleSave}
             disabled={!name.trim() || saving}
-            className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white border-0 rounded-lg shadow-lg shadow-violet-500/25"
+            className="bg-foreground text-background hover:bg-foreground/90 border-0 rounded-lg shadow-sm"
           >
             {saving ? "Saving..." : client ? "Save Changes" : "Add Client"}
           </Button>

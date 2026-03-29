@@ -91,7 +91,7 @@ export function QuickAddDialog({ open, onClose }: QuickAddDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[420px] bg-card border-border rounded-2xl shadow-2xl shadow-black/30">
+      <DialogContent className="sm:max-w-[420px] bg-card border-border rounded-2xl shadow-md">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold">Quick Add Task</DialogTitle>
         </DialogHeader>
@@ -107,14 +107,14 @@ export function QuickAddDialog({ open, onClose }: QuickAddDialogProps) {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <Label className="text-xs font-medium text-muted-foreground uppercase">
                 Workspace
               </Label>
               <Select value={workspaceId} onValueChange={(v) => v && setWorkspaceId(v)}>
                 <SelectTrigger className="bg-background/50 border-border/50 rounded-lg">
                   <SelectValue placeholder="Workspace" />
                 </SelectTrigger>
-                <SelectContent className="bg-popover border-border rounded-xl">
+                <SelectContent className="bg-popover border-border rounded-lg">
                   {workspaces.map((ws) => (
                     <SelectItem key={ws.id} value={ws.id} className="rounded-lg">
                       {ws.name}
@@ -124,14 +124,14 @@ export function QuickAddDialog({ open, onClose }: QuickAddDialogProps) {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <Label className="text-xs font-medium text-muted-foreground uppercase">
                 Priority
               </Label>
               <Select value={priority} onValueChange={(v) => v && setPriority(v)}>
                 <SelectTrigger className="bg-background/50 border-border/50 rounded-lg">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-popover border-border rounded-xl">
+                <SelectContent className="bg-popover border-border rounded-lg">
                   <SelectItem value="none" className="rounded-lg">None</SelectItem>
                   <SelectItem value="low" className="rounded-lg">Low</SelectItem>
                   <SelectItem value="medium" className="rounded-lg">Medium</SelectItem>
@@ -141,7 +141,7 @@ export function QuickAddDialog({ open, onClose }: QuickAddDialogProps) {
             </div>
           </div>
           <div className="space-y-2">
-            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <Label className="text-xs font-medium text-muted-foreground uppercase">
               Due Date
             </Label>
             <Input
@@ -154,7 +154,7 @@ export function QuickAddDialog({ open, onClose }: QuickAddDialogProps) {
 
           {/* Time estimate chips */}
           <div className="space-y-2">
-            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <Label className="text-xs font-medium text-muted-foreground uppercase">
               Time Estimate
             </Label>
             <div className="flex items-center gap-1.5 flex-wrap">
@@ -168,7 +168,7 @@ export function QuickAddDialog({ open, onClose }: QuickAddDialogProps) {
                     )
                   }
                   className={cn(
-                    "px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200",
+                    "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
                     estimateMinutes === preset.value
                       ? "bg-primary text-primary-foreground shadow-sm"
                       : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -192,9 +192,9 @@ export function QuickAddDialog({ open, onClose }: QuickAddDialogProps) {
             <Button
               type="submit"
               disabled={!title.trim() || loading}
-              className="gap-1.5 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white border-0 rounded-lg shadow-lg shadow-indigo-500/25"
+              className="gap-1.5 bg-foreground text-background hover:bg-foreground/90 border-0 rounded-lg shadow-sm"
             >
-              <Zap className="h-3.5 w-3.5" />
+              <Zap className="size-3.5" />
               {loading ? "Adding..." : "Add Task"}
             </Button>
           </DialogFooter>

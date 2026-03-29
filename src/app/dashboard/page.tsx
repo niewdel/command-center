@@ -33,9 +33,9 @@ const today = () => new Date().toISOString().split("T")[0];
 export default function DashboardPage() {
   return (
     <Suspense fallback={
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-dvh">
         <div className="flex items-center gap-3 text-muted-foreground">
-          <div className="h-5 w-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <div className="size-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
           <span className="text-sm">Loading...</span>
         </div>
       </div>
@@ -106,7 +106,6 @@ function DashboardContent() {
       const task = tasks.find((t) => t.id === taskId);
       if (task) {
         setEditingTask(task);
-        // Clean up the URL
         router.replace("/dashboard", { scroll: false });
       }
     }
@@ -128,13 +127,11 @@ function DashboardContent() {
     return filtered;
   };
 
-  // Task categories (filtered)
   const filteredTasks = applyFilters(tasks);
 
   const plannedToday = filteredTasks
     .filter((t) => t.planned_date === todayStr && t.status !== "done")
     .sort((a, b) => {
-      // Focus tasks first, then by position
       if (a.is_focus && !b.is_focus) return -1;
       if (!a.is_focus && b.is_focus) return 1;
       return (a.position || 0) - (b.position || 0);
@@ -163,7 +160,7 @@ function DashboardContent() {
       !(t.due_date && t.due_date < todayStr)
   );
 
-  const capacity = calculateCapacity(tasks, new Date(), settings); // Always use unfiltered for capacity
+  const capacity = calculateCapacity(tasks, new Date(), settings);
   const planningDone = settings?.planning_completed_date === todayStr;
 
   const {
@@ -183,9 +180,9 @@ function DashboardContent() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-dvh">
         <div className="flex items-center gap-3 text-muted-foreground">
-          <div className="h-5 w-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <div className="size-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
           <span className="text-sm">Loading...</span>
         </div>
       </div>
@@ -195,7 +192,6 @@ function DashboardContent() {
   const shutdownDone = settings?.shutdown_completed_date === todayStr;
   const isNewUser = !settings;
 
-  // Show onboarding for new users
   if (!loading && isNewUser) {
     return (
       <WelcomeFlow
@@ -205,7 +201,6 @@ function DashboardContent() {
     );
   }
 
-  // Show morning ritual
   if (showRitual) {
     return (
       <MorningRitual
@@ -221,7 +216,6 @@ function DashboardContent() {
     );
   }
 
-  // Show shutdown ritual
   if (showShutdown) {
     return (
       <ShutdownRitual
@@ -249,10 +243,10 @@ function DashboardContent() {
       {/* Header */}
       <div className="pt-10 md:pt-2 flex items-start justify-between">
         <div className="space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight">
+          <h1 className="text-2xl font-bold text-balance">
             {greeting()}, Justin
           </h1>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-muted-foreground text-sm text-pretty">
             {new Date().toLocaleDateString("en-US", {
               weekday: "long",
               month: "long",
@@ -265,10 +259,10 @@ function DashboardContent() {
           {!planningDone && (
             <Button
               onClick={() => setShowRitual(true)}
-              className="gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white border-0 rounded-xl shadow-lg shadow-indigo-500/25"
+              className="gap-2 bg-foreground text-background hover:bg-foreground/90 border-0 rounded-lg"
               size="sm"
             >
-              <Sunrise className="h-4 w-4" />
+              <Sunrise className="size-4" />
               Plan My Day
             </Button>
           )}
@@ -276,10 +270,10 @@ function DashboardContent() {
             <Button
               onClick={() => setShowShutdown(true)}
               variant="outline"
-              className="gap-2 rounded-xl border-violet-500/30 text-violet-400 hover:bg-violet-500/10"
+              className="gap-2 rounded-lg"
               size="sm"
             >
-              <Moon className="h-4 w-4" />
+              <Moon className="size-4" />
               Shutdown
             </Button>
           )}
@@ -288,8 +282,8 @@ function DashboardContent() {
 
       {/* Daily intention */}
       {settings?.daily_intention && planningDone && (
-        <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-4">
-          <p className="text-sm text-indigo-300 italic">
+        <div className="rounded-lg border border-border bg-muted/30 p-4">
+          <p className="text-sm text-muted-foreground italic text-pretty">
             &ldquo;{settings.daily_intention}&rdquo;
           </p>
         </div>
@@ -297,15 +291,15 @@ function DashboardContent() {
 
       {/* Filters */}
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-[10px] text-muted-foreground/60 uppercase tracking-wider font-medium">Filter:</span>
+        <span className="text-[10px] text-muted-foreground/60 uppercase font-medium">Filter:</span>
         {[{ id: "all", label: "All" }, ...workspaces.map((ws) => ({ id: ws.id, label: ws.name }))].map((item) => (
           <button
             key={item.id}
             onClick={() => setFilterWorkspace(item.id)}
             className={cn(
-              "px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all duration-200",
+              "px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors",
               filterWorkspace === item.id
-                ? "bg-primary text-primary-foreground shadow-sm"
+                ? "bg-primary text-primary-foreground"
                 : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
             )}
           >
@@ -323,9 +317,9 @@ function DashboardContent() {
             key={item.id}
             onClick={() => setFilterPriority(item.id)}
             className={cn(
-              "px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all duration-200",
+              "px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors",
               filterPriority === item.id
-                ? "bg-primary text-primary-foreground shadow-sm"
+                ? "bg-primary text-primary-foreground"
                 : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
             )}
           >
@@ -357,9 +351,9 @@ function DashboardContent() {
         <>
           {/* Overdue alert */}
           {overdueTasks.length > 0 && (
-            <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-4 space-y-3">
+            <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-4 space-y-3">
               <div className="flex items-center gap-2 text-red-400">
-                <AlertCircle className="h-4 w-4" />
+                <AlertCircle className="size-4" />
                 <span className="text-sm font-semibold">
                   {overdueTasks.length} overdue task
                   {overdueTasks.length > 1 ? "s" : ""}
@@ -387,8 +381,8 @@ function DashboardContent() {
           {focusTasks.length > 0 && (
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <Star className="h-4 w-4 text-indigo-400 fill-indigo-400" />
-                <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
+                <Star className="size-4 text-foreground fill-foreground" />
+                <h2 className="text-xs font-medium text-muted-foreground uppercase text-balance">
                   Today&apos;s Focus
                 </h2>
               </div>
@@ -410,7 +404,7 @@ function DashboardContent() {
           {/* Today's planned tasks (non-focus) */}
           {plannedToday.filter((t) => !t.is_focus).length > 0 && (
             <div className="space-y-3">
-              <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
+              <h2 className="text-xs font-medium text-muted-foreground uppercase text-balance">
                 Planned for Today
               </h2>
               <div className="space-y-2">
@@ -433,22 +427,22 @@ function DashboardContent() {
           {/* Empty state for today */}
           {plannedToday.length === 0 && overdueTasks.length === 0 && (
             <div className="text-center py-12 space-y-4">
-              <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-muted/50">
-                <ListTodo className="h-7 w-7 text-muted-foreground" />
+              <div className="inline-flex size-14 items-center justify-center rounded-2xl bg-muted/50">
+                <ListTodo className="size-7 text-muted-foreground" />
               </div>
               <div className="space-y-2">
-                <p className="text-sm font-medium">Nothing planned for today</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm font-medium text-balance">Nothing planned for today</p>
+                <p className="text-xs text-muted-foreground text-pretty">
                   Start your morning planning ritual or add a task below.
                 </p>
               </div>
               <Button
                 onClick={() => setShowRitual(true)}
                 variant="outline"
-                className="gap-2 rounded-xl"
+                className="gap-2 rounded-lg"
                 size="sm"
               >
-                <Sunrise className="h-4 w-4" />
+                <Sunrise className="size-4" />
                 Plan My Day
               </Button>
             </div>
@@ -462,14 +456,14 @@ function DashboardContent() {
             <div className="space-y-3">
               <button
                 onClick={() => setShowCompleted(!showCompleted)}
-                className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-widest hover:text-foreground transition-colors"
+                className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase hover:text-foreground transition-colors"
               >
                 {showCompleted ? (
-                  <ChevronUp className="h-3.5 w-3.5" />
+                  <ChevronUp className="size-3.5" />
                 ) : (
-                  <ChevronDown className="h-3.5 w-3.5" />
+                  <ChevronDown className="size-3.5" />
                 )}
-                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                <CheckCircle2 className="size-3.5 text-emerald-400" />
                 Completed Today ({completedToday.length})
               </button>
               {showCompleted && (
@@ -494,12 +488,12 @@ function DashboardContent() {
             <div className="space-y-3">
               <button
                 onClick={() => setShowAllTasks(!showAllTasks)}
-                className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-widest hover:text-foreground transition-colors"
+                className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase hover:text-foreground transition-colors"
               >
                 {showAllTasks ? (
-                  <ChevronUp className="h-3.5 w-3.5" />
+                  <ChevronUp className="size-3.5" />
                 ) : (
-                  <ChevronDown className="h-3.5 w-3.5" />
+                  <ChevronDown className="size-3.5" />
                 )}
                 Backlog ({unplannedActive.length})
               </button>

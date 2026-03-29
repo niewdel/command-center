@@ -57,7 +57,7 @@ export function ProjectList({ projects, clients, workspaceId, onRefresh }: Proje
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
+        <h2 className="text-balance text-xs font-medium text-muted-foreground uppercase">
           Projects ({projects.length})
         </h2>
         <Button
@@ -69,17 +69,17 @@ export function ProjectList({ projects, clients, workspaceId, onRefresh }: Proje
           }}
           className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
         >
-          <Plus className="h-3.5 w-3.5" />
+          <Plus className="size-3.5" />
           Add Project
         </Button>
       </div>
 
       {projects.length === 0 ? (
         <div className="text-center py-8">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/50 mb-3">
-            <FolderKanban className="h-6 w-6 text-muted-foreground" />
+          <div className="inline-flex size-12 items-center justify-center rounded-2xl bg-muted/50 mb-3">
+            <FolderKanban className="size-6 text-muted-foreground" />
           </div>
-          <p className="text-sm text-muted-foreground">No projects yet</p>
+          <p className="text-pretty text-sm text-muted-foreground">No projects yet</p>
         </div>
       ) : (
         <div className="grid gap-3">
@@ -90,7 +90,7 @@ export function ProjectList({ projects, clients, workspaceId, onRefresh }: Proje
               <div
                 key={project.id}
                 className={cn(
-                  "group rounded-xl border border-border/50 bg-card/50 p-4 hover:bg-card hover:border-border transition-all cursor-pointer",
+                  "group rounded-lg border border-border/50 bg-card/50 p-4 hover:bg-card hover:border-border transition-colors cursor-pointer",
                   project.status === "completed" && "opacity-60"
                 )}
                 onClick={() => router.push(`/workspace/${slug}/project/${project.id}`)}
@@ -109,39 +109,41 @@ export function ProjectList({ projects, clients, workspaceId, onRefresh }: Proje
                       </span>
                     </div>
                     {project.description && (
-                      <p className="text-xs text-muted-foreground line-clamp-2">
+                      <p className="text-pretty text-xs text-muted-foreground line-clamp-2">
                         {project.description}
                       </p>
                     )}
                     {client && (
-                      <p className="text-[11px] text-muted-foreground/60">
+                      <p className="text-pretty text-[11px] text-muted-foreground/60">
                         Client: {client.name}
                       </p>
                     )}
                   </div>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all ml-2">
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 rounded-lg"
+                      className="size-8 rounded-lg"
+                      aria-label="Edit project"
                       onClick={(e) => {
                         e.stopPropagation();
                         setEditing(project);
                         setShowDialog(true);
                       }}
                     >
-                      <Pencil className="h-3.5 w-3.5" />
+                      <Pencil className="size-3.5" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 rounded-lg text-muted-foreground hover:text-red-400"
+                      className="size-8 rounded-lg text-muted-foreground hover:text-red-400"
+                      aria-label="Delete project"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDelete(project.id);
                       }}
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <Trash2 className="size-3.5" />
                     </Button>
                   </div>
                 </div>
@@ -226,13 +228,13 @@ function ProjectDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[460px] bg-card border-border rounded-2xl shadow-2xl shadow-black/30">
+      <DialogContent className="sm:max-w-[460px] bg-card border-border rounded-2xl shadow-md">
         <DialogHeader>
           <DialogTitle>{project ? "Edit Project" : "New Project"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-2">
-            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <Label className="text-xs font-medium text-muted-foreground uppercase">
               Name
             </Label>
             <Input
@@ -244,7 +246,7 @@ function ProjectDialog({
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <Label className="text-xs font-medium text-muted-foreground uppercase">
               Description
             </Label>
             <Textarea
@@ -257,14 +259,14 @@ function ProjectDialog({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <Label className="text-xs font-medium text-muted-foreground uppercase">
                 Client
               </Label>
               <Select value={clientId} onValueChange={(v) => v && setClientId(v)}>
                 <SelectTrigger className="bg-background/50 border-border/50 rounded-lg">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-popover border-border rounded-xl">
+                <SelectContent className="bg-popover border-border rounded-lg">
                   <SelectItem value="none" className="rounded-lg">No client</SelectItem>
                   {clients.map((c) => (
                     <SelectItem key={c.id} value={c.id} className="rounded-lg">
@@ -275,14 +277,14 @@ function ProjectDialog({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <Label className="text-xs font-medium text-muted-foreground uppercase">
                 Status
               </Label>
               <Select value={status} onValueChange={(v) => setStatus(v as Project["status"])}>
                 <SelectTrigger className="bg-background/50 border-border/50 rounded-lg">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-popover border-border rounded-xl">
+                <SelectContent className="bg-popover border-border rounded-lg">
                   <SelectItem value="active" className="rounded-lg">Active</SelectItem>
                   <SelectItem value="on_hold" className="rounded-lg">On Hold</SelectItem>
                   <SelectItem value="completed" className="rounded-lg">Completed</SelectItem>
@@ -298,7 +300,7 @@ function ProjectDialog({
           <Button
             onClick={handleSave}
             disabled={!name.trim() || saving}
-            className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white border-0 rounded-lg shadow-lg shadow-indigo-500/25"
+            className="bg-foreground text-background hover:bg-foreground/90 border-0 rounded-lg shadow-sm"
           >
             {saving ? "Saving..." : project ? "Save Changes" : "Add Project"}
           </Button>

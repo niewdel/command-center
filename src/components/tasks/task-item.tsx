@@ -63,8 +63,8 @@ export function TaskItem({
   return (
     <div
       className={cn(
-        "group flex items-start gap-3 rounded-xl border border-border/50 bg-card/50 p-4 transition-all duration-200",
-        "hover:bg-card hover:border-border hover:shadow-lg hover:shadow-black/10",
+        "group flex items-start gap-3 rounded-lg border border-border/50 bg-card/50 p-4 transition-colors",
+        "hover:bg-card hover:border-border hover:shadow-md",
         isDone && "opacity-40",
         isOverdue && "border-red-500/30 bg-red-500/5",
         task.is_focus &&
@@ -77,14 +77,14 @@ export function TaskItem({
         onCheckedChange={(checked) => onToggle(task.id, !!checked)}
         className={cn(
           "mt-0.5 border-muted-foreground/40 data-[state=checked]:bg-primary data-[state=checked]:border-primary",
-          "transition-colors duration-200"
+          "transition-colors"
         )}
       />
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           {task.is_focus && !isDone && (
-            <Star className="h-3.5 w-3.5 text-indigo-400 fill-indigo-400 shrink-0" />
+            <Star className="size-3.5 text-indigo-400 fill-indigo-400 shrink-0" />
           )}
           <span
             className={cn(
@@ -107,7 +107,7 @@ export function TaskItem({
             >
               <span
                 className={cn(
-                  "h-1.5 w-1.5 rounded-full mr-1.5",
+                  "size-1.5 rounded-full mr-1.5",
                   workspaceConfig[workspace.slug]?.dot
                 )}
               />
@@ -127,7 +127,7 @@ export function TaskItem({
           )}
           {task.estimated_minutes && (
             <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
-              <Clock className="h-3 w-3" />
+              <Clock className="size-3" />
               {formatMinutes(task.estimated_minutes)}
             </span>
           )}
@@ -146,7 +146,7 @@ export function TaskItem({
                 isOverdue && "text-red-400 font-medium"
               )}
             >
-              <Calendar className="h-3 w-3" />
+              <Calendar className="size-3" />
               {isOverdue && "Overdue: "}
               {new Date(task.due_date).toLocaleDateString("en-US", {
                 month: "short",
@@ -157,22 +157,24 @@ export function TaskItem({
         </div>
       </div>
 
-      <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-all duration-200">
+      <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent"
+          className="size-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent"
           onClick={() => onEdit(task)}
+          aria-label="Edit task"
         >
-          <Pencil className="h-3.5 w-3.5" />
+          <Pencil className="size-3.5" />
         </Button>
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10"
+          className="size-8 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10"
           onClick={() => onDelete(task.id)}
+          aria-label="Delete task"
         >
-          <Trash2 className="h-3.5 w-3.5" />
+          <Trash2 className="size-3.5" />
         </Button>
       </div>
     </div>

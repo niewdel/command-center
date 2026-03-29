@@ -106,13 +106,13 @@ export function EditTaskDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[460px] bg-card border-border rounded-2xl shadow-2xl shadow-black/30">
+      <DialogContent className="sm:max-w-[460px] bg-card border-border rounded-2xl shadow-md">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold">Edit Task</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-2">
-            <Label htmlFor="title" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <Label htmlFor="title" className="text-xs font-medium text-muted-foreground uppercase">
               Title
             </Label>
             <Input
@@ -123,7 +123,7 @@ export function EditTaskDialog({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="description" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <Label htmlFor="description" className="text-xs font-medium text-muted-foreground uppercase">
               Description
             </Label>
             <Textarea
@@ -136,14 +136,14 @@ export function EditTaskDialog({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <Label className="text-xs font-medium text-muted-foreground uppercase">
                 Workspace
               </Label>
               <Select value={workspaceId} onValueChange={(v) => v && setWorkspaceId(v)}>
                 <SelectTrigger className="bg-background/50 border-border/50 rounded-lg">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-popover border-border rounded-xl">
+                <SelectContent className="bg-popover border-border rounded-lg">
                   {workspaces.map((ws) => (
                     <SelectItem key={ws.id} value={ws.id} className="rounded-lg">
                       {ws.name}
@@ -153,14 +153,14 @@ export function EditTaskDialog({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <Label className="text-xs font-medium text-muted-foreground uppercase">
                 Priority
               </Label>
               <Select value={priority} onValueChange={(v) => v && setPriority(v)}>
                 <SelectTrigger className="bg-background/50 border-border/50 rounded-lg">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-popover border-border rounded-xl">
+                <SelectContent className="bg-popover border-border rounded-lg">
                   <SelectItem value="none" className="rounded-lg">None</SelectItem>
                   <SelectItem value="low" className="rounded-lg">Low</SelectItem>
                   <SelectItem value="medium" className="rounded-lg">Medium</SelectItem>
@@ -171,14 +171,14 @@ export function EditTaskDialog({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <Label className="text-xs font-medium text-muted-foreground uppercase">
                 Status
               </Label>
               <Select value={status} onValueChange={(v) => v && setStatus(v)}>
                 <SelectTrigger className="bg-background/50 border-border/50 rounded-lg">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-popover border-border rounded-xl">
+                <SelectContent className="bg-popover border-border rounded-lg">
                   <SelectItem value="todo" className="rounded-lg">To Do</SelectItem>
                   <SelectItem value="in_progress" className="rounded-lg">In Progress</SelectItem>
                   <SelectItem value="done" className="rounded-lg">Done</SelectItem>
@@ -186,7 +186,7 @@ export function EditTaskDialog({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <Label className="text-xs font-medium text-muted-foreground uppercase">
                 Due Date
               </Label>
               <Input
@@ -198,7 +198,7 @@ export function EditTaskDialog({
             </div>
           </div>
           <div className="space-y-2">
-            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <Label className="text-xs font-medium text-muted-foreground uppercase">
               Planned Date
             </Label>
             <Input
@@ -211,7 +211,7 @@ export function EditTaskDialog({
 
           {/* Time estimate chips */}
           <div className="space-y-2">
-            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <Label className="text-xs font-medium text-muted-foreground uppercase">
               Time Estimate
             </Label>
             <div className="flex items-center gap-1.5 flex-wrap">
@@ -225,7 +225,7 @@ export function EditTaskDialog({
                     )
                   }
                   className={cn(
-                    "px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200",
+                    "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
                     estimateMinutes === preset.value
                       ? "bg-primary text-primary-foreground shadow-sm"
                       : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -239,14 +239,14 @@ export function EditTaskDialog({
 
           {/* Recurrence */}
           <div className="space-y-2">
-            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <Label className="text-xs font-medium text-muted-foreground uppercase">
               Repeat
             </Label>
             <button
               type="button"
               onClick={() => setIsRecurring(!isRecurring)}
               className={cn(
-                "px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200",
+                "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
                 isRecurring
                   ? "bg-primary text-primary-foreground shadow-sm"
                   : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -265,7 +265,7 @@ export function EditTaskDialog({
                       <SelectTrigger className="bg-background/50 border-border/50 rounded-lg h-8 text-xs">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-popover border-border rounded-xl">
+                      <SelectContent className="bg-popover border-border rounded-lg">
                         <SelectItem value="daily" className="rounded-lg text-xs">Daily</SelectItem>
                         <SelectItem value="weekly" className="rounded-lg text-xs">Weekly</SelectItem>
                         <SelectItem value="monthly" className="rounded-lg text-xs">Monthly</SelectItem>
@@ -298,7 +298,7 @@ export function EditTaskDialog({
                             )
                           }
                           className={cn(
-                            "h-7 w-7 rounded-md text-[10px] font-medium transition-all",
+                            "size-7 rounded-md text-[10px] font-medium transition-colors",
                             recDaysOfWeek.includes(i)
                               ? "bg-primary text-primary-foreground"
                               : "bg-muted/50 text-muted-foreground hover:bg-muted"
@@ -325,7 +325,7 @@ export function EditTaskDialog({
           <Button
             onClick={handleSave}
             disabled={!title.trim()}
-            className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white border-0 rounded-lg shadow-lg shadow-indigo-500/25"
+            className="bg-foreground hover:bg-foreground/90 text-background border-0 rounded-lg shadow-sm"
           >
             Save Changes
           </Button>

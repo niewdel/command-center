@@ -74,16 +74,16 @@ export function EventDetailSheet({
   return (
     <>
       <div
-        className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm"
+        className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
       />
-      <div className="fixed inset-y-0 right-0 z-[101] w-full max-w-sm">
-        <div className="h-full bg-card border-l border-border shadow-2xl shadow-black/40 flex flex-col">
+      <div className="fixed inset-y-0 right-0 z-40 w-full max-w-sm">
+        <div className="h-full bg-card border-l border-border shadow-md flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
             <div className="flex items-center gap-2">
               {event.source !== "local" && (
-                <span className="text-[10px] font-medium uppercase tracking-wider px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                <span className="text-[10px] font-medium uppercase px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
                   {event.source}
                 </span>
               )}
@@ -95,37 +95,38 @@ export function EventDetailSheet({
             </div>
             <button
               onClick={onClose}
+              aria-label="Close event details"
               className="rounded-lg p-1 hover:bg-accent transition-colors"
             >
-              <X className="h-4 w-4 text-muted-foreground" />
+              <X className="size-4 text-muted-foreground" />
             </button>
           </div>
 
           {/* Content */}
           <div className="flex-1 overflow-y-auto p-5 space-y-5">
-            <h2 className="text-xl font-semibold">{event.title}</h2>
+            <h2 className="text-xl font-semibold text-balance">{event.title}</h2>
 
             {/* Time */}
             <div className="flex items-start gap-3">
-              <Clock className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+              <Clock className="size-4 text-muted-foreground mt-0.5 shrink-0" />
               <div>
-                <p className="text-sm">{dateStr}</p>
-                <p className="text-sm text-muted-foreground">{timeStr}</p>
+                <p className="text-sm text-pretty">{dateStr}</p>
+                <p className="text-sm text-muted-foreground text-pretty">{timeStr}</p>
               </div>
             </div>
 
             {/* Location */}
             {event.location && (
               <div className="flex items-start gap-3">
-                <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-                <p className="text-sm">{event.location}</p>
+                <MapPin className="size-4 text-muted-foreground mt-0.5 shrink-0" />
+                <p className="text-sm text-pretty">{event.location}</p>
               </div>
             )}
 
             {/* Meeting link */}
             {event.meeting_url && (
               <div className="flex items-start gap-3">
-                <Video className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                <Video className="size-4 text-muted-foreground mt-0.5 shrink-0" />
                 <a
                   href={event.meeting_url}
                   target="_blank"
@@ -138,7 +139,7 @@ export function EventDetailSheet({
                     : event.meeting_provider === "teams"
                     ? "Teams"
                     : "Meeting"}
-                  <ExternalLink className="h-3 w-3" />
+                  <ExternalLink className="size-3" />
                 </a>
               </div>
             )}
@@ -146,15 +147,15 @@ export function EventDetailSheet({
             {/* Workspace */}
             {workspace && (
               <div className="flex items-start gap-3">
-                <Briefcase className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-                <p className="text-sm">{workspace.name}</p>
+                <Briefcase className="size-4 text-muted-foreground mt-0.5 shrink-0" />
+                <p className="text-sm text-pretty">{workspace.name}</p>
               </div>
             )}
 
             {/* Description */}
             {event.description && (
               <div className="pt-2 border-t border-border/50">
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap text-pretty">
                   {event.description}
                 </p>
               </div>
@@ -163,12 +164,12 @@ export function EventDetailSheet({
             {/* Attendees */}
             {event.attendees && event.attendees.length > 0 && (
               <div className="pt-2 border-t border-border/50">
-                <p className="text-xs font-medium text-muted-foreground mb-2">
+                <p className="text-xs font-medium text-muted-foreground text-pretty mb-2">
                   Attendees
                 </p>
                 <div className="space-y-1">
                   {event.attendees.map((a, i) => (
-                    <p key={i} className="text-sm">
+                    <p key={i} className="text-sm text-pretty">
                       {a.name || a.email}
                     </p>
                   ))}
@@ -187,7 +188,7 @@ export function EventDetailSheet({
                 disabled={deleting}
                 className="w-full gap-2 rounded-lg text-red-400 border-red-500/30 hover:bg-red-500/10 hover:text-red-300"
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                <Trash2 className="size-3.5" />
                 {deleting ? "Deleting..." : "Delete Event"}
               </Button>
             </div>

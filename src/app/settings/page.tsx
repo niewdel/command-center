@@ -60,9 +60,9 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-dvh">
         <div className="flex items-center gap-3 text-muted-foreground">
-          <div className="h-5 w-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <div className="size-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
           <span className="text-sm">Loading...</span>
         </div>
       </div>
@@ -73,24 +73,24 @@ export default function SettingsPage() {
     <div className="p-4 md:p-8 max-w-2xl mx-auto space-y-8">
       <div className="pt-10 md:pt-2 space-y-1">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center shadow-lg">
-            <Settings className="h-5 w-5 text-white" />
+          <div className="size-10 rounded-lg bg-foreground flex items-center justify-center shadow-sm">
+            <Settings className="size-5 text-background" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
+          <h1 className="text-2xl font-bold text-balance">Settings</h1>
         </div>
       </div>
 
       {/* Capacity */}
       <div className="space-y-4">
         <div>
-          <h2 className="text-sm font-semibold">Daily Capacity</h2>
-          <p className="text-xs text-muted-foreground mt-1">
+          <h2 className="text-sm font-semibold text-balance">Daily Capacity</h2>
+          <p className="text-xs text-muted-foreground mt-1 text-pretty">
             How many productive hours do you have per day? Used to calculate your capacity bar and overcommitment warnings.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <Label className="text-xs font-medium text-muted-foreground uppercase">
               Weekday Hours
             </Label>
             <Input
@@ -109,7 +109,7 @@ export default function SettingsPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <Label className="text-xs font-medium text-muted-foreground uppercase">
               Weekend Hours
             </Label>
             <Input
@@ -133,13 +133,13 @@ export default function SettingsPage() {
       {/* Shutdown */}
       <div className="space-y-4">
         <div>
-          <h2 className="text-sm font-semibold">Shutdown Time</h2>
-          <p className="text-xs text-muted-foreground mt-1">
+          <h2 className="text-sm font-semibold text-balance">Shutdown Time</h2>
+          <p className="text-xs text-muted-foreground mt-1 text-pretty">
             When does your workday end? Triggers the evening shutdown ritual reminder.
           </p>
         </div>
         <div className="space-y-2">
-          <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          <Label className="text-xs font-medium text-muted-foreground uppercase">
             End of Day
           </Label>
           <Input
@@ -156,22 +156,22 @@ export default function SettingsPage() {
       {/* Notifications */}
       <div className="space-y-4">
         <div>
-          <h2 className="text-sm font-semibold">Notifications</h2>
-          <p className="text-xs text-muted-foreground mt-1">
+          <h2 className="text-sm font-semibold text-balance">Notifications</h2>
+          <p className="text-xs text-muted-foreground mt-1 text-pretty">
             Get reminders for overdue tasks and upcoming deadlines.
           </p>
         </div>
-        <div className="flex items-center gap-4 rounded-xl border border-border/50 bg-card/50 p-4">
-          <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
+        <div className="flex items-center gap-4 rounded-lg border border-border/50 bg-card/50 p-4">
+          <div className="size-10 rounded-lg bg-foreground flex items-center justify-center shadow-sm">
             {notifStatus === "granted" ? (
-              <Bell className="h-5 w-5 text-white" />
+              <Bell className="size-5 text-background" />
             ) : (
-              <BellOff className="h-5 w-5 text-white" />
+              <BellOff className="size-5 text-background" />
             )}
           </div>
           <div className="flex-1">
-            <p className="text-sm font-medium">Task Reminders</p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm font-medium text-pretty">Task Reminders</p>
+            <p className="text-xs text-muted-foreground text-pretty">
               {notifStatus === "granted"
                 ? "Notifications enabled — you'll get alerts for overdue and due-today tasks"
                 : notifStatus === "denied"
@@ -203,29 +203,29 @@ export default function SettingsPage() {
       {/* Calendar integrations placeholder */}
       <div className="space-y-4">
         <div>
-          <h2 className="text-sm font-semibold">Calendar Integrations</h2>
-          <p className="text-xs text-muted-foreground mt-1">
+          <h2 className="text-sm font-semibold text-balance">Calendar Integrations</h2>
+          <p className="text-xs text-muted-foreground mt-1 text-pretty">
             Connect your calendars to see all your meetings in one place.
           </p>
         </div>
         <div className="space-y-3">
           {[
-            { name: "Google Calendar", icon: "G", color: "from-blue-500 to-blue-600", status: "coming soon" },
-            { name: "Outlook / Microsoft 365", icon: "M", color: "from-sky-500 to-blue-700", status: "coming soon" },
-            { name: "Apple Calendar", icon: "A", color: "from-gray-600 to-gray-800", status: "coming soon" },
+            { name: "Google Calendar", icon: "G", color: "bg-muted", status: "coming soon" },
+            { name: "Outlook / Microsoft 365", icon: "M", color: "bg-muted", status: "coming soon" },
+            { name: "Apple Calendar", icon: "A", color: "bg-muted", status: "coming soon" },
           ].map((cal) => (
             <div
               key={cal.name}
-              className="flex items-center gap-4 rounded-xl border border-border/50 bg-card/50 p-4"
+              className="flex items-center gap-4 rounded-lg border border-border/50 bg-card/50 p-4"
             >
               <div
-                className={`h-10 w-10 rounded-lg bg-gradient-to-br ${cal.color} flex items-center justify-center shadow-lg`}
+                className={`size-10 rounded-lg ${cal.color} flex items-center justify-center shadow-sm`}
               >
-                <span className="text-white font-bold text-sm">{cal.icon}</span>
+                <span className="font-bold text-sm">{cal.icon}</span>
               </div>
               <div className="flex-1">
-                <p className="text-sm font-medium">{cal.name}</p>
-                <p className="text-xs text-muted-foreground capitalize">{cal.status}</p>
+                <p className="text-sm font-medium text-pretty">{cal.name}</p>
+                <p className="text-xs text-muted-foreground capitalize text-pretty">{cal.status}</p>
               </div>
               <Button variant="outline" size="sm" disabled className="rounded-lg text-xs">
                 Connect
@@ -240,18 +240,18 @@ export default function SettingsPage() {
         <Button
           onClick={handleSave}
           disabled={saving}
-          className="gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white border-0 rounded-xl shadow-lg shadow-indigo-500/25"
+          className="gap-2 bg-foreground hover:bg-foreground/90 text-background border-0 rounded-lg shadow-sm"
         >
           {saved ? (
             <>
-              <Check className="h-4 w-4" />
+              <Check className="size-4" />
               Saved
             </>
           ) : saving ? (
             "Saving..."
           ) : (
             <>
-              <Save className="h-4 w-4" />
+              <Save className="size-4" />
               Save Settings
             </>
           )}

@@ -77,12 +77,12 @@ export function CalendarWeekView({
                 isToday && "bg-indigo-500/5"
               )}
             >
-              <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+              <p className="text-[10px] font-medium uppercase text-pretty text-muted-foreground">
                 {day.toLocaleDateString("en-US", { weekday: "short" })}
               </p>
               <p
                 className={cn(
-                  "text-lg font-semibold mt-0.5",
+                  "text-lg font-semibold mt-0.5 text-pretty",
                   isToday
                     ? "text-indigo-400"
                     : "text-foreground"
@@ -176,7 +176,7 @@ export function CalendarWeekView({
                     className="absolute left-0 right-0 z-20 flex items-center"
                     style={{ top: currentTimeTop }}
                   >
-                    <div className="h-2.5 w-2.5 rounded-full bg-red-500 -ml-1" />
+                    <div className="size-2.5 rounded-full bg-red-500 -ml-1" />
                     <div className="flex-1 h-[2px] bg-red-500" />
                   </div>
                 )}

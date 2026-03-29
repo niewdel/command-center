@@ -31,32 +31,28 @@ const workspaces = [
     slug: "dashboard",
     href: "/dashboard",
     icon: LayoutDashboard,
-    gradient: "from-indigo-500 to-purple-600",
-    glow: "shadow-indigo-500/20",
+    color: "bg-indigo-500",
   },
   {
     name: "Niewdel",
     slug: "niewdel",
     href: "/workspace/niewdel",
     logo: "/logos/niewdel-icon.png",
-    gradient: "from-violet-500 to-purple-600",
-    glow: "shadow-violet-500/20",
+    color: "bg-violet-500",
   },
   {
     name: "i10 Solutions",
     slug: "i10",
     href: "/workspace/i10",
     logo: "/logos/i10-logo.png",
-    gradient: "from-emerald-500 to-teal-600",
-    glow: "shadow-emerald-500/20",
+    color: "bg-emerald-500",
   },
   {
     name: "Personal",
     slug: "personal",
     href: "/workspace/personal",
     icon: User,
-    gradient: "from-amber-500 to-orange-600",
-    glow: "shadow-amber-500/20",
+    color: "bg-amber-500",
   },
 ];
 
@@ -65,43 +61,37 @@ const extraNav = [
     name: "Upcoming",
     href: "/upcoming",
     icon: CalendarDays,
-    gradient: "from-cyan-500 to-blue-600",
-    glow: "shadow-cyan-500/20",
+    color: "bg-cyan-500",
   },
   {
     name: "Calendar",
     href: "/calendar",
     icon: Calendar,
-    gradient: "from-blue-500 to-indigo-600",
-    glow: "shadow-blue-500/20",
+    color: "bg-blue-500",
   },
   {
     name: "Goals",
     href: "/goals",
     icon: Target,
-    gradient: "from-rose-500 to-pink-600",
-    glow: "shadow-rose-500/20",
+    color: "bg-rose-500",
   },
   {
     name: "Notes",
     href: "/notes",
     icon: FileText,
-    gradient: "from-amber-500 to-orange-600",
-    glow: "shadow-amber-500/20",
+    color: "bg-amber-500",
   },
   {
     name: "Digests",
     href: "/digests",
     icon: BookOpen,
-    gradient: "from-red-500 to-pink-600",
-    glow: "shadow-red-500/20",
+    color: "bg-red-500",
   },
   {
     name: "Settings",
     href: "/settings",
     icon: Settings,
-    gradient: "from-slate-500 to-slate-700",
-    glow: "shadow-slate-500/20",
+    color: "bg-slate-500",
   },
 ];
 
@@ -134,16 +124,17 @@ export function Sidebar() {
     <>
       {/* Mobile menu button */}
       <button
+        aria-label="Open menu"
         onClick={() => setMobileOpen(true)}
-        className="fixed top-4 left-4 z-50 md:hidden rounded-xl bg-card/80 backdrop-blur-sm border border-border/50 p-2.5 shadow-lg"
+        className="fixed top-4 left-4 z-40 md:hidden rounded-lg bg-card border border-border p-2.5 shadow-sm"
       >
-        <Menu className="h-5 w-5" />
+        <Menu className="size-5" />
       </button>
 
       {/* Mobile overlay */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-30 bg-black/60 md:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
@@ -151,7 +142,7 @@ export function Sidebar() {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-[280px] flex flex-col transition-transform duration-300 ease-out",
+          "fixed inset-y-0 left-0 z-40 w-[280px] flex flex-col transition-transform duration-200 ease-out",
           "bg-sidebar border-r border-sidebar-border",
           "md:translate-x-0",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
@@ -160,25 +151,26 @@ export function Sidebar() {
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-5 border-b border-sidebar-border">
           <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/25">
-              <span className="text-white font-bold text-sm">CC</span>
+            <div className="size-8 rounded-lg bg-foreground flex items-center justify-center">
+              <span className="text-background font-bold text-sm">CC</span>
             </div>
             <div>
-              <h1 className="text-sm font-semibold tracking-tight text-foreground">Command Center</h1>
-              <p className="text-[11px] text-muted-foreground">by Niewdel</p>
+              <h1 className="text-sm font-semibold text-foreground text-balance">Command Center</h1>
+              <p className="text-[11px] text-muted-foreground text-pretty">by Niewdel</p>
             </div>
           </div>
           <button
+            aria-label="Close menu"
             onClick={() => setMobileOpen(false)}
             className="md:hidden rounded-lg p-1.5 hover:bg-accent transition-colors"
           >
-            <X className="h-4 w-4" />
+            <X className="size-4" />
           </button>
         </div>
 
         {/* Navigation */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          <p className="px-3 mb-2 text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
+          <p className="px-3 mb-2 text-[11px] font-medium uppercase text-muted-foreground">
             Workspaces
           </p>
           {workspaces.map((ws) => {
@@ -190,17 +182,17 @@ export function Sidebar() {
                 href={ws.href}
                 onClick={() => setMobileOpen(false)}
                 className={cn(
-                  "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                  "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                   isActive
-                    ? "bg-accent text-foreground shadow-sm"
+                    ? "bg-accent text-foreground"
                     : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
                 )}
               >
                 <div
                   className={cn(
-                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all duration-200",
+                    "flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors",
                     isActive
-                      ? `bg-gradient-to-br ${ws.gradient} shadow-lg ${ws.glow}`
+                      ? ws.color
                       : "bg-muted group-hover:bg-accent"
                   )}
                 >
@@ -215,7 +207,7 @@ export function Sidebar() {
                   ) : ws.icon ? (
                     <ws.icon
                       className={cn(
-                        "h-4 w-4",
+                        "size-4",
                         isActive ? "text-white" : "text-muted-foreground group-hover:text-foreground"
                       )}
                     />
@@ -223,14 +215,14 @@ export function Sidebar() {
                 </div>
                 <span className="flex-1">{ws.name}</span>
                 {isActive && (
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  <ChevronRight className="size-4 text-muted-foreground" />
                 )}
               </Link>
             );
           })}
 
           <div className="pt-4">
-            <p className="px-3 mb-2 text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
+            <p className="px-3 mb-2 text-[11px] font-medium uppercase text-muted-foreground">
               Planning
             </p>
             {extraNav.map((item) => {
@@ -242,30 +234,30 @@ export function Sidebar() {
                   href={item.href}
                   onClick={() => setMobileOpen(false)}
                   className={cn(
-                    "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                    "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                     isActive
-                      ? "bg-accent text-foreground shadow-sm"
+                      ? "bg-accent text-foreground"
                       : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
                   )}
                 >
                   <div
                     className={cn(
-                      "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all duration-200",
+                      "flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors",
                       isActive
-                        ? `bg-gradient-to-br ${item.gradient} shadow-lg ${item.glow}`
+                        ? item.color
                         : "bg-muted group-hover:bg-accent"
                     )}
                   >
                     <item.icon
                       className={cn(
-                        "h-4 w-4",
+                        "size-4",
                         isActive ? "text-white" : "text-muted-foreground group-hover:text-foreground"
                       )}
                     />
                   </div>
                   <span className="flex-1">{item.name}</span>
                   {isActive && (
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    <ChevronRight className="size-4 text-muted-foreground" />
                   )}
                 </Link>
               );
@@ -277,20 +269,20 @@ export function Sidebar() {
         <div className="p-4 border-t border-sidebar-border space-y-2">
           <Button
             onClick={() => setQuickAddOpen(true)}
-            className="w-full gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-lg shadow-indigo-500/25 border-0 rounded-xl h-10 font-medium transition-all duration-200 hover:shadow-indigo-500/40"
+            className="w-full gap-2 bg-foreground text-background hover:bg-foreground/90 border-0 rounded-lg h-10 font-medium"
             size="sm"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="size-4" />
             Quick Add
-            <kbd className="ml-auto text-[10px] opacity-60 bg-white/10 px-1.5 py-0.5 rounded">
+            <kbd className="ml-auto text-[10px] opacity-60 bg-background/10 px-1.5 py-0.5 rounded">
               {typeof navigator !== "undefined" && /Mac/.test(navigator.userAgent) ? "⌘" : "Ctrl+"}N
             </kbd>
           </Button>
           <button
             onClick={handleSignOut}
-            className="w-full flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-all duration-200"
+            className="w-full flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
           >
-            <LogOut className="h-3.5 w-3.5" />
+            <LogOut className="size-3.5" />
             Sign out
           </button>
         </div>

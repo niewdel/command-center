@@ -157,19 +157,19 @@ function DigestsContent() {
   const sourceIcon = (source: string) => {
     switch (source) {
       case "youtube":
-        return <Play className="h-4 w-4 text-red-500" />;
+        return <Play className="size-4 text-red-500" />;
       case "instagram":
-        return <Camera className="h-4 w-4 text-pink-500" />;
+        return <Camera className="size-4 text-pink-500" />;
       default:
-        return <ExternalLink className="h-4 w-4 text-muted-foreground" />;
+        return <ExternalLink className="size-4 text-muted-foreground" />;
     }
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-dvh">
         <div className="flex items-center gap-3 text-muted-foreground">
-          <div className="h-5 w-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <div className="size-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
           <span className="text-sm">Loading...</span>
         </div>
       </div>
@@ -182,12 +182,12 @@ function DigestsContent() {
       <div className="pt-10 md:pt-2 flex items-start justify-between">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-red-500 to-pink-600 flex items-center justify-center shadow-lg shadow-red-500/25">
-              <BookOpen className="h-5 w-5 text-white" />
+            <div className="size-10 rounded-lg bg-foreground flex items-center justify-center shadow-sm">
+              <BookOpen className="size-5 text-background" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">Digests</h1>
-              <p className="text-xs text-muted-foreground">
+              <h1 className="text-2xl font-bold text-balance">Digests</h1>
+              <p className="text-xs text-muted-foreground text-pretty">
                 Video guides, auto-analyzed
               </p>
             </div>
@@ -195,10 +195,10 @@ function DigestsContent() {
         </div>
         <Button
           onClick={() => setShowAddDialog(true)}
-          className="gap-2 bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white border-0 rounded-xl shadow-lg shadow-red-500/25"
+          className="gap-2 bg-foreground hover:bg-foreground/90 text-background border-0 rounded-lg shadow-sm"
           size="sm"
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="size-4" />
           Add Link
         </Button>
       </div>
@@ -206,12 +206,12 @@ function DigestsContent() {
       {/* Search + Filters */}
       <div className="space-y-3">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search guides, tags, URLs..."
-            className="pl-10 bg-background/50 border-border/50 rounded-xl h-10"
+            className="pl-10 bg-background/50 border-border/50 rounded-lg h-10"
           />
         </div>
 
@@ -222,9 +222,9 @@ function DigestsContent() {
               key={s}
               onClick={() => setFilterStatus(s)}
               className={cn(
-                "px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200",
+                "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
                 filterStatus === s
-                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
+                  ? "bg-primary text-primary-foreground shadow-sm"
                   : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
               )}
             >
@@ -239,7 +239,7 @@ function DigestsContent() {
             <button
               onClick={() => setFilterTag("all")}
               className={cn(
-                "px-2 py-1 rounded-md text-[11px] font-medium transition-all",
+                "px-2 py-1 rounded-md text-[11px] font-medium transition-colors",
                 filterTag === "all"
                   ? "bg-accent text-foreground"
                   : "text-muted-foreground hover:text-foreground"
@@ -252,7 +252,7 @@ function DigestsContent() {
                 key={tag}
                 onClick={() => setFilterTag(tag)}
                 className={cn(
-                  "px-2 py-1 rounded-md text-[11px] font-medium transition-all",
+                  "px-2 py-1 rounded-md text-[11px] font-medium transition-colors",
                   filterTag === tag
                     ? "bg-red-500/20 text-red-400"
                     : "bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
@@ -268,11 +268,11 @@ function DigestsContent() {
       {/* Digest cards */}
       {filtered.length === 0 ? (
         <div className="text-center py-16">
-          <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-muted/50 mb-4">
+          <div className="inline-flex size-14 items-center justify-center rounded-2xl bg-muted/50 mb-4">
             <BookOpen className="h-7 w-7 text-muted-foreground" />
           </div>
-          <p className="text-sm font-medium">No digests yet</p>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-sm font-medium text-pretty">No digests yet</p>
+          <p className="text-xs text-muted-foreground mt-1 text-pretty">
             Drop a YouTube or Instagram link in Slack, or add one above.
           </p>
         </div>
@@ -282,7 +282,7 @@ function DigestsContent() {
             <div
               key={digest.id}
               className={cn(
-                "group rounded-xl border border-border/50 bg-card/50 p-4 hover:bg-card hover:border-border transition-all cursor-pointer",
+                "group rounded-lg border border-border/50 bg-card/50 p-4 hover:bg-card hover:border-border transition-colors cursor-pointer",
                 highlightId === digest.id && "ring-2 ring-primary/50"
               )}
               onClick={() =>
@@ -377,9 +377,9 @@ function DigestsContent() {
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}
-                  className="shrink-0 p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-all opacity-0 group-hover:opacity-100"
+                  className="shrink-0 p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors opacity-0 group-hover:opacity-100"
                 >
-                  <ExternalLink className="h-4 w-4" />
+                  <ExternalLink className="size-4" />
                 </a>
               </div>
             </div>
@@ -392,7 +392,7 @@ function DigestsContent() {
         open={!!selectedDigest}
         onOpenChange={() => setSelectedDigest(null)}
       >
-        <DialogContent className="sm:max-w-[700px] max-h-[85vh] overflow-y-auto bg-card border-border rounded-2xl shadow-2xl shadow-black/30">
+        <DialogContent className="sm:max-w-[700px] max-h-[85vh] overflow-y-auto bg-card border-border rounded-lg shadow-md">
           {selectedDigest && (
             <>
               <DialogHeader>
@@ -444,7 +444,7 @@ function DigestsContent() {
 
       {/* Add Link Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent className="sm:max-w-[500px] bg-card border-border rounded-2xl shadow-2xl shadow-black/30">
+        <DialogContent className="sm:max-w-[500px] bg-card border-border rounded-lg shadow-md">
           <DialogHeader>
             <DialogTitle>Add Video Link</DialogTitle>
           </DialogHeader>
@@ -461,7 +461,7 @@ function DigestsContent() {
               onKeyDown={(e) => e.key === "Enter" && handleAddUrl()}
             />
             {addError && (
-              <p className="text-xs text-red-400">{addError}</p>
+              <p className="text-xs text-red-400 text-pretty">{addError}</p>
             )}
             <div className="flex justify-end gap-2">
               <Button
@@ -474,11 +474,11 @@ function DigestsContent() {
               <Button
                 onClick={handleAddUrl}
                 disabled={!addUrl.trim() || addLoading}
-                className="bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white border-0 rounded-lg shadow-lg shadow-red-500/25"
+                className="bg-foreground hover:bg-foreground/90 text-background border-0 rounded-lg shadow-sm"
               >
                 {addLoading ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    <Loader2 className="size-4 animate-spin mr-2" />
                     Adding...
                   </>
                 ) : (
@@ -509,11 +509,11 @@ function MarkdownRenderer({ content }: { content: string }) {
     )
     .replace(
       /^## (.+)$/gm,
-      '<h2 class="text-base font-bold mt-6 mb-2 text-foreground">$1</h2>'
+      '<h2 class="text-base font-bold mt-6 mb-2 text-foreground text-balance">$1</h2>'
     )
     .replace(
       /^# (.+)$/gm,
-      '<h1 class="text-lg font-bold mt-4 mb-3 text-foreground">$1</h1>'
+      '<h1 class="text-lg font-bold mt-4 mb-3 text-foreground text-balance">$1</h1>'
     )
     // Bold
     .replace(/\*\*(.+?)\*\*/g, '<strong class="text-foreground">$1</strong>')
@@ -535,7 +535,7 @@ function MarkdownRenderer({ content }: { content: string }) {
     // Paragraphs (lines that aren't already wrapped)
     .replace(
       /^(?!<[hluop]|<li|<pre|<code)(.+)$/gm,
-      '<p class="text-sm text-muted-foreground leading-relaxed">$1</p>'
+      '<p class="text-sm text-muted-foreground leading-relaxed text-pretty">$1</p>'
     );
 
   return <div dangerouslySetInnerHTML={{ __html: html }} />;
@@ -545,9 +545,9 @@ export default function DigestsPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex items-center justify-center min-h-screen">
+        <div className="flex items-center justify-center min-h-dvh">
           <div className="flex items-center gap-3 text-muted-foreground">
-            <div className="h-5 w-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+            <div className="size-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
             <span className="text-sm">Loading...</span>
           </div>
         </div>

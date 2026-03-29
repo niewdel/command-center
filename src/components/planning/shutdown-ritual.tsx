@@ -136,17 +136,17 @@ export function ShutdownRitual({
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-dvh flex flex-col">
       {/* Header */}
-      <div className="border-b border-border/50 bg-card/30 backdrop-blur-sm sticky top-0 z-10">
+      <div className="border-b border-border/50 bg-card/30 sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-700 flex items-center justify-center shadow-lg shadow-violet-500/25">
-              <Moon className="h-4.5 w-4.5 text-white" />
+            <div className="size-9 rounded-lg bg-foreground flex items-center justify-center shadow-sm">
+              <Moon className="h-4.5 w-4.5 text-background" />
             </div>
             <div>
-              <h1 className="text-sm font-semibold">Evening Shutdown</h1>
-              <p className="text-xs text-muted-foreground">
+              <h1 className="text-sm font-semibold text-balance">Evening Shutdown</h1>
+              <p className="text-xs text-muted-foreground text-pretty">
                 Step {currentStep + 1} of {STEPS.length}
               </p>
             </div>
@@ -157,7 +157,7 @@ export function ShutdownRitual({
         </div>
         <div className="h-1 bg-muted/30">
           <div
-            className="h-full bg-gradient-to-r from-violet-500 to-indigo-700 transition-all duration-500"
+            className="h-full bg-foreground transition-colors"
             style={{ width: `${((currentStep + 1) / STEPS.length) * 100}%` }}
           />
         </div>
@@ -170,24 +170,24 @@ export function ShutdownRitual({
           <div className="space-y-6">
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-emerald-400">
-                <PartyPopper className="h-5 w-5" />
-                <h2 className="text-lg font-semibold">Nice Work Today</h2>
+                <PartyPopper className="size-5" />
+                <h2 className="text-lg font-semibold text-balance">Nice Work Today</h2>
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground text-pretty">
                 Here&apos;s what you accomplished.
               </p>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-5 text-center">
+              <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-5 text-center">
                 <p className="text-3xl font-bold text-emerald-400">{completedToday.length}</p>
-                <p className="text-xs text-muted-foreground mt-1">Tasks completed</p>
+                <p className="text-xs text-muted-foreground mt-1 text-pretty">Tasks completed</p>
               </div>
               {totalEstimated > 0 && (
-                <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-5 text-center">
+                <div className="rounded-lg border border-indigo-500/20 bg-indigo-500/5 p-5 text-center">
                   <p className="text-3xl font-bold text-indigo-400">
                     {formatMinutes(totalEstimated)}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">Estimated time completed</p>
+                  <p className="text-xs text-muted-foreground mt-1 text-pretty">Estimated time completed</p>
                 </div>
               )}
             </div>
@@ -198,7 +198,7 @@ export function ShutdownRitual({
                     key={task.id}
                     className="flex items-center gap-3 rounded-lg border border-border/30 bg-card/30 px-4 py-3"
                   >
-                    <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                    <Check className="size-4 text-emerald-400 shrink-0" />
                     <span className="text-sm text-muted-foreground line-through">
                       {task.title}
                     </span>
@@ -213,7 +213,7 @@ export function ShutdownRitual({
             )}
             {completedToday.length === 0 && (
               <div className="text-center py-8">
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground text-pretty">
                   No tasks completed today. That&apos;s okay — every day is different.
                 </p>
               </div>
@@ -226,10 +226,10 @@ export function ShutdownRitual({
           <div className="space-y-6">
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-amber-400">
-                <CalendarClock className="h-5 w-5" />
-                <h2 className="text-lg font-semibold">Process Incomplete</h2>
+                <CalendarClock className="size-5" />
+                <h2 className="text-lg font-semibold text-balance">Process Incomplete</h2>
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground text-pretty">
                 {incompleteToday.length > 0
                   ? "These didn't get done today. Move them, reschedule them, or let them go."
                   : "Everything planned for today is done. Clean slate."}
@@ -242,7 +242,7 @@ export function ShutdownRitual({
                   <div
                     key={task.id}
                     className={cn(
-                      "rounded-xl border bg-card/50 p-4 space-y-3 transition-all",
+                      "rounded-lg border bg-card/50 p-4 space-y-3 transition-colors",
                       action?.action === "tomorrow" && "border-emerald-500/30 bg-emerald-500/5",
                       action?.action === "reschedule" && "border-amber-500/30 bg-amber-500/5",
                       action?.action === "drop" && "border-muted opacity-50",
@@ -254,7 +254,7 @@ export function ShutdownRitual({
                       <button
                         onClick={() => setCarryAction(task.id, "tomorrow")}
                         className={cn(
-                          "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+                          "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
                           action?.action === "tomorrow"
                             ? "bg-emerald-500 text-white"
                             : "bg-muted/50 text-muted-foreground hover:bg-emerald-500/20 hover:text-emerald-400"
@@ -265,7 +265,7 @@ export function ShutdownRitual({
                       <button
                         onClick={() => setCarryAction(task.id, "reschedule")}
                         className={cn(
-                          "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+                          "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
                           action?.action === "reschedule"
                             ? "bg-amber-500 text-white"
                             : "bg-muted/50 text-muted-foreground hover:bg-amber-500/20 hover:text-amber-400"
@@ -276,13 +276,13 @@ export function ShutdownRitual({
                       <button
                         onClick={() => setCarryAction(task.id, "drop")}
                         className={cn(
-                          "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+                          "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
                           action?.action === "drop"
                             ? "bg-muted text-foreground"
                             : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
                         )}
                       >
-                        <Trash2 className="h-3 w-3 inline mr-1" />
+                        <Trash2 className="size-3 inline mr-1" />
                         Drop
                       </button>
                     </div>
@@ -306,10 +306,10 @@ export function ShutdownRitual({
           <div className="space-y-6">
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-blue-400">
-                <Plus className="h-5 w-5" />
-                <h2 className="text-lg font-semibold">Capture Loose Ends</h2>
+                <Plus className="size-5" />
+                <h2 className="text-lg font-semibold text-balance">Capture Loose Ends</h2>
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground text-pretty">
                 Anything on your mind? Dump it here so you can stop thinking about it. These will land on tomorrow&apos;s plan.
               </p>
             </div>
@@ -331,7 +331,7 @@ export function ShutdownRitual({
                 type="submit"
                 disabled={!newLooseEnd.trim()}
                 size="sm"
-                className="rounded-lg h-10 px-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white border-0"
+                className="rounded-lg h-10 px-4 bg-foreground text-background border-0"
               >
                 Add
               </Button>
@@ -347,6 +347,7 @@ export function ShutdownRitual({
                     <button
                       onClick={() => setLooseEnds((prev) => prev.filter((_, j) => j !== i))}
                       className="text-muted-foreground hover:text-red-400 transition-colors"
+                      aria-label="Remove loose end"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -362,10 +363,10 @@ export function ShutdownRitual({
           <div className="space-y-6">
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-purple-400">
-                <Sparkles className="h-5 w-5" />
-                <h2 className="text-lg font-semibold">Daily Highlight</h2>
+                <Sparkles className="size-5" />
+                <h2 className="text-lg font-semibold text-balance">Daily Highlight</h2>
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground text-pretty">
                 What&apos;s one thing from today you&apos;re most proud of? (Optional)
               </p>
             </div>
@@ -374,22 +375,22 @@ export function ShutdownRitual({
               value={highlight}
               onChange={(e) => setHighlight(e.target.value)}
               placeholder="e.g., Finally shipped the proposal"
-              className="bg-background/50 border-border/50 rounded-xl h-12 text-sm"
+              className="bg-background/50 border-border/50 rounded-lg h-12 text-sm"
             />
-            <div className="rounded-xl border border-border/50 bg-card/30 p-5 space-y-3">
+            <div className="rounded-lg border border-border/50 bg-card/30 p-5 space-y-3">
               <h3 className="text-sm font-semibold">Day Summary</h3>
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
                   <p className="text-2xl font-bold text-emerald-400">{completedToday.length}</p>
-                  <p className="text-xs text-muted-foreground">Completed</p>
+                  <p className="text-xs text-muted-foreground text-pretty">Completed</p>
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-amber-400">{incompleteToday.length}</p>
-                  <p className="text-xs text-muted-foreground">Carried Over</p>
+                  <p className="text-xs text-muted-foreground text-pretty">Carried Over</p>
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-blue-400">{looseEnds.length}</p>
-                  <p className="text-xs text-muted-foreground">New for Tomorrow</p>
+                  <p className="text-xs text-muted-foreground text-pretty">New for Tomorrow</p>
                 </div>
               </div>
             </div>
@@ -398,7 +399,7 @@ export function ShutdownRitual({
       </div>
 
       {/* Navigation */}
-      <div className="border-t border-border/50 bg-card/30 backdrop-blur-sm sticky bottom-0">
+      <div className="border-t border-border/50 bg-card/30 sticky bottom-0">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
           <Button
             variant="ghost"
@@ -407,19 +408,19 @@ export function ShutdownRitual({
             disabled={currentStep === 0}
             className="gap-2"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="size-4" />
             Back
           </Button>
           {currentStep === STEPS.length - 1 ? (
             <Button
               onClick={handleFinish}
               disabled={saving}
-              className="gap-2 bg-gradient-to-r from-violet-500 to-indigo-700 hover:from-violet-600 hover:to-indigo-800 text-white border-0 rounded-xl shadow-lg shadow-violet-500/25"
+              className="gap-2 bg-foreground hover:bg-foreground/90 text-background border-0 rounded-lg shadow-sm"
               size="sm"
             >
               {saving ? "Saving..." : (
                 <>
-                  <Moon className="h-4 w-4" />
+                  <Moon className="size-4" />
                   Close My Day
                 </>
               )}
@@ -427,11 +428,11 @@ export function ShutdownRitual({
           ) : (
             <Button
               onClick={() => setCurrentStep((s) => Math.min(STEPS.length - 1, s + 1))}
-              className="gap-2 bg-gradient-to-r from-violet-500 to-indigo-700 hover:from-violet-600 hover:to-indigo-800 text-white border-0 rounded-xl shadow-lg shadow-violet-500/25"
+              className="gap-2 bg-foreground hover:bg-foreground/90 text-background border-0 rounded-lg shadow-sm"
               size="sm"
             >
               Continue
-              <ArrowRight className="h-4 w-4" />
+              <ArrowRight className="size-4" />
             </Button>
           )}
         </div>
