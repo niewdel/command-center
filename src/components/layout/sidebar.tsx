@@ -23,6 +23,8 @@ import {
   Folder,
   Pencil,
   Trash2,
+  Upload,
+  ImageIcon,
 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -227,6 +229,7 @@ export function Sidebar() {
                       )}
                     </div>
                     <span className="flex-1 truncate">{ws.name}</span>
+                    <span className={cn("size-2.5 rounded-full shrink-0", ws.color)} />
                     {isActive && <ChevronRight className="size-4 text-muted-foreground" />}
                   </Link>
                   {/* Edit button on hover */}
@@ -362,6 +365,10 @@ function WorkspaceDialog({
   const [color, setColor] = useState("bg-slate-500");
   const [icon, setIcon] = useState("briefcase");
   const [description, setDescription] = useState("");
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -372,6 +379,9 @@ function WorkspaceDialog({
       setColor(workspace.color || "bg-slate-500");
       setIcon(workspace.icon || "briefcase");
       setDescription(workspace.description || "");
+      setLogoUrl(workspace.logo_url);
+      setLogoFile(null);
+      setLogoPreview(null);
       setConfirmDelete(false);
     } else {
       setName("");
@@ -379,9 +389,47 @@ function WorkspaceDialog({
       setColor("bg-slate-500");
       setIcon("briefcase");
       setDescription("");
+      setLogoUrl(null);
+      setLogoFile(null);
+      setLogoPreview(null);
       setConfirmDelete(false);
     }
   }, [workspace, open]);
+
+  const handleLogoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLogoFile(file);
+    setLogoPreview(URL.createObjectURL(file));
+  };
+
+  const uploadLogo = async (workspaceSlug: string): Promise<string | null> => {
+    if (!logoFile) return logoUrl;
+    setUploading(true);
+
+    const ext = logoFile.name.split(".").pop() || "png";
+    const path = `workspace-logos/${workspaceSlug}.${ext}`;
+
+    const { error } = await supabase.storage
+      .from("workspace-assets")
+      .upload(path, logoFile, { upsert: true });
+
+    setUploading(false);
+
+    if (error) {
+      console.error("Logo upload failed:", error);
+      return logoUrl;
+    }
+
+    const { data } = supabase.storage.from("workspace-assets").getPublicUrl(path);
+    return data.publicUrl;
+  };
+
+  const removeLogo = () => {
+    setLogoUrl(null);
+    setLogoFile(null);
+    setLogoPreview(null);
+  };
 
   const slug = name
     .toLowerCase()
@@ -392,6 +440,8 @@ function WorkspaceDialog({
     if (!name.trim()) return;
     setSaving(true);
 
+    const uploadedLogoUrl = await uploadLogo(slug);
+
     const data = {
       name: name.trim(),
       slug,
@@ -399,6 +449,7 @@ function WorkspaceDialog({
       color,
       icon,
       description: description || null,
+      logo_url: uploadedLogoUrl,
     };
 
     if (workspace) {
@@ -451,6 +502,42 @@ function WorkspaceDialog({
               placeholder="What is this workspace for?"
               className="bg-background/50 border-border/50 rounded-lg"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Logo</Label>
+            <div className="flex items-center gap-3">
+              {/* Preview */}
+              <div className={cn("size-12 rounded-lg flex items-center justify-center shrink-0 overflow-hidden", logoPreview || logoUrl ? "bg-muted" : color)}>
+                {logoPreview ? (
+                  <img src={logoPreview} alt="Preview" className="size-12 object-cover rounded-lg" />
+                ) : logoUrl ? (
+                  <img src={logoUrl} alt="Logo" className="size-12 object-cover rounded-lg" />
+                ) : (
+                  <ImageIcon className="size-5 text-white/60" />
+                )}
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted hover:bg-accent text-xs font-medium text-foreground transition-colors">
+                  <Upload className="size-3" />
+                  {logoUrl || logoPreview ? "Change" : "Upload"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoSelect}
+                    className="hidden"
+                  />
+                </label>
+                {(logoUrl || logoPreview) && (
+                  <button
+                    onClick={removeLogo}
+                    className="text-[11px] text-muted-foreground hover:text-red-400 transition-colors text-left"
+                  >
+                    Remove logo
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
