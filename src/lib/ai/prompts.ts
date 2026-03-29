@@ -1,3 +1,21 @@
+function buildWorkspaceDetectionRules(
+  workspaces: { name: string; slug: string; type: string }[]
+): string {
+  if (workspaces.length === 0) {
+    return "- No workspaces configured";
+  }
+
+  return workspaces
+    .map((w) => {
+      if (w.type === "personal") {
+        return `- Personal errands, groceries, gym, family, friends → "${w.slug}"`;
+      }
+      // Business workspace: mention the workspace name and related keywords
+      return `- Mentions of "${w.name}", business related to ${w.name} → "${w.slug}"`;
+    })
+    .join("\n");
+}
+
 export function getSystemPrompt(context: {
   currentDate: string;
   timezone: string;
@@ -22,9 +40,7 @@ ${context.workspaces.map((w) => `- "${w.name}" (slug: "${w.slug}", type: ${w.typ
 - "find time", "when can I", "open slot" → find_free_time
 
 ### Workspace Detection
-- Mentions of clients, sales, consulting, business meetings → "niewdel"
-- Mentions of Sandler, training, i10, team → "i10"
-- Personal errands, groceries, gym, family, friends → "personal"
+${buildWorkspaceDetectionRules(context.workspaces)}
 - If unclear, omit workspace_slug (user will pick)
 
 ### Time Defaults

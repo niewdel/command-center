@@ -103,7 +103,7 @@ Verify signatures for every provider: HubSpot (`X-HubSpot-Signature-v3`), Micros
 | File | Purpose |
 |------|---------|
 | `CLAUDE.md` | This file — read first every session |
-| `COMMAND_CENTER_SKILL.md` | Full design system, architecture, and integration specs |
+| `.claude/skills/command-center/SKILL.md` | Full design system, architecture, and integration specs |
 | `docs/discovery.md` | Scoping Q&A and key insights |
 | `docs/research.md` | Domain research with sources |
 | `docs/architecture.md` | Key decisions with rationale |
@@ -120,6 +120,13 @@ Verify signatures for every provider: HubSpot (`X-HubSpot-Signature-v3`), Micros
 6. Never reverse a logged decision without Justin's approval
 7. Unsure → ask, don't guess
 8. End every session: status summary (done, next, blockers)
+
+## Skills
+
+- Command Center master skill: `.claude/skills/command-center/SKILL.md`
+- Frontend design patterns: `skills/frontend-design/SKILL.md`
+
+For any UI work, read both skills before writing component code.
 
 ## Current Phase
 **Phase 5: Execution** — Building core modules + baseline UI cleanup

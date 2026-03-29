@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { getSystemPrompt, AI_PARSE_TOOLS } from "@/lib/ai/prompts";
+import { createClient } from "@/lib/supabase-server";
 import type { AiParseResult } from "@/types/database";
 
 const anthropic = new Anthropic({
@@ -22,15 +23,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Use provided workspaces or fetch from Supabase
+    let workspaces = context?.workspaces;
+    if (!workspaces) {
+      const supabase = await createClient();
+      const { data } = await supabase
+        .from("workspaces")
+        .select("name, slug, type")
+        .order("position");
+      workspaces = data || [];
+    }
+
     const systemPrompt = getSystemPrompt({
       currentDate:
         context?.currentDate || new Date().toISOString(),
       timezone: context?.timezone || "America/New_York",
-      workspaces: context?.workspaces || [
-        { name: "Niewdel", slug: "niewdel", type: "business" },
-        { name: "i10 Solutions", slug: "i10", type: "business" },
-        { name: "Personal", slug: "personal", type: "personal" },
-      ],
+      workspaces,
     });
 
     const startTime = Date.now();

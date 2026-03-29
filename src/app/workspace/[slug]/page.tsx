@@ -14,34 +14,7 @@ import { KanbanBoard } from "@/components/tasks/kanban-board";
 import { ViewToggle } from "@/components/tasks/view-toggle";
 import { useTaskActions } from "@/lib/hooks/use-task-actions";
 import { cn } from "@/lib/utils";
-import { User, ChevronDown, ChevronUp, ListTodo, Users, FolderKanban } from "lucide-react";
-
-const workspaceMeta: Record<
-  string,
-  {
-    logo?: string;
-    logoWidth?: number;
-    color: string;
-    description: string;
-  }
-> = {
-  niewdel: {
-    logo: "/logos/niewdel-wordmark.png",
-    logoWidth: 140,
-    color: "bg-violet-500",
-    description: "AI & Automation Consulting",
-  },
-  i10: {
-    logo: "/logos/i10-logo.png",
-    logoWidth: 160,
-    color: "bg-emerald-500",
-    description: "Sandler Sales Training Franchise",
-  },
-  personal: {
-    color: "bg-amber-500",
-    description: "Personal tasks, notes & goals",
-  },
-};
+import { ChevronDown, ChevronUp, ListTodo, Users, FolderKanban } from "lucide-react";
 
 type Tab = "tasks" | "clients" | "projects";
 
@@ -65,8 +38,6 @@ export default function WorkspacePage() {
   const [activeTab, setActiveTab] = useState<Tab>("tasks");
   const [taskView, setTaskView] = useState<"list" | "kanban">("list");
   const [loading, setLoading] = useState(true);
-
-  const meta = workspaceMeta[slug] || workspaceMeta.personal;
 
   const fetchData = useCallback(async () => {
     const { data: ws } = await supabase
@@ -170,7 +141,7 @@ export default function WorkspacePage() {
   const doneTasks = tasks.filter((t) => t.status === "done");
 
   // Determine which tabs to show (hide empty clients/projects for workspaces that don't use them)
-  const hasTabs = clients.length > 0 || projects.length > 0 || slug === "niewdel";
+  const hasTabs = clients.length > 0 || projects.length > 0 || workspace.type === "business";
   const tabs: { id: Tab; label: string; icon: React.ReactNode; count: number }[] = [
     { id: "tasks", label: "Tasks", icon: <ListTodo className="size-3.5" />, count: activeTasks.length },
     ...(hasTabs
@@ -185,31 +156,29 @@ export default function WorkspacePage() {
     <div className="p-4 md:p-8 max-w-3xl mx-auto space-y-8">
       {/* Header */}
       <div className="pt-10 md:pt-2 space-y-4">
-        <div
-          className={`inline-flex items-center gap-4 rounded-2xl ${meta.color} p-[1px]`}
-        >
-          <div className="flex items-center gap-4 rounded-2xl bg-background px-5 py-3">
-            {meta.logo ? (
+        <div className="flex items-center gap-4">
+          <div className={cn("size-12 rounded-lg flex items-center justify-center shrink-0", workspace.color)}>
+            {workspace.logo_url ? (
               <Image
-                src={meta.logo}
+                src={workspace.logo_url}
                 alt={workspace.name}
-                width={meta.logoWidth || 120}
-                height={40}
-                className="object-contain h-8 w-auto invert brightness-200"
+                width={28}
+                height={28}
+                className="object-contain"
               />
             ) : (
-              <div className="flex items-center gap-3">
-                <div
-                  className={`size-10 rounded-lg ${meta.color} flex items-center justify-center shadow-md`}
-                >
-                  <User className="size-5 text-white" />
-                </div>
-                <h1 className="text-balance text-xl font-bold">{workspace.name}</h1>
-              </div>
+              <span className="text-lg text-white font-semibold">
+                {workspace.name.charAt(0).toUpperCase()}
+              </span>
+            )}
+          </div>
+          <div>
+            <h1 className="text-balance text-xl font-bold">{workspace.name}</h1>
+            {workspace.description && (
+              <p className="text-pretty text-muted-foreground text-sm">{workspace.description}</p>
             )}
           </div>
         </div>
-        <p className="text-pretty text-muted-foreground text-sm">{meta.description}</p>
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
           <span>
             <span className="text-foreground font-semibold">

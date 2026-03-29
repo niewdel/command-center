@@ -3,6 +3,11 @@ export type Workspace = {
   name: string;
   slug: string;
   type: "business" | "personal";
+  color: string;
+  description: string | null;
+  logo_url: string | null;
+  icon: string;
+  position: number;
   created_at: string;
 };
 

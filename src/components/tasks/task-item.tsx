@@ -24,20 +24,6 @@ const priorityConfig = {
   },
 };
 
-const workspaceConfig: Record<string, { className: string; dot: string }> = {
-  niewdel: {
-    className: "bg-violet-500/15 text-violet-400 border-violet-500/20",
-    dot: "bg-violet-500",
-  },
-  i10: {
-    className: "bg-emerald-500/15 text-emerald-400 border-emerald-500/20",
-    dot: "bg-emerald-500",
-  },
-  personal: {
-    className: "bg-amber-500/15 text-amber-400 border-amber-500/20",
-    dot: "bg-amber-500",
-  },
-};
 
 type TaskItemProps = {
   task: Task;
@@ -100,15 +86,12 @@ export function TaskItem({
           {showWorkspace && workspace && (
             <Badge
               variant="outline"
-              className={cn(
-                "text-[11px] font-medium px-2 py-0 h-5 border rounded-md",
-                workspaceConfig[workspace.slug]?.className
-              )}
+              className="text-[11px] font-medium px-2 py-0 h-5 border rounded-md bg-muted/50 text-muted-foreground border-border/50"
             >
               <span
                 className={cn(
                   "size-1.5 rounded-full mr-1.5",
-                  workspaceConfig[workspace.slug]?.dot
+                  workspace.color || "bg-muted-foreground"
                 )}
               />
               {workspace.name}

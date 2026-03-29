@@ -41,11 +41,6 @@ const priorityColors: Record<string, string> = {
   none: "bg-transparent",
 };
 
-const workspaceColors: Record<string, string> = {
-  niewdel: "text-violet-400",
-  i10: "text-emerald-400",
-  personal: "text-amber-400",
-};
 
 function KanbanCard({
   task,
@@ -101,7 +96,7 @@ function KanbanCard({
       </div>
       <div className="flex items-center gap-2 pl-5">
         {showWorkspace && workspace && (
-          <span className={cn("text-[10px] font-medium", workspaceColors[workspace.slug] || "text-muted-foreground")}>
+          <span className="text-[10px] font-medium text-muted-foreground">
             {workspace.name}
           </span>
         )}
