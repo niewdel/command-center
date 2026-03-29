@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { PageLayout } from "@/components/layout/page-layout";
 import { Target, Plus, CheckCircle2, Pencil, Trash2 } from "lucide-react";
 
 export default function GoalsPage() {
@@ -83,31 +84,13 @@ export default function GoalsPage() {
     fetchData();
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-dvh">
-        <div className="flex items-center gap-3 text-muted-foreground">
-          <div className="size-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-          <span className="text-sm">Loading...</span>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="p-4 md:p-8 max-w-3xl mx-auto space-y-8">
-      <div className="pt-10 md:pt-2 flex items-start justify-between">
-        <div className="space-y-1">
-          <div className="flex items-center gap-3">
-            <div className="size-10 rounded-lg bg-foreground flex items-center justify-center shadow-md">
-              <Target className="size-5 text-background" />
-            </div>
-            <h1 className="text-2xl font-bold text-balance">Goals</h1>
-          </div>
-          <p className="text-sm text-muted-foreground mt-2 text-pretty">
-            What are you working toward? Link tasks to goals to track your progress.
-          </p>
-        </div>
+    <PageLayout
+      title="Goals"
+      description="What are you working toward? Link tasks to goals to track your progress."
+      icon={Target}
+      loading={loading}
+      actions={
         <Button
           onClick={() => {
             setEditingGoal(null);
@@ -119,8 +102,8 @@ export default function GoalsPage() {
           <Plus className="size-4" />
           New Goal
         </Button>
-      </div>
-
+      }
+    >
       {/* Active Goals */}
       {activeGoals.length === 0 && completedGoals.length === 0 && (
         <div className="text-center py-16">
@@ -136,7 +119,7 @@ export default function GoalsPage() {
 
       {activeGoals.length > 0 && (
         <div className="space-y-4">
-          <h2 className="text-xs font-medium text-muted-foreground uppercase text-balance">
+          <h2 className="text-xs font-medium text-muted-foreground uppercase text-balance font-heading">
             Active Goals
           </h2>
           {activeGoals.map((goal) => {
@@ -224,7 +207,7 @@ export default function GoalsPage() {
 
       {completedGoals.length > 0 && (
         <div className="space-y-4">
-          <h2 className="text-xs font-medium text-muted-foreground uppercase text-balance">
+          <h2 className="text-xs font-medium text-muted-foreground uppercase text-balance font-heading">
             Completed
           </h2>
           {completedGoals.map((goal) => (
@@ -252,7 +235,7 @@ export default function GoalsPage() {
         }}
         onSaved={fetchData}
       />
-    </div>
+    </PageLayout>
   );
 }
 

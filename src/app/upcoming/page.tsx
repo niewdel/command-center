@@ -6,6 +6,7 @@ import { Task, Workspace } from "@/types/database";
 import { TaskItem } from "@/components/tasks/task-item";
 import { EditTaskDialog } from "@/components/tasks/edit-task-dialog";
 import { cn } from "@/lib/utils";
+import { PageLayout } from "@/components/layout/page-layout";
 import { CalendarDays } from "lucide-react";
 
 function getDateStr(offset: number) {
@@ -113,33 +114,17 @@ export default function UpcomingPage() {
     fetchData();
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-dvh">
-        <div className="flex items-center gap-3 text-muted-foreground">
-          <div className="size-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-          <span className="text-sm">Loading...</span>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="p-4 md:p-8 max-w-3xl mx-auto space-y-6">
-      <div className="pt-10 md:pt-2 space-y-1">
-        <div className="flex items-center gap-3">
-          <div className="size-10 rounded-lg bg-foreground flex items-center justify-center shadow-sm">
-            <CalendarDays className="size-5 text-background" />
-          </div>
-          <h1 className="text-2xl font-bold text-balance">Upcoming</h1>
-        </div>
-        <p className="text-sm text-muted-foreground mt-2 text-pretty">Your next 7 days at a glance.</p>
-      </div>
-
+    <PageLayout
+      title="Upcoming"
+      description="Your next 7 days at a glance."
+      icon={CalendarDays}
+      loading={loading}
+    >
       {/* Overdue */}
       {overdue.length > 0 && (
         <div className="space-y-3">
-          <h2 className="text-xs font-semibold text-red-400 uppercase text-balance">
+          <h2 className="text-xs font-semibold text-red-400 uppercase text-balance font-heading">
             Overdue
           </h2>
           <div className="space-y-2">
@@ -165,7 +150,7 @@ export default function UpcomingPage() {
           <div key={day} className="space-y-3">
             <h2
               className={cn(
-                "text-xs font-medium uppercase text-balance",
+                "text-xs font-medium uppercase text-balance font-heading",
                 isToday ? "text-indigo-400" : "text-muted-foreground"
               )}
             >
@@ -205,6 +190,6 @@ export default function UpcomingPage() {
         onClose={() => setEditingTask(null)}
         onSave={handleEdit}
       />
-    </div>
+    </PageLayout>
   );
 }

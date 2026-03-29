@@ -11,6 +11,8 @@ import { CapacityBar } from "@/components/dashboard/capacity-bar";
 import { MorningRitual } from "@/components/planning/morning-ritual";
 import { ShutdownRitual } from "@/components/planning/shutdown-ritual";
 import { WelcomeFlow } from "@/components/onboarding/welcome-flow";
+import { PageLayout } from "@/components/layout/page-layout";
+import { SkeletonPage } from "@/components/ui/skeleton";
 import { calculateCapacity } from "@/lib/capacity";
 import { useTaskActions } from "@/lib/hooks/use-task-actions";
 import { KanbanBoard } from "@/components/tasks/kanban-board";
@@ -32,14 +34,7 @@ const today = () => new Date().toISOString().split("T")[0];
 
 export default function DashboardPage() {
   return (
-    <Suspense fallback={
-      <div className="flex items-center justify-center min-h-dvh">
-        <div className="flex items-center gap-3 text-muted-foreground">
-          <div className="size-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-          <span className="text-sm">Loading...</span>
-        </div>
-      </div>
-    }>
+    <Suspense fallback={<SkeletonPage />}>
       <DashboardContent />
     </Suspense>
   );
@@ -178,15 +173,9 @@ function DashboardContent() {
     fetchData();
   };
 
+  // Loading state — show skeleton before anything else
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-dvh">
-        <div className="flex items-center gap-3 text-muted-foreground">
-          <div className="size-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-          <span className="text-sm">Loading...</span>
-        </div>
-      </div>
-    );
+    return <SkeletonPage />;
   }
 
   const shutdownDone = settings?.shutdown_completed_date === todayStr;
@@ -238,48 +227,43 @@ function DashboardContent() {
     return "Good evening";
   };
 
-  return (
-    <div className="p-4 md:p-8 max-w-3xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="pt-10 md:pt-2 flex items-start justify-between">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-bold text-balance">
-            {greeting()}, Justin
-          </h1>
-          <p className="text-muted-foreground text-sm text-pretty">
-            {new Date().toLocaleDateString("en-US", {
-              weekday: "long",
-              month: "long",
-              day: "numeric",
-            })}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <ViewToggle view={taskView} onChange={setTaskView} />
-          {!planningDone && (
-            <Button
-              onClick={() => setShowRitual(true)}
-              className="gap-2 bg-foreground text-background hover:bg-foreground/90 border-0 rounded-lg"
-              size="sm"
-            >
-              <Sunrise className="size-4" />
-              Plan My Day
-            </Button>
-          )}
-          {planningDone && !shutdownDone && (
-            <Button
-              onClick={() => setShowShutdown(true)}
-              variant="outline"
-              className="gap-2 rounded-lg"
-              size="sm"
-            >
-              <Moon className="size-4" />
-              Shutdown
-            </Button>
-          )}
-        </div>
-      </div>
+  const headerActions = (
+    <>
+      <ViewToggle view={taskView} onChange={setTaskView} />
+      {!planningDone && (
+        <Button
+          onClick={() => setShowRitual(true)}
+          className="gap-2 bg-foreground text-background hover:bg-foreground/90 border-0 rounded-lg"
+          size="sm"
+        >
+          <Sunrise className="size-4" />
+          Plan My Day
+        </Button>
+      )}
+      {planningDone && !shutdownDone && (
+        <Button
+          onClick={() => setShowShutdown(true)}
+          variant="outline"
+          className="gap-2 rounded-lg"
+          size="sm"
+        >
+          <Moon className="size-4" />
+          Shutdown
+        </Button>
+      )}
+    </>
+  );
 
+  return (
+    <PageLayout
+      title={`${greeting()}, Justin`}
+      description={new Date().toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+      })}
+      actions={headerActions}
+    >
       {/* Daily intention */}
       {settings?.daily_intention && planningDone && (
         <div className="rounded-lg border border-border bg-muted/30 p-4">
@@ -382,7 +366,7 @@ function DashboardContent() {
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <Star className="size-4 text-foreground fill-foreground" />
-                <h2 className="text-xs font-medium text-muted-foreground uppercase text-balance">
+                <h2 className="text-xs font-medium font-heading text-muted-foreground uppercase text-balance">
                   Today&apos;s Focus
                 </h2>
               </div>
@@ -404,7 +388,7 @@ function DashboardContent() {
           {/* Today's planned tasks (non-focus) */}
           {plannedToday.filter((t) => !t.is_focus).length > 0 && (
             <div className="space-y-3">
-              <h2 className="text-xs font-medium text-muted-foreground uppercase text-balance">
+              <h2 className="text-xs font-medium font-heading text-muted-foreground uppercase text-balance">
                 Planned for Today
               </h2>
               <div className="space-y-2">
@@ -456,7 +440,7 @@ function DashboardContent() {
             <div className="space-y-3">
               <button
                 onClick={() => setShowCompleted(!showCompleted)}
-                className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase hover:text-foreground transition-colors"
+                className="flex items-center gap-2 text-xs font-medium font-heading text-muted-foreground uppercase hover:text-foreground transition-colors"
               >
                 {showCompleted ? (
                   <ChevronUp className="size-3.5" />
@@ -488,7 +472,7 @@ function DashboardContent() {
             <div className="space-y-3">
               <button
                 onClick={() => setShowAllTasks(!showAllTasks)}
-                className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase hover:text-foreground transition-colors"
+                className="flex items-center gap-2 text-xs font-medium font-heading text-muted-foreground uppercase hover:text-foreground transition-colors"
               >
                 {showAllTasks ? (
                   <ChevronUp className="size-3.5" />
@@ -524,6 +508,6 @@ function DashboardContent() {
         onClose={() => setEditingTask(null)}
         onSave={handleEdit}
       />
-    </div>
+    </PageLayout>
   );
 }

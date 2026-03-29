@@ -8,6 +8,7 @@ import { TaskItem } from "@/components/tasks/task-item";
 import { AddTaskForm } from "@/components/tasks/add-task-form";
 import { EditTaskDialog } from "@/components/tasks/edit-task-dialog";
 import { useTaskActions } from "@/lib/hooks/use-task-actions";
+import { PageLayout } from "@/components/layout/page-layout";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -19,7 +20,6 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import {
-  ArrowLeft,
   Pencil,
   FileText,
   ChevronDown,
@@ -102,18 +102,7 @@ export default function ProjectDetailPage() {
     fetchData();
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-dvh">
-        <div className="flex items-center gap-3 text-muted-foreground">
-          <div className="size-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-          <span className="text-sm">Loading...</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (!project || !workspace) {
+  if (!loading && (!project || !workspace)) {
     return (
       <div className="flex items-center justify-center min-h-dvh">
         <p className="text-pretty text-muted-foreground">Project not found</p>
@@ -130,32 +119,17 @@ export default function ProjectDetailPage() {
     completed: { label: "Completed", className: "bg-muted/50 text-muted-foreground" },
   } as const;
 
-  const backPath = client
-    ? `/workspace/${slug}/client/${client.id}`
-    : `/workspace/${slug}`;
-  const backLabel = client ? client.name : workspace.name;
-
   return (
-    <div className="p-4 md:p-8 max-w-3xl mx-auto space-y-8">
-      {/* Back + Header */}
-      <div className="pt-10 md:pt-2 space-y-4">
-        <button
-          onClick={() => router.push(backPath)}
-          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="size-3.5" />
-          {backLabel}
-        </button>
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <h1 className="text-balance text-2xl font-bold">{project.name}</h1>
-            <div className="flex items-center gap-3 text-sm text-muted-foreground">
-              {client && <span>Client: {client.name}</span>}
-              <span>
-                <span className="text-foreground font-semibold">{activeTasks.length}</span> active tasks
-              </span>
-            </div>
-          </div>
+    <PageLayout
+      title={project?.name || ""}
+      breadcrumbs={[
+        { label: workspace?.name || "", href: `/workspace/${slug}` },
+        { label: "Projects" },
+        { label: project?.name || "" },
+      ]}
+      loading={loading}
+      actions={
+        project && (
           <Select value={project.status} onValueChange={(v) => v && updateStatus(v)}>
             <SelectTrigger className={cn("w-[130px] h-8 rounded-lg text-xs font-medium border-0", statusConfig[project.status].className)}>
               <SelectValue />
@@ -166,13 +140,22 @@ export default function ProjectDetailPage() {
               <SelectItem value="completed" className="rounded-lg text-xs">Completed</SelectItem>
             </SelectContent>
           </Select>
-        </div>
+        )
+      }
+    >
+      {/* Stats */}
+      <div className="flex items-center gap-3 text-sm text-muted-foreground -mt-4">
+        {client && <span>Client: {client.name}</span>}
+        {client && <span className="text-border">|</span>}
+        <span>
+          <span className="text-foreground font-semibold">{activeTasks.length}</span> active tasks
+        </span>
       </div>
 
       {/* Description */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <h2 className="text-balance text-xs font-medium text-muted-foreground uppercase">
+          <h2 className="text-balance text-xs font-medium font-heading text-muted-foreground uppercase">
             Description
           </h2>
           {!editingDescription && (
@@ -201,12 +184,12 @@ export default function ProjectDetailPage() {
               <Button size="sm" onClick={saveDescription} className="h-7 rounded-lg bg-foreground text-background border-0 text-xs">
                 Save
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => { setEditingDescription(false); setDescriptionText(project.description || ""); }} className="h-7 rounded-lg text-xs">
+              <Button size="sm" variant="ghost" onClick={() => { setEditingDescription(false); setDescriptionText(project?.description || ""); }} className="h-7 rounded-lg text-xs">
                 Cancel
               </Button>
             </div>
           </div>
-        ) : project.description ? (
+        ) : project?.description ? (
           <div className="rounded-lg border border-border/50 bg-card/50 p-4">
             <p className="text-pretty text-sm whitespace-pre-wrap">{project.description}</p>
           </div>
@@ -220,7 +203,7 @@ export default function ProjectDetailPage() {
       {/* Notes */}
       {notes.length > 0 && (
         <div className="space-y-3">
-          <h2 className="text-balance text-xs font-medium text-muted-foreground uppercase flex items-center gap-1.5">
+          <h2 className="text-balance text-xs font-medium font-heading text-muted-foreground uppercase flex items-center gap-1.5">
             <FileText className="size-3.5" />
             Notes ({notes.length})
           </h2>
@@ -245,17 +228,17 @@ export default function ProjectDetailPage() {
 
       {/* Tasks */}
       <div className="space-y-3">
-        <h2 className="text-balance text-xs font-medium text-muted-foreground uppercase">
+        <h2 className="text-balance text-xs font-medium font-heading text-muted-foreground uppercase">
           Tasks
         </h2>
         <AddTaskForm
           workspaces={allWorkspaces}
-          defaultWorkspaceId={workspace.id}
+          defaultWorkspaceId={workspace?.id || ""}
           onAdd={async (taskData) => {
             await supabase.from("tasks").insert({
               ...taskData,
               project_id: projectId,
-              client_id: project.client_id,
+              client_id: project?.client_id,
               status: "todo",
               source: "manual",
             });
@@ -285,7 +268,7 @@ export default function ProjectDetailPage() {
           <div className="space-y-3">
             <button
               onClick={() => setShowDone(!showDone)}
-              className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase hover:text-foreground transition-colors"
+              className="flex items-center gap-2 text-xs font-medium font-heading text-muted-foreground uppercase hover:text-foreground transition-colors"
             >
               {showDone ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
               Completed ({doneTasks.length})
@@ -315,6 +298,6 @@ export default function ProjectDetailPage() {
         onClose={() => setEditingTask(null)}
         onSave={handleEdit}
       />
-    </div>
+    </PageLayout>
   );
 }

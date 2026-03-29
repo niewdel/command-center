@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { PageLayout } from "@/components/layout/page-layout";
 import { FileText, Plus, Pencil, Trash2 } from "lucide-react";
 
 export default function NotesPage() {
@@ -66,28 +67,12 @@ export default function NotesPage() {
     fetchData();
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-dvh">
-        <div className="flex items-center gap-3 text-muted-foreground">
-          <div className="size-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-          <span className="text-sm">Loading...</span>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="p-4 md:p-8 max-w-3xl mx-auto space-y-6">
-      <div className="pt-10 md:pt-2 flex items-start justify-between">
-        <div className="space-y-1">
-          <div className="flex items-center gap-3">
-            <div className="size-10 rounded-lg bg-foreground flex items-center justify-center shadow-md">
-              <FileText className="size-5 text-background" />
-            </div>
-            <h1 className="text-2xl font-bold text-balance">Notes</h1>
-          </div>
-        </div>
+    <PageLayout
+      title="Notes"
+      icon={FileText}
+      loading={loading}
+      actions={
         <Button
           onClick={() => {
             setEditingNote(null);
@@ -99,8 +84,8 @@ export default function NotesPage() {
           <Plus className="size-4" />
           New Note
         </Button>
-      </div>
-
+      }
+    >
       {/* Filters */}
       <div className="flex gap-2 flex-wrap">
         {[
@@ -202,7 +187,7 @@ export default function NotesPage() {
         }}
         onSaved={fetchData}
       />
-    </div>
+    </PageLayout>
   );
 }
 

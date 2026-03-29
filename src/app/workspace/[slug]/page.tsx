@@ -13,6 +13,7 @@ import { ProjectList } from "@/components/workspace/project-list";
 import { KanbanBoard } from "@/components/tasks/kanban-board";
 import { ViewToggle } from "@/components/tasks/view-toggle";
 import { useTaskActions } from "@/lib/hooks/use-task-actions";
+import { SkeletonPage } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronUp, ListTodo, Users, FolderKanban } from "lucide-react";
 
@@ -109,14 +110,7 @@ export default function WorkspacePage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-dvh">
-        <div className="flex items-center gap-3 text-muted-foreground">
-          <div className="size-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-          <span className="text-sm">Loading...</span>
-        </div>
-      </div>
-    );
+    return <SkeletonPage />;
   }
 
   if (!workspace) {
@@ -153,7 +147,7 @@ export default function WorkspacePage() {
   ];
 
   return (
-    <div className="p-4 md:p-8 max-w-3xl mx-auto space-y-8">
+    <div className="p-4 md:p-8 pb-24 md:pb-8 max-w-3xl mx-auto space-y-8">
       {/* Header */}
       <div className="pt-10 md:pt-2 space-y-4">
         <div className="flex items-center gap-4">
@@ -173,7 +167,7 @@ export default function WorkspacePage() {
             )}
           </div>
           <div>
-            <h1 className="text-balance text-xl font-bold">{workspace.name}</h1>
+            <h1 className="text-balance text-xl font-bold font-heading">{workspace.name}</h1>
             {workspace.description && (
               <p className="text-pretty text-muted-foreground text-sm">{workspace.description}</p>
             )}
@@ -233,7 +227,7 @@ export default function WorkspacePage() {
       {activeTab === "tasks" && (
         <>
           <div className="flex items-center justify-between">
-            <h2 className="text-balance text-xs font-medium text-muted-foreground uppercase">
+            <h2 className="text-balance text-xs font-medium text-muted-foreground uppercase font-heading">
               Tasks
             </h2>
             <ViewToggle view={taskView} onChange={setTaskView} />
@@ -262,7 +256,7 @@ export default function WorkspacePage() {
               />
 
               <div className="space-y-3">
-                <h2 className="text-balance text-xs font-medium text-muted-foreground uppercase">
+                <h2 className="text-balance text-xs font-medium text-muted-foreground uppercase font-heading">
                   Active Tasks
                 </h2>
                 {activeTasks.length === 0 ? (
@@ -290,7 +284,7 @@ export default function WorkspacePage() {
                 <div className="space-y-3">
                   <button
                     onClick={() => setShowDone(!showDone)}
-                    className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase hover:text-foreground transition-colors"
+                    className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase font-heading hover:text-foreground transition-colors"
                   >
                     {showDone ? (
                       <ChevronUp className="size-3.5" />

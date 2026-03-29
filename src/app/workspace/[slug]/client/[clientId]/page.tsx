@@ -8,12 +8,12 @@ import { TaskItem } from "@/components/tasks/task-item";
 import { AddTaskForm } from "@/components/tasks/add-task-form";
 import { EditTaskDialog } from "@/components/tasks/edit-task-dialog";
 import { useTaskActions } from "@/lib/hooks/use-task-actions";
+import { PageLayout } from "@/components/layout/page-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import {
-  ArrowLeft,
   ExternalLink,
   Plus,
   Pencil,
@@ -122,18 +122,7 @@ export default function ClientDetailPage() {
     fetchData();
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-dvh">
-        <div className="flex items-center gap-3 text-muted-foreground">
-          <div className="size-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-          <span className="text-sm">Loading...</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (!client || !workspace) {
+  if (!loading && (!client || !workspace)) {
     return (
       <div className="flex items-center justify-center min-h-dvh">
         <p className="text-pretty text-muted-foreground">Client not found</p>
@@ -148,42 +137,38 @@ export default function ClientDetailPage() {
   );
 
   return (
-    <div className="p-4 md:p-8 max-w-3xl mx-auto space-y-8">
-      {/* Back + Header */}
-      <div className="pt-10 md:pt-2 space-y-4">
-        <button
-          onClick={() => router.push(`/workspace/${slug}`)}
-          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="size-3.5" />
-          {workspace.name}
-        </button>
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <h1 className="text-balance text-2xl font-bold">{client.name}</h1>
-              <span
-                className={cn(
-                  "text-[10px] font-medium px-2 py-0.5 rounded-full",
-                  client.type === "full"
-                    ? "bg-violet-500/20 text-violet-400"
-                    : "bg-muted/50 text-muted-foreground"
-                )}
-              >
-                {client.type}
-              </span>
-            </div>
-            <div className="flex items-center gap-3 text-sm text-muted-foreground">
-              <span>
-                <span className="text-foreground font-semibold">{activeTasks.length}</span> active tasks
-              </span>
-              <span className="text-border">|</span>
-              <span>
-                <span className="text-foreground font-semibold">{projects.length}</span> projects
-              </span>
-            </div>
-          </div>
-        </div>
+    <PageLayout
+      title={client?.name || ""}
+      breadcrumbs={[
+        { label: workspace?.name || "", href: `/workspace/${slug}` },
+        { label: "Clients" },
+        { label: client?.name || "" },
+      ]}
+      loading={loading}
+      actions={
+        client && (
+          <span
+            className={cn(
+              "text-[10px] font-medium px-2 py-0.5 rounded-full",
+              client.type === "full"
+                ? "bg-violet-500/20 text-violet-400"
+                : "bg-muted/50 text-muted-foreground"
+            )}
+          >
+            {client.type}
+          </span>
+        )
+      }
+    >
+      {/* Stats */}
+      <div className="flex items-center gap-3 text-sm text-muted-foreground -mt-4">
+        <span>
+          <span className="text-foreground font-semibold">{activeTasks.length}</span> active tasks
+        </span>
+        <span className="text-border">|</span>
+        <span>
+          <span className="text-foreground font-semibold">{projects.length}</span> projects
+        </span>
       </div>
 
       {/* Overdue alert */}
@@ -198,7 +183,7 @@ export default function ClientDetailPage() {
       {/* Important Notes */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <h2 className="text-balance text-xs font-medium text-muted-foreground uppercase">
+          <h2 className="text-balance text-xs font-medium font-heading text-muted-foreground uppercase">
             Important Notes
           </h2>
           {!editingNotes && (
@@ -227,12 +212,12 @@ export default function ClientDetailPage() {
               <Button size="sm" onClick={saveNotes} className="h-7 rounded-lg bg-foreground text-background border-0 text-xs">
                 Save
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => { setEditingNotes(false); setNotesText(client.notes || ""); }} className="h-7 rounded-lg text-xs">
+              <Button size="sm" variant="ghost" onClick={() => { setEditingNotes(false); setNotesText(client?.notes || ""); }} className="h-7 rounded-lg text-xs">
                 Cancel
               </Button>
             </div>
           </div>
-        ) : client.notes ? (
+        ) : client?.notes ? (
           <div className="rounded-lg border border-border/50 bg-card/50 p-4">
             <p className="text-pretty text-sm whitespace-pre-wrap">{client.notes}</p>
           </div>
@@ -246,7 +231,7 @@ export default function ClientDetailPage() {
       {/* Important Links */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <h2 className="text-balance text-xs font-medium text-muted-foreground uppercase flex items-center gap-1.5">
+          <h2 className="text-balance text-xs font-medium font-heading text-muted-foreground uppercase flex items-center gap-1.5">
             <LinkIcon className="size-3.5" />
             Links
           </h2>
@@ -276,12 +261,12 @@ export default function ClientDetailPage() {
               <Button size="sm" onClick={saveLinks} className="h-7 rounded-lg bg-foreground text-background border-0 text-xs">
                 Save
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => { setEditingLinks(false); setLinksText(client.links ? client.links.map((l: { label: string; url: string }) => `${l.label}: ${l.url}`).join("\n") : ""); }} className="h-7 rounded-lg text-xs">
+              <Button size="sm" variant="ghost" onClick={() => { setEditingLinks(false); setLinksText(client?.links ? client.links.map((l: { label: string; url: string }) => `${l.label}: ${l.url}`).join("\n") : ""); }} className="h-7 rounded-lg text-xs">
                 Cancel
               </Button>
             </div>
           </div>
-        ) : client.links && client.links.length > 0 ? (
+        ) : client?.links && client.links.length > 0 ? (
           <div className="flex flex-wrap gap-2">
             {client.links.map((link: { label: string; url: string }, i: number) => (
               <a
@@ -306,7 +291,7 @@ export default function ClientDetailPage() {
       {/* Projects */}
       {projects.length > 0 && (
         <div className="space-y-3">
-          <h2 className="text-balance text-xs font-medium text-muted-foreground uppercase flex items-center gap-1.5">
+          <h2 className="text-balance text-xs font-medium font-heading text-muted-foreground uppercase flex items-center gap-1.5">
             <FolderKanban className="size-3.5" />
             Projects ({projects.length})
           </h2>
@@ -342,7 +327,7 @@ export default function ClientDetailPage() {
       {/* Meeting Notes */}
       {notes.length > 0 && (
         <div className="space-y-3">
-          <h2 className="text-balance text-xs font-medium text-muted-foreground uppercase flex items-center gap-1.5">
+          <h2 className="text-balance text-xs font-medium font-heading text-muted-foreground uppercase flex items-center gap-1.5">
             <FileText className="size-3.5" />
             Notes ({notes.length})
           </h2>
@@ -368,12 +353,12 @@ export default function ClientDetailPage() {
 
       {/* Tasks */}
       <div className="space-y-3">
-        <h2 className="text-balance text-xs font-medium text-muted-foreground uppercase">
+        <h2 className="text-balance text-xs font-medium font-heading text-muted-foreground uppercase">
           Tasks
         </h2>
         <AddTaskForm
           workspaces={allWorkspaces}
-          defaultWorkspaceId={workspace.id}
+          defaultWorkspaceId={workspace?.id || ""}
           onAdd={async (taskData) => {
             await supabase.from("tasks").insert({
               ...taskData,
@@ -407,7 +392,7 @@ export default function ClientDetailPage() {
           <div className="space-y-3">
             <button
               onClick={() => setShowDone(!showDone)}
-              className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase hover:text-foreground transition-colors"
+              className="flex items-center gap-2 text-xs font-medium font-heading text-muted-foreground uppercase hover:text-foreground transition-colors"
             >
               {showDone ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
               Completed ({doneTasks.length})
@@ -437,6 +422,6 @@ export default function ClientDetailPage() {
         onClose={() => setEditingTask(null)}
         onSave={handleEdit}
       />
-    </div>
+    </PageLayout>
   );
 }

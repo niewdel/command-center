@@ -111,10 +111,10 @@ export function AuthForm({ mode }: { mode: Mode }) {
           <div className="inline-flex size-12 items-center justify-center rounded-lg bg-foreground shadow-sm">
             <span className="text-background font-bold text-lg">CC</span>
           </div>
-          <h1 className="text-xl font-semibold text-balance">
+          <h1 className="font-heading text-xl font-semibold text-balance">
             Command Center
           </h1>
-          <p className="text-sm text-muted-foreground text-pretty">
+          <p className="font-heading text-sm text-muted-foreground text-pretty">
             {isLogin ? "Welcome back" : "Create your account"}
           </p>
         </div>
@@ -168,6 +168,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
               required
               autoComplete="email"
               autoFocus
+              className="h-11"
             />
           </div>
           <div className="space-y-2">
@@ -181,6 +182,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
               required
               autoComplete={isLogin ? "current-password" : "new-password"}
               minLength={6}
+              className="h-11"
             />
           </div>
 
@@ -193,7 +195,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
           <Button
             type="submit"
             disabled={loading}
-            className="w-full bg-foreground hover:bg-foreground/90 text-background shadow-sm border-0"
+            className="w-full h-11 bg-foreground hover:bg-foreground/90 text-background shadow-sm border-0 font-heading font-medium"
           >
             {loading
               ? isLogin

@@ -103,17 +103,29 @@ export default function CalendarPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="flex items-center gap-3 text-muted-foreground">
-          <div className="size-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-          <span className="text-sm">Loading calendar...</span>
+      <div className="flex flex-col h-dvh pb-20 md:pb-0">
+        {/* Skeleton header */}
+        <div className="px-4 md:px-6 py-4 border-b border-border/50 bg-card/50">
+          <div className="flex items-center gap-3">
+            <div className="size-10 rounded-lg bg-muted animate-pulse" />
+            <div className="h-6 w-48 rounded-md bg-muted animate-pulse" />
+          </div>
+        </div>
+        {/* Skeleton grid */}
+        <div className="flex-1 p-4 md:p-6 space-y-2">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <div key={i} className="flex gap-2">
+              <div className="w-12 h-8 rounded bg-muted/50 animate-pulse" />
+              <div className="flex-1 h-8 rounded bg-muted/30 animate-pulse" />
+            </div>
+          ))}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-dvh">
+    <div className="flex flex-col h-dvh pb-20 md:pb-0">
       {/* Header */}
       <div className="pt-10 md:pt-0 px-4 md:px-6 py-4 border-b border-border/50 flex flex-col sm:flex-row sm:items-center gap-3 bg-card/50 sticky top-0 z-20">
         <div className="flex items-center gap-3 flex-1">
@@ -127,7 +139,7 @@ export default function CalendarPage() {
             >
               <ChevronLeft className="size-4" />
             </button>
-            <h1 className="text-lg font-semibold text-balance min-w-[200px] text-center">
+            <h1 className="text-lg font-semibold text-balance min-w-[200px] text-center font-heading">
               {headerTitle}
             </h1>
             <button

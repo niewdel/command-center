@@ -14,6 +14,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { PageLayout } from "@/components/layout/page-layout";
+import { SkeletonPage } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
   BookOpen,
@@ -165,34 +167,14 @@ function DigestsContent() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-dvh">
-        <div className="flex items-center gap-3 text-muted-foreground">
-          <div className="size-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-          <span className="text-sm">Loading...</span>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="p-4 md:p-8 max-w-4xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="pt-10 md:pt-2 flex items-start justify-between">
-        <div className="space-y-1">
-          <div className="flex items-center gap-3">
-            <div className="size-10 rounded-lg bg-foreground flex items-center justify-center shadow-sm">
-              <BookOpen className="size-5 text-background" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-balance">Digests</h1>
-              <p className="text-xs text-muted-foreground text-pretty">
-                Video guides, auto-analyzed
-              </p>
-            </div>
-          </div>
-        </div>
+    <PageLayout
+      title="Digests"
+      description="Video guides, auto-analyzed"
+      icon={BookOpen}
+      loading={loading}
+      maxWidth="lg"
+      actions={
         <Button
           onClick={() => setShowAddDialog(true)}
           className="gap-2 bg-foreground hover:bg-foreground/90 text-background border-0 rounded-lg shadow-sm"
@@ -201,8 +183,8 @@ function DigestsContent() {
           <Plus className="size-4" />
           Add Link
         </Button>
-      </div>
-
+      }
+    >
       {/* Search + Filters */}
       <div className="space-y-3">
         <div className="relative">
@@ -489,7 +471,7 @@ function DigestsContent() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageLayout>
   );
 }
 
@@ -544,14 +526,7 @@ function MarkdownRenderer({ content }: { content: string }) {
 export default function DigestsPage() {
   return (
     <Suspense
-      fallback={
-        <div className="flex items-center justify-center min-h-dvh">
-          <div className="flex items-center gap-3 text-muted-foreground">
-            <div className="size-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-            <span className="text-sm">Loading...</span>
-          </div>
-        </div>
-      }
+      fallback={<SkeletonPage />}
     >
       <DigestsContent />
     </Suspense>

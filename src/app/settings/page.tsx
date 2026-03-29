@@ -6,7 +6,8 @@ import { UserSettings } from "@/types/database";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings, Save, Check, Bell, BellOff } from "lucide-react";
+import { PageLayout } from "@/components/layout/page-layout";
+import { Settings, Save, Check, Bell, BellOff, Mail } from "lucide-react";
 import {
   requestNotificationPermission,
   getNotificationStatus,
@@ -58,32 +59,12 @@ export default function SettingsPage() {
     setTimeout(() => setSaved(false), 2000);
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-dvh">
-        <div className="flex items-center gap-3 text-muted-foreground">
-          <div className="size-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-          <span className="text-sm">Loading...</span>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="p-4 md:p-8 max-w-2xl mx-auto space-y-8">
-      <div className="pt-10 md:pt-2 space-y-1">
-        <div className="flex items-center gap-3">
-          <div className="size-10 rounded-lg bg-foreground flex items-center justify-center shadow-sm">
-            <Settings className="size-5 text-background" />
-          </div>
-          <h1 className="text-2xl font-bold text-balance">Settings</h1>
-        </div>
-      </div>
-
+    <PageLayout title="Settings" icon={Settings} loading={loading} maxWidth="sm">
       {/* Capacity */}
       <div className="space-y-4">
         <div>
-          <h2 className="text-sm font-semibold text-balance">Daily Capacity</h2>
+          <h2 className="text-sm font-semibold text-balance font-heading">Daily Capacity</h2>
           <p className="text-xs text-muted-foreground mt-1 text-pretty">
             How many productive hours do you have per day? Used to calculate your capacity bar and overcommitment warnings.
           </p>
@@ -133,7 +114,7 @@ export default function SettingsPage() {
       {/* Shutdown */}
       <div className="space-y-4">
         <div>
-          <h2 className="text-sm font-semibold text-balance">Shutdown Time</h2>
+          <h2 className="text-sm font-semibold text-balance font-heading">Shutdown Time</h2>
           <p className="text-xs text-muted-foreground mt-1 text-pretty">
             When does your workday end? Triggers the evening shutdown ritual reminder.
           </p>
@@ -156,7 +137,7 @@ export default function SettingsPage() {
       {/* Notifications */}
       <div className="space-y-4">
         <div>
-          <h2 className="text-sm font-semibold text-balance">Notifications</h2>
+          <h2 className="text-sm font-semibold text-balance font-heading">Notifications</h2>
           <p className="text-xs text-muted-foreground mt-1 text-pretty">
             Get reminders for overdue tasks and upcoming deadlines.
           </p>
@@ -200,10 +181,10 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Calendar integrations placeholder */}
+      {/* Calendar integrations */}
       <div className="space-y-4">
         <div>
-          <h2 className="text-sm font-semibold text-balance">Calendar Integrations</h2>
+          <h2 className="text-sm font-semibold text-balance font-heading">Calendar Integrations</h2>
           <p className="text-xs text-muted-foreground mt-1 text-pretty">
             Connect your calendars to see all your meetings in one place.
           </p>
@@ -235,6 +216,40 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {/* Email integrations */}
+      <div className="space-y-4">
+        <div>
+          <h2 className="text-sm font-semibold text-balance font-heading">Email Integrations</h2>
+          <p className="text-xs text-muted-foreground mt-1 text-pretty">
+            Connect your email accounts for inbox integration and notifications.
+          </p>
+        </div>
+        <div className="space-y-3">
+          {[
+            { name: "Gmail", icon: "G", color: "bg-muted", status: "coming soon" },
+            { name: "Outlook", icon: "M", color: "bg-muted", status: "coming soon" },
+          ].map((email) => (
+            <div
+              key={email.name}
+              className="flex items-center gap-4 rounded-lg border border-border/50 bg-card/50 p-4"
+            >
+              <div
+                className={`size-10 rounded-lg ${email.color} flex items-center justify-center shadow-sm`}
+              >
+                <Mail className="size-4 text-muted-foreground" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-pretty">{email.name}</p>
+                <p className="text-xs text-muted-foreground capitalize text-pretty">{email.status}</p>
+              </div>
+              <Button variant="outline" size="sm" disabled className="rounded-lg text-xs">
+                Coming Soon
+              </Button>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Save */}
       <div className="pt-4">
         <Button
@@ -257,6 +272,6 @@ export default function SettingsPage() {
           )}
         </Button>
       </div>
-    </div>
+    </PageLayout>
   );
 }
