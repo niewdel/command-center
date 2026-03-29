@@ -8,13 +8,12 @@ import {
   LayoutDashboard,
   User,
   Plus,
-  Menu,
-  X,
   ChevronRight,
   LogOut,
   Target,
   CalendarDays,
   Calendar,
+  Mail,
   Settings,
   FileText,
   BookOpen,
@@ -62,6 +61,7 @@ function getWorkspaceIcon(iconName: string) {
 }
 
 const extraNav = [
+  { name: "Inbox", href: "/inbox", icon: Mail },
   { name: "Upcoming", href: "/upcoming", icon: CalendarDays },
   { name: "Calendar", href: "/calendar", icon: Calendar },
   { name: "Goals", href: "/goals", icon: Target },
@@ -73,7 +73,6 @@ const extraNav = [
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const [mobileOpen, setMobileOpen] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [showWorkspaceDialog, setShowWorkspaceDialog] = useState(false);
@@ -120,47 +119,16 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Mobile menu button */}
-      <button
-        aria-label="Open menu"
-        onClick={() => setMobileOpen(true)}
-        className="fixed top-4 left-4 z-40 md:hidden rounded-lg bg-card border border-border p-2.5 shadow-sm"
-      >
-        <Menu className="size-5" />
-      </button>
-
-      {/* Mobile overlay */}
-      {mobileOpen && (
-        <div
-          className="fixed inset-0 z-30 bg-black/60 md:hidden"
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside
-        className={cn(
-          "fixed inset-y-0 left-0 z-40 w-[280px] flex flex-col transition-transform duration-200 ease-out",
-          "bg-sidebar border-r border-sidebar-border",
-          "md:translate-x-0",
-          mobileOpen ? "translate-x-0" : "-translate-x-full"
-        )}
-      >
+      {/* Sidebar — desktop only */}
+      <aside className="hidden md:flex fixed inset-y-0 left-0 z-40 w-[280px] flex-col bg-sidebar border-r border-sidebar-border">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-5 border-b border-sidebar-border">
+        <div className="flex items-center px-5 py-5 border-b border-sidebar-border">
           <div className="flex items-center gap-3">
             <div className="size-8 rounded-lg bg-foreground flex items-center justify-center">
               <span className="text-background font-bold text-sm">CC</span>
             </div>
-            <h1 className="text-sm font-semibold text-foreground text-balance">Command Center</h1>
+            <h1 className="text-sm font-semibold text-foreground text-balance font-heading">Command Center</h1>
           </div>
-          <button
-            aria-label="Close menu"
-            onClick={() => setMobileOpen(false)}
-            className="md:hidden rounded-lg p-1.5 hover:bg-accent transition-colors"
-          >
-            <X className="size-4" />
-          </button>
         </div>
 
         {/* Navigation */}
@@ -168,7 +136,6 @@ export function Sidebar() {
           {/* Dashboard (always first) */}
           <Link
             href="/dashboard"
-            onClick={() => setMobileOpen(false)}
             className={cn(
               "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
               isDashboardActive
@@ -210,7 +177,7 @@ export function Sidebar() {
                 <div key={ws.id} className="group/ws relative">
                   <Link
                     href={`/workspace/${ws.slug}`}
-                    onClick={() => setMobileOpen(false)}
+    
                     className={cn(
                       "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                       isActive
@@ -260,7 +227,7 @@ export function Sidebar() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  onClick={() => setMobileOpen(false)}
+  
                   className={cn(
                     "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                     isActive
