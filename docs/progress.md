@@ -94,8 +94,14 @@
 - [x] Inbox UI page — `COMPLETE` — Filter tabs, date-grouped list, detail sheet, create task from email
 - [x] Settings email UI — `COMPLETE` — Connect/disconnect/sync buttons for Gmail + Outlook
 - [x] Cron sync endpoint — `COMPLETE` — /api/cron/sync-inbox for periodic background sync
-- [ ] OAuth credentials setup — `PENDING` — Requires Google Cloud + Azure AD app registration
-- [ ] Migration-006 run — `PENDING` — Requires Supabase SQL Editor execution
+- [x] Google OAuth credentials — `COMPLETE` — Google Cloud Console app registered 2026-03-29
+- [x] Migration-006 run — `COMPLETE` — Tables created in Supabase 2026-03-29
+- [ ] Microsoft OAuth credentials — `PENDING` — Azure AD app registration needed
+- [ ] CRON_SECRET env var — `PENDING` — Add to Railway + set up periodic sync trigger
+- [ ] Anthropic API key — `PENDING` — Needed for AI email classification + content digester
+- [ ] OpenAI API key — `PENDING` — Needed for Instagram Whisper transcription
+- [ ] Slack app setup — `PENDING` — Content digester Slack channel integration
+- [ ] Periodic sync trigger — `PENDING` — Railway cron or cron-job.org for inbox sync every 10 min
 
 ---
 
