@@ -72,6 +72,31 @@
 - [x] Sidebar navigation — `COMPLETE` — Digests link added to Planning section
 - [ ] Slack app setup — `PENDING` — Requires Justin to create Slack app + configure env vars
 
+#### Design System + UI Rework (2026-03-29) — `COMPLETE`
+- [x] Geist Sans typography — `COMPLETE` — font-heading for headings, Inter for body
+- [x] Color token refinement — `COMPLETE` — Tighter contrast, inbox semantic colors
+- [x] Skeleton loading components — `COMPLETE` — Skeleton, SkeletonCard, SkeletonListItem, SkeletonPage
+- [x] PageLayout template — `COMPLETE` — Consistent header/spacing/breadcrumbs across all pages
+- [x] Mobile bottom navigation — `COMPLETE` — 5 tabs (Today, Inbox, Calendar, Spaces, More)
+- [x] Breadcrumb component — `COMPLETE` — Used on client/project detail pages
+- [x] Baseline UI cleanup — `COMPLETE` — No gradients, no colored shadows, consistent design rules
+- [x] Dynamic workspaces — `COMPLETE` — CRUD from sidebar, color/icon/logo customization
+- [x] All 11 pages reworked — `COMPLETE` — PageLayout, skeleton loading, font-heading, better empty states
+
+#### Unified Inbox Module (2026-03-29) — `COMPLETE`
+- [x] Database schema — `COMPLETE` — migration-006: email_connections + inbox_items tables
+- [x] TypeScript types — `COMPLETE` — EmailConnection, InboxItem types
+- [x] Google OAuth (Gmail) — `COMPLETE` — authorize/callback routes, gmail.readonly scope
+- [x] Microsoft OAuth (Outlook) — `COMPLETE` — authorize/callback routes, Mail.Read scope
+- [x] Token refresh — `COMPLETE` — Auto-refresh with deactivation on failure
+- [x] Email sync pipeline — `COMPLETE` — Gmail messages + history, Outlook messages + delta
+- [x] AI classification — `COMPLETE` — Claude Haiku: action_required, needs_response, informational, promotional, trash
+- [x] Inbox UI page — `COMPLETE` — Filter tabs, date-grouped list, detail sheet, create task from email
+- [x] Settings email UI — `COMPLETE` — Connect/disconnect/sync buttons for Gmail + Outlook
+- [x] Cron sync endpoint — `COMPLETE` — /api/cron/sync-inbox for periodic background sync
+- [ ] OAuth credentials setup — `PENDING` — Requires Google Cloud + Azure AD app registration
+- [ ] Migration-006 run — `PENDING` — Requires Supabase SQL Editor execution
+
 ---
 
 ## Blockers
@@ -82,3 +107,4 @@
 - Framework gap fill session 2026-03-27: 6 new files, 10 modified files, clean TypeScript + build
 - Framework polish session 2026-03-28: 4 new files (2 pages, toast, notifications), 8+ modified files, clean build
 - Content digester session 2026-03-28: 8 new files (migration, 2 lib modules, 3 API routes, 1 page), 2 modified files (sidebar, types), clean TypeScript
+- Design + Inbox session 2026-03-29: 19 new files, 11 modified files. Full UI rework (Phase A+B) + complete inbox module (Phase C). Clean build.
