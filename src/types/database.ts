@@ -258,6 +258,23 @@ export type EmailConnection = {
   updated_at: string;
 };
 
+export type Issue = {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string | null;
+  type: "bug" | "feature";
+  status: "open" | "in_progress" | "resolved" | "closed";
+  priority: "low" | "medium" | "high" | "critical";
+  linked_entity_type: "workspace" | "task" | "project" | "client" | "goal" | "note" | "calendar_event" | "inbox_item" | "page" | null;
+  linked_entity_id: string | null;
+  linked_entity_label: string | null;
+  resolved_by: "user" | "system" | null;
+  resolved_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type InboxItem = {
   id: string;
   user_id: string;

@@ -17,6 +17,7 @@ import {
   Settings,
   FileText,
   BookOpen,
+  Bug,
   Briefcase,
   Building,
   Folder,
@@ -67,6 +68,7 @@ const extraNav = [
   { name: "Goals", href: "/goals", icon: Target },
   { name: "Notes", href: "/notes", icon: FileText },
   { name: "Digests", href: "/digests", icon: BookOpen },
+  { name: "Issues", href: "/issues", icon: Bug },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
