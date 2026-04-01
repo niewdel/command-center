@@ -156,57 +156,44 @@ export async function getInstagramTranscript(
   title: string;
   thumbnail_url: string | null;
 }> {
-  // Fetch metadata via oEmbed
-  const oembedRes = await fetch(
-    `https://api.instagram.com/oembed/?url=${encodeURIComponent(url)}`
-  );
-
-  if (!oembedRes.ok) {
-    throw new Error(
-      "Could not fetch Instagram post metadata. The post may be private."
-    );
+  const rapidApiKey = process.env.RAPIDAPI_KEY;
+  if (!rapidApiKey) {
+    throw new Error("RAPIDAPI_KEY not configured — needed for Instagram video extraction");
   }
 
-  const oembed = await oembedRes.json();
-  const title = oembed.title || "Instagram Reel";
-  const thumbnail_url = oembed.thumbnail_url || null;
-
-  // Extract video URL from the page's og:video meta tag
-  let html: string;
-  try {
-    const pageRes = await fetch(url, {
+  // Use RapidAPI Instagram Scraper to get video URL
+  const apiRes = await fetch(
+    `https://instagram-scraper-api2.p.rapidapi.com/v1/post_info?code_or_id_or_url=${encodeURIComponent(url)}`,
+    {
       headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml",
-        "Accept-Language": "en-US,en;q=0.9",
+        "x-rapidapi-key": rapidApiKey,
+        "x-rapidapi-host": "instagram-scraper-api2.p.rapidapi.com",
       },
-      redirect: "follow",
-    });
-    html = await pageRes.text();
-  } catch {
-    throw new Error("Instagram is not accessible from the server. Instagram blocks server-side requests — try YouTube links instead.");
-  }
-
-  // Check if Instagram returned a login page instead of the video page
-  if (html.includes("loginForm") || html.includes("Log in") || !html.includes("og:video")) {
-    throw new Error("Instagram requires login to access this content from a server. Instagram videos cannot be processed — try YouTube links instead.");
-  }
-
-  const videoUrlMatch = html.match(
-    /property="og:video"\s+content="([^"]+)"/
+    }
   );
 
-  if (!videoUrlMatch) {
-    throw new Error(
-      "Could not extract video URL from Instagram. The post may be private or not a video."
-    );
+  if (!apiRes.ok) {
+    const errText = await apiRes.text().catch(() => "Unknown error");
+    throw new Error(`Instagram API failed (${apiRes.status}): ${errText.slice(0, 200)}`);
   }
 
-  const videoUrl = videoUrlMatch[1];
+  const postData = await apiRes.json();
+  const data = postData.data || postData;
+
+  // Extract video URL — the API returns it in different places depending on post type
+  const videoUrl = data.video_url || data.video_versions?.[0]?.url || null;
+  if (!videoUrl) {
+    throw new Error("No video found in this Instagram post. It may be an image or carousel.");
+  }
+
+  const title = data.caption?.text?.slice(0, 100) || "Instagram Reel";
+  const thumbnail_url = data.thumbnail_url || data.image_versions?.items?.[0]?.url || null;
 
   // Download the video
   const videoRes = await fetch(videoUrl);
+  if (!videoRes.ok) {
+    throw new Error(`Failed to download Instagram video: ${videoRes.status}`);
+  }
   const videoBuffer = await videoRes.arrayBuffer();
 
   // Transcribe via OpenAI Whisper
