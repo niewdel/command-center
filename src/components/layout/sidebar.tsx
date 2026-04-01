@@ -259,6 +259,7 @@ function WorkspaceDialog({
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
@@ -295,24 +296,19 @@ function WorkspaceDialog({
     formData.append("file", logoFile);
     formData.append("folder", "workspace-logos");
 
-    try {
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
+    const res = await fetch("/api/upload", {
+      method: "POST",
+      body: formData,
+    });
 
-      if (!res.ok) {
-        const err = await res.json();
-        console.error("Logo upload failed:", err.error);
-        return logoUrl;
-      }
+    const result = await res.json();
 
-      const { url } = await res.json();
-      return url;
-    } catch (err) {
-      console.error("Logo upload failed:", err);
+    if (!res.ok) {
+      setSaveError(`Upload failed: ${result.error}`);
       return logoUrl;
     }
+
+    return result.url;
   };
 
   const removeLogo = () => {
@@ -329,6 +325,7 @@ function WorkspaceDialog({
   const handleSave = async () => {
     if (!name.trim()) return;
     setSaving(true);
+    setSaveError(null);
 
     const uploadedLogoUrl = await uploadLogo();
 
@@ -342,12 +339,20 @@ function WorkspaceDialog({
 
     if (workspace) {
       const { error } = await supabase.from("workspaces").update(data).eq("id", workspace.id);
-      if (error) console.error("Workspace update failed:", error);
+      if (error) {
+        setSaveError(`Save failed: ${error.message}`);
+        setSaving(false);
+        return;
+      }
     } else {
       data.slug = slug;
       data.type = "business";
       const { error } = await supabase.from("workspaces").insert(data);
-      if (error) console.error("Workspace insert failed:", error);
+      if (error) {
+        setSaveError(`Save failed: ${error.message}`);
+        setSaving(false);
+        return;
+      }
     }
 
     setSaving(false);
@@ -448,6 +453,10 @@ function WorkspaceDialog({
             </div>
           </div>
         </div>
+
+        {saveError && (
+          <p className="text-xs text-red-400 px-1">{saveError}</p>
+        )}
 
         <DialogFooter className="gap-2">
           {workspace && (

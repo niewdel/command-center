@@ -19,6 +19,14 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = getSupabaseAdmin();
+
+    // Ensure bucket exists
+    const { data: buckets } = await supabase.storage.listBuckets();
+    const bucketExists = buckets?.some((b) => b.id === "workspace-assets");
+    if (!bucketExists) {
+      await supabase.storage.createBucket("workspace-assets", { public: true });
+    }
+
     const ext = file.name.split(".").pop() || "png";
     const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
@@ -32,8 +40,7 @@ export async function POST(request: NextRequest) {
       });
 
     if (error) {
-      console.error("Upload failed:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: `Storage upload: ${error.message}` }, { status: 500 });
     }
 
     const { data } = supabase.storage.from("workspace-assets").getPublicUrl(path);
