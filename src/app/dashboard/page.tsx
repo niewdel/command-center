@@ -62,6 +62,11 @@ function DashboardContent() {
     setTasks(t || []);
     setSettings(s || null);
     setLoading(false);
+
+    // Auto-expand backlog if nothing is planned for today
+    const todayDate = new Date().toISOString().split("T")[0];
+    const hasPlanned = (t || []).some((task) => task.planned_date === todayDate && task.status !== "done");
+    if (!hasPlanned) setShowBacklog(true);
   }, []);
 
   useEffect(() => {
