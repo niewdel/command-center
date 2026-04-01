@@ -243,6 +243,32 @@ export type UserSettings = {
   updated_at: string;
 };
 
+export type NewsTopic = {
+  id: string;
+  user_id: string;
+  name: string;
+  keywords: string[];
+  rss_feeds: string[];
+  active: boolean;
+  position: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type NewsStory = {
+  id: string;
+  topic_id: string;
+  title: string;
+  url: string;
+  source_name: string;
+  summary: string;
+  topic: string;
+  published_at: string | null;
+  fetched_at: string;
+  relevance_score: number;
+  created_at: string;
+};
+
 export type EmailConnection = {
   id: string;
   user_id: string;

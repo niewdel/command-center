@@ -15,7 +15,7 @@ import {
   Calendar,
   Settings,
   FileText,
-  BookOpen,
+  Newspaper,
   Bug,
   Zap,
   Briefcase,
@@ -64,7 +64,7 @@ function getWorkspaceIcon(iconName: string) {
 const extraNav = [
   { name: "Dump", href: "/dump", icon: Zap },
   { name: "Upcoming", href: "/upcoming", icon: CalendarDays },
-  { name: "Digests", href: "/digests", icon: BookOpen },
+  { name: "News", href: "/news", icon: Newspaper },
   { name: "Issues", href: "/issues", icon: Bug },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
