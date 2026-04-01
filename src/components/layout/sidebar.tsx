@@ -332,19 +332,22 @@ function WorkspaceDialog({
 
     const uploadedLogoUrl = await uploadLogo();
 
-    const data = {
+    // When editing, don't change the slug (it's used for routing)
+    const data: Record<string, unknown> = {
       name: name.trim(),
-      slug,
-      type: "business" as const,
       color,
       description: description || null,
       logo_url: uploadedLogoUrl,
     };
 
     if (workspace) {
-      await supabase.from("workspaces").update(data).eq("id", workspace.id);
+      const { error } = await supabase.from("workspaces").update(data).eq("id", workspace.id);
+      if (error) console.error("Workspace update failed:", error);
     } else {
-      await supabase.from("workspaces").insert(data);
+      data.slug = slug;
+      data.type = "business";
+      const { error } = await supabase.from("workspaces").insert(data);
+      if (error) console.error("Workspace insert failed:", error);
     }
 
     setSaving(false);

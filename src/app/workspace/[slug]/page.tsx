@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
-import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import { Task, Workspace, Project } from "@/types/database";
 import { TaskItem } from "@/components/tasks/task-item";
@@ -140,12 +139,10 @@ export default function WorkspacePage() {
             style={workspace.color?.startsWith("#") ? { backgroundColor: workspace.color } : undefined}
           >
             {workspace.logo_url ? (
-              <Image
+              <img
                 src={workspace.logo_url}
                 alt={workspace.name}
-                width={28}
-                height={28}
-                className="object-contain"
+                className="size-8 object-contain"
               />
             ) : (
               <span className="text-lg text-white font-semibold">
