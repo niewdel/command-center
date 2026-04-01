@@ -48,9 +48,9 @@ export function PageLayout({
 
       <div className={cn("flex items-center justify-between gap-4", !breadcrumbs && "pt-1")}>
         <div className="flex items-center gap-2 min-w-0">
-          {Icon && <Icon className="size-5 text-muted-foreground shrink-0" />}
+          {Icon && <Icon className="size-5 text-primary shrink-0" />}
           <div className="min-w-0">
-            <h1 className="text-lg font-semibold text-balance font-heading truncate">{title}</h1>
+            <h1 className="text-xl font-bold text-balance font-heading truncate tracking-tight">{title}</h1>
             {description && (
               <p className="text-xs text-muted-foreground text-pretty mt-0.5">{description}</p>
             )}

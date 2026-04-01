@@ -123,8 +123,8 @@ export function Sidebar() {
         {/* Header */}
         <div className="flex items-center px-4 py-3 border-b border-sidebar-border">
           <div className="flex items-center gap-2.5">
-            <div className="size-7 rounded-md bg-foreground flex items-center justify-center">
-              <span className="text-background font-bold text-xs">CC</span>
+            <div className="size-7 rounded flex items-center justify-center border border-primary/50" style={{ boxShadow: '0 0 8px -2px var(--hud-glow)' }}>
+              <span className="text-primary font-bold text-xs font-mono">CC</span>
             </div>
             <h1 className="text-sm font-semibold text-foreground font-heading">Command Center</h1>
           </div>
@@ -136,9 +136,9 @@ export function Sidebar() {
           <Link
             href="/dashboard"
             className={cn(
-              "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium transition-colors",
+              "flex items-center gap-2.5 rounded px-2.5 py-2 text-sm font-medium transition-colors",
               isDashboardActive
-                ? "bg-accent text-foreground"
+                ? "border-l-2 border-l-primary bg-primary/5 text-foreground"
                 : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
             )}
           >
@@ -147,8 +147,8 @@ export function Sidebar() {
           </Link>
 
           {/* Dynamic Workspaces */}
-          <div className="pt-3">
-            <div className="flex items-center justify-between px-2.5 mb-1.5">
+          <div className="pt-3 mt-1 border-t border-sidebar-border">
+            <div className="flex items-center justify-between px-2.5 mb-1.5 pt-3">
               <p className="text-[11px] font-medium uppercase text-muted-foreground">
                 Workspaces
               </p>
@@ -170,14 +170,14 @@ export function Sidebar() {
                   <Link
                     href={`/workspace/${ws.slug}`}
                     className={cn(
-                      "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium transition-colors",
+                      "flex items-center gap-2.5 rounded px-2.5 py-2 text-sm font-medium transition-colors",
                       isActive
-                        ? "bg-accent text-foreground"
+                        ? "border-l-2 border-l-primary bg-primary/5 text-foreground"
                         : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
                     )}
                   >
                     <span
-                      className={cn("size-2 rounded-full shrink-0", !ws.color?.startsWith("#") && (ws.color || "bg-muted-foreground"))}
+                      className={cn("size-2.5 rounded-full shrink-0 ring-1 ring-white/10", !ws.color?.startsWith("#") && (ws.color || "bg-muted-foreground"))}
                       style={ws.color?.startsWith("#") ? { backgroundColor: ws.color } : undefined}
                     />
                     <span className="flex-1 truncate">{ws.name}</span>
@@ -199,8 +199,8 @@ export function Sidebar() {
           </div>
 
           {/* Planning section */}
-          <div className="pt-3">
-            <p className="px-2.5 mb-1.5 text-[11px] font-medium uppercase text-muted-foreground">
+          <div className="pt-3 mt-1 border-t border-sidebar-border">
+            <p className="px-2.5 mb-1.5 pt-3 text-[11px] font-medium uppercase text-muted-foreground">
               Tools
             </p>
             {extraNav.map((item) => {
@@ -229,12 +229,12 @@ export function Sidebar() {
           <Button
             variant="outline"
             onClick={() => setQuickAddOpen(true)}
-            className="w-full gap-2 rounded-md h-9 text-sm font-medium"
+            className="w-full gap-2 rounded h-9 text-sm font-medium border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50"
             size="sm"
           >
             <Plus className="size-4" />
             Quick Add
-            <kbd className="ml-auto text-[10px] opacity-50 px-1.5 py-0.5 rounded bg-muted">
+            <kbd className="ml-auto text-[10px] opacity-50 px-1.5 py-0.5 rounded bg-primary/10 text-primary/70">
               {typeof navigator !== "undefined" && /Mac/.test(navigator.userAgent) ? "⌘" : "Ctrl+"}N
             </kbd>
           </Button>

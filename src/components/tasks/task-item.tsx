@@ -36,15 +36,16 @@ export function TaskItem({
   return (
     <div
       className={cn(
-        "group flex items-center gap-3 border-b border-border px-1 py-2.5 transition-colors",
-        isDone && "opacity-60",
-        task.is_focus && !isDone && "border-l-2 border-l-primary pl-2.5"
+        "group flex items-center gap-3 border-b border-border/60 px-1 py-2.5 transition-all",
+        "hover:bg-primary/[0.03] hover:border-b-primary/20",
+        isDone && "opacity-50",
+        task.is_focus && !isDone && "border-l-2 border-l-primary pl-2.5 bg-primary/[0.02]"
       )}
     >
       <Checkbox
         checked={isDone}
         onCheckedChange={(checked) => onToggle(task.id, !!checked)}
-        className="shrink-0 border-muted-foreground/40 data-[state=checked]:bg-primary data-[state=checked]:border-primary transition-colors"
+        className="shrink-0 border-muted-foreground/30 data-[state=checked]:bg-primary data-[state=checked]:border-primary transition-colors"
       />
 
       {showWorkspace && workspace?.color && (
@@ -67,7 +68,7 @@ export function TaskItem({
           {task.due_date && (
             <span
               className={cn(
-                "text-xs text-muted-foreground shrink-0 tabular-nums",
+                "text-xs text-muted-foreground shrink-0 font-mono tabular-nums",
                 isOverdue && "text-red-400"
               )}
             >

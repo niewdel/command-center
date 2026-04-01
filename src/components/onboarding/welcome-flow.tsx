@@ -75,8 +75,8 @@ export function WelcomeFlow({ workspaces, onComplete }: WelcomeFlowProps) {
         {/* Step 0: Welcome */}
         {step === 0 && (
           <div className="text-center space-y-6">
-            <div className="inline-flex size-16 items-center justify-center rounded-2xl bg-foreground shadow-sm">
-              <Sparkles className="size-8 text-background" />
+            <div className="inline-flex size-16 items-center justify-center rounded-lg border-2 border-primary/50" style={{ boxShadow: '0 0 20px -4px var(--hud-glow)' }}>
+              <Sparkles className="size-8 text-primary" />
             </div>
             <div className="space-y-2">
               <h1 className="text-2xl font-bold text-balance">
@@ -88,7 +88,7 @@ export function WelcomeFlow({ workspaces, onComplete }: WelcomeFlowProps) {
             </div>
             <Button
               onClick={() => setStep(1)}
-              className="gap-2 bg-foreground hover:bg-foreground/90 text-background border-0 rounded-lg shadow-sm"
+              className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground border-0 rounded"
             >
               Get Started
               <ArrowRight className="size-4" />
@@ -128,9 +128,9 @@ export function WelcomeFlow({ workspaces, onComplete }: WelcomeFlowProps) {
                   className="flex items-start gap-4 rounded-lg border border-border/50 bg-card/50 p-4"
                 >
                   <div
-                    className="size-10 rounded-lg bg-foreground flex items-center justify-center shadow-sm shrink-0"
+                    className="size-10 rounded flex items-center justify-center border border-primary/40 shrink-0"
                   >
-                    <item.icon className="size-5 text-background" />
+                    <item.icon className="size-5 text-primary" />
                   </div>
                   <div>
                     <h3 className="text-sm font-semibold">{item.title}</h3>
@@ -225,7 +225,7 @@ export function WelcomeFlow({ workspaces, onComplete }: WelcomeFlowProps) {
               key={i}
               className={cn(
                 "h-1.5 rounded-full transition-colors",
-                i === step ? "w-6 bg-foreground" : "w-1.5 bg-muted"
+                i === step ? "w-6 bg-primary" : "w-1.5 bg-muted"
               )}
             />
           ))}

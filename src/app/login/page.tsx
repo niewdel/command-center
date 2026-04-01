@@ -34,16 +34,16 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-background px-4">
-      <div className="w-full max-w-[320px] space-y-6">
+    <div className="flex min-h-dvh items-center justify-center px-4">
+      <div className="w-full max-w-[320px] space-y-6 p-6 rounded border border-border hud-glow">
         <div className="text-center space-y-2">
-          <div className="inline-flex size-12 items-center justify-center rounded-lg bg-foreground">
-            <span className="text-background font-bold text-lg">CC</span>
+          <div className="inline-flex size-12 items-center justify-center rounded border-2 border-primary/50" style={{ boxShadow: '0 0 16px -4px var(--hud-glow)' }}>
+            <span className="text-primary font-bold text-lg font-mono">CC</span>
           </div>
-          <h1 className="text-xl font-bold text-foreground font-heading text-balance">
+          <h1 className="text-xl font-bold text-foreground font-mono text-balance">
             Command Center
           </h1>
-          <p className="text-sm text-muted-foreground text-pretty">
+          <p className="text-sm text-muted-foreground text-pretty font-mono">
             Enter your PIN to continue
           </p>
         </div>
@@ -60,7 +60,7 @@ export default function LoginPage() {
               setError("");
             }}
             placeholder="PIN"
-            className="bg-background/50 border-border/50 rounded-lg h-12 text-center text-lg tracking-widest"
+            className="bg-card border-border rounded h-12 text-center text-lg tracking-widest font-mono focus-visible:border-primary focus-visible:ring-primary/30"
           />
           {error && (
             <p className="text-xs text-red-400 text-center">{error}</p>
@@ -68,7 +68,7 @@ export default function LoginPage() {
           <Button
             type="submit"
             disabled={!pin.trim() || loading}
-            className="w-full bg-foreground hover:bg-foreground/90 text-background border-0 rounded-lg h-11 font-medium"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground border-0 rounded h-11 font-medium"
           >
             {loading ? "Checking..." : "Enter"}
           </Button>
