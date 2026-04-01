@@ -4,20 +4,19 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import { supabase } from "@/lib/supabase";
-import { Task, Workspace, Client, Project } from "@/types/database";
+import { Task, Workspace, Project } from "@/types/database";
 import { TaskItem } from "@/components/tasks/task-item";
 import { AddTaskForm } from "@/components/tasks/add-task-form";
 import { EditTaskDialog } from "@/components/tasks/edit-task-dialog";
-import { ClientList } from "@/components/workspace/client-list";
 import { ProjectList } from "@/components/workspace/project-list";
 import { KanbanBoard } from "@/components/tasks/kanban-board";
 import { ViewToggle } from "@/components/tasks/view-toggle";
 import { useTaskActions } from "@/lib/hooks/use-task-actions";
 import { SkeletonPage } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronUp, ListTodo, Users, FolderKanban } from "lucide-react";
+import { ChevronDown, ChevronUp, ListTodo, FolderKanban } from "lucide-react";
 
-type Tab = "tasks" | "clients" | "projects";
+type Tab = "tasks" | "projects";
 
 const priorityOrder: Record<string, number> = {
   high: 0,
@@ -32,7 +31,6 @@ export default function WorkspacePage() {
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [allWorkspaces, setAllWorkspaces] = useState<Workspace[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [clients, setClients] = useState<Client[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [showDone, setShowDone] = useState(false);
@@ -54,17 +52,12 @@ export default function WorkspacePage() {
 
     if (ws) {
       setWorkspace(ws);
-      const [{ data: t }, { data: c }, { data: p }] = await Promise.all([
+      const [{ data: t }, { data: p }] = await Promise.all([
         supabase
           .from("tasks")
           .select("*")
           .eq("workspace_id", ws.id)
           .order("created_at", { ascending: false }),
-        supabase
-          .from("clients")
-          .select("*")
-          .eq("workspace_id", ws.id)
-          .order("name"),
         supabase
           .from("projects")
           .select("*")
@@ -72,7 +65,6 @@ export default function WorkspacePage() {
           .order("created_at", { ascending: false }),
       ]);
       setTasks(t || []);
-      setClients(c || []);
       setProjects(p || []);
     }
     setAllWorkspaces(allWs || []);
@@ -85,7 +77,6 @@ export default function WorkspacePage() {
     const channel = supabase
       .channel(`workspace-${slug}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, () => fetchData())
-      .on("postgres_changes", { event: "*", schema: "public", table: "clients" }, () => fetchData())
       .on("postgres_changes", { event: "*", schema: "public", table: "projects" }, () => fetchData())
       .subscribe();
 
@@ -134,16 +125,9 @@ export default function WorkspacePage() {
     });
   const doneTasks = tasks.filter((t) => t.status === "done");
 
-  // Determine which tabs to show (hide empty clients/projects for workspaces that don't use them)
-  const hasTabs = clients.length > 0 || projects.length > 0 || workspace.type === "business";
   const tabs: { id: Tab; label: string; icon: React.ReactNode; count: number }[] = [
     { id: "tasks", label: "Tasks", icon: <ListTodo className="size-3.5" />, count: activeTasks.length },
-    ...(hasTabs
-      ? [
-          { id: "clients" as Tab, label: "Clients", icon: <Users className="size-3.5" />, count: clients.length },
-          { id: "projects" as Tab, label: "Projects", icon: <FolderKanban className="size-3.5" />, count: projects.length },
-        ]
-      : []),
+    { id: "projects", label: "Projects", icon: <FolderKanban className="size-3.5" />, count: projects.length },
   ];
 
   return (
@@ -190,14 +174,14 @@ export default function WorkspacePage() {
             </span>{" "}
             completed
           </span>
-          {clients.length > 0 && (
+          {projects.length > 0 && (
             <>
               <span className="text-border">|</span>
               <span>
                 <span className="text-foreground font-semibold">
-                  {clients.length}
+                  {projects.length}
                 </span>{" "}
-                clients
+                projects
               </span>
             </>
           )}
@@ -205,8 +189,7 @@ export default function WorkspacePage() {
       </div>
 
       {/* Tabs */}
-      {tabs.length > 1 && (
-        <div className="flex gap-2 flex-wrap">
+      <div className="flex gap-2 flex-wrap">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -223,8 +206,7 @@ export default function WorkspacePage() {
               <span className="ml-0.5 opacity-60">{tab.count}</span>
             </button>
           ))}
-        </div>
-      )}
+      </div>
 
       {/* Tasks tab */}
       {activeTab === "tasks" && (
@@ -316,20 +298,11 @@ export default function WorkspacePage() {
         </>
       )}
 
-      {/* Clients tab */}
-      {activeTab === "clients" && (
-        <ClientList
-          clients={clients}
-          workspaceId={workspace.id}
-          onRefresh={fetchData}
-        />
-      )}
-
       {/* Projects tab */}
       {activeTab === "projects" && (
         <ProjectList
           projects={projects}
-          clients={clients}
+          clients={[]}
           workspaceId={workspace.id}
           onRefresh={fetchData}
         />
