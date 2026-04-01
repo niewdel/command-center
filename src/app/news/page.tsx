@@ -389,10 +389,7 @@ function TopStories({ filterTopic }: { filterTopic: string }) {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await fetch("/api/cron/refresh-news", {
-        method: "POST",
-        headers: { "x-cron-secret": "manual-refresh" },
-      });
+      await fetch("/api/news/refresh", { method: "POST" });
       await fetchStories();
     } catch {
       // silent
@@ -493,7 +490,7 @@ function TopicPills({
   onTopicChange: (topic: string) => void;
 }) {
   const [topics, setTopics] = useState<NewsTopic[]>([]);
-  const [showEdit, setShowEdit] = useState(false);
+  const [showManage, setShowManage] = useState(false);
   const [newTopicName, setNewTopicName] = useState("");
   const [newTopicFeeds, setNewTopicFeeds] = useState("");
 
@@ -538,8 +535,10 @@ function TopicPills({
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
+      {/* Filter pills */}
       <div className="flex items-center gap-1.5 flex-wrap">
+        <span className="text-[11px] text-muted-foreground mr-1">Topics:</span>
         <button
           onClick={() => onTopicChange("all")}
           className={cn(
@@ -564,46 +563,87 @@ function TopicPills({
             </button>
           ))}
         <button
-          onClick={() => setShowEdit(!showEdit)}
+          onClick={() => setShowManage(!showManage)}
           className="px-2 py-1 rounded-md text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
-          {showEdit ? "Done" : "+ Edit"}
+          {showManage ? "Done" : "Manage"}
         </button>
       </div>
 
-      {showEdit && (
+      {/* Topic management panel */}
+      {showManage && (
         <div className="border border-border rounded-md p-3 space-y-3">
-          <div className="space-y-1.5">
-            {topics.map((topic) => (
-              <div key={topic.id} className="flex items-center justify-between py-1">
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => toggleTopic(topic.id, !topic.active)}
-                    className={cn(
-                      "size-4 rounded border transition-colors",
-                      topic.active ? "bg-primary border-primary" : "border-muted-foreground/40"
+          <p className="text-[11px] font-medium uppercase text-muted-foreground">Your Topics</p>
+
+          {topics.length === 0 ? (
+            <p className="text-xs text-muted-foreground py-2">No topics yet. Add one below.</p>
+          ) : (
+            <div className="space-y-2">
+              {topics.map((topic) => {
+                const feeds: string[] = Array.isArray(topic.rss_feeds) ? topic.rss_feeds : [];
+                const keywords: string[] = Array.isArray(topic.keywords) ? topic.keywords : [];
+                return (
+                  <div key={topic.id} className="border border-border/50 rounded-md p-2.5 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => toggleTopic(topic.id, !topic.active)}
+                          className={cn(
+                            "size-4 rounded border transition-colors shrink-0",
+                            topic.active ? "bg-primary border-primary" : "border-muted-foreground/40"
+                          )}
+                          aria-label={topic.active ? "Disable topic" : "Enable topic"}
+                        />
+                        <span className={cn("text-sm font-medium", !topic.active && "text-muted-foreground line-through")}>
+                          {topic.name}
+                        </span>
+                        {!topic.active && <span className="text-[10px] text-muted-foreground">(disabled)</span>}
+                      </div>
+                      <button
+                        onClick={() => deleteTopic(topic.id)}
+                        className="p-1 text-muted-foreground hover:text-red-400 transition-colors"
+                        aria-label={`Delete ${topic.name}`}
+                      >
+                        <X className="size-3.5" />
+                      </button>
+                    </div>
+                    {keywords.length > 0 && (
+                      <div className="flex items-center gap-1 flex-wrap pl-6">
+                        <span className="text-[10px] text-muted-foreground/60">Keywords:</span>
+                        {keywords.map((kw) => (
+                          <span key={kw} className="text-[10px] text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">
+                            {kw}
+                          </span>
+                        ))}
+                      </div>
                     )}
-                  />
-                  <span className={cn("text-sm", !topic.active && "text-muted-foreground")}>{topic.name}</span>
-                </div>
-                <button
-                  onClick={() => deleteTopic(topic.id)}
-                  className="p-1 text-muted-foreground hover:text-red-400 transition-colors"
-                >
-                  <X className="size-3" />
-                </button>
-              </div>
-            ))}
-          </div>
+                    {feeds.length > 0 && (
+                      <div className="pl-6 space-y-0.5">
+                        <span className="text-[10px] text-muted-foreground/60">Feeds:</span>
+                        {feeds.map((feed) => (
+                          <p key={feed} className="text-[10px] text-muted-foreground truncate" title={feed}>
+                            {feed}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Add new topic */}
           <div className="border-t border-border pt-3 space-y-2">
+            <p className="text-[11px] font-medium uppercase text-muted-foreground">Add Topic</p>
             <Input
-              placeholder="Topic name"
+              placeholder="Topic name (e.g. Machine Learning)"
               value={newTopicName}
               onChange={(e) => setNewTopicName(e.target.value)}
               className="h-8 text-sm"
             />
             <textarea
-              placeholder="RSS feed URLs (one per line, optional)"
+              placeholder="RSS feed URLs (one per line, optional — leave blank to use Hacker News)"
               value={newTopicFeeds}
               onChange={(e) => setNewTopicFeeds(e.target.value)}
               rows={2}
