@@ -457,15 +457,28 @@ function DigestsContent() {
   };
 
   const handleRetry = async (digestId: string) => {
-    await fetch("/api/digest/process", {
+    // Reset status to queued, then trigger reprocessing
+    await supabase
+      .from("content_digests")
+      .update({ status: "queued", error_message: null, updated_at: new Date().toISOString() })
+      .eq("id", digestId);
+    fetchDigests();
+
+    await fetch("/api/digest/retry", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.NEXT_PUBLIC_DIGEST_PROCESS_SECRET || ""}`,
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ digestId }),
     });
     fetchDigests();
+  };
+
+  const handleDiscard = async (digestId: string) => {
+    await supabase
+      .from("content_digests")
+      .delete()
+      .eq("id", digestId);
+    setDigests((prev) => prev.filter((d) => d.id !== digestId));
+    if (selectedDigest?.id === digestId) setSelectedDigest(null);
   };
 
   const statusIcon = (status: string) => {
@@ -683,6 +696,16 @@ function DigestsContent() {
                           <RefreshCw className="h-3 w-3" />
                           Retry
                         </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDiscard(digest.id);
+                          }}
+                          className="ml-1 text-red-400 hover:text-red-300 flex items-center gap-1"
+                        >
+                          <XCircle className="h-3 w-3" />
+                          Discard
+                        </button>
                       </>
                     )}
                     {digest.status === "processing" && (
@@ -695,6 +718,16 @@ function DigestsContent() {
                       <>
                         <span className="text-border">|</span>
                         <span className="text-yellow-400">In queue</span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDiscard(digest.id);
+                          }}
+                          className="ml-1 text-red-400 hover:text-red-300 flex items-center gap-1"
+                        >
+                          <XCircle className="h-3 w-3" />
+                          Discard
+                        </button>
                       </>
                     )}
                   </div>
