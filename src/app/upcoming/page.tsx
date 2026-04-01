@@ -116,7 +116,7 @@ export default function UpcomingPage() {
 
   return (
     <PageLayout
-      title="Upcoming"
+      title="This Week"
       description="Your next 7 days at a glance."
       icon={CalendarDays}
       loading={loading}

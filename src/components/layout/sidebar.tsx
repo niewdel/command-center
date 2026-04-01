@@ -36,7 +36,6 @@ import { QuickAddDialog } from "@/components/layout/quick-add-dialog";
 
 const extraNav = [
   { name: "Dump", href: "/dump", icon: Zap },
-  { name: "Upcoming", href: "/upcoming", icon: CalendarDays },
   { name: "Videos", href: "/videos", icon: Play },
   { name: "News", href: "/news", icon: Newspaper },
   { name: "Issues", href: "/issues", icon: Bug },
@@ -118,6 +117,20 @@ export function Sidebar() {
           >
             <LayoutDashboard className="size-4 shrink-0" />
             <span>Today</span>
+          </Link>
+
+          {/* This Week */}
+          <Link
+            href="/upcoming"
+            className={cn(
+              "flex items-center gap-2.5 rounded px-2.5 py-2 text-sm font-medium transition-colors",
+              pathname === "/upcoming"
+                ? "border-l-2 border-l-primary bg-primary/5 text-foreground"
+                : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+            )}
+          >
+            <CalendarDays className="size-4 shrink-0" />
+            <span>This Week</span>
           </Link>
 
           {/* Dynamic Workspaces */}
