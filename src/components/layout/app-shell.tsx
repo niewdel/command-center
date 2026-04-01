@@ -24,7 +24,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <ToastProvider>
       <TooltipProvider>
         <Sidebar />
-        <main className="md:ml-[280px] min-h-dvh pb-20 md:pb-0">{children}</main>
+        <main className="md:ml-[var(--sidebar-width)] min-h-dvh pb-20 md:pb-0">{children}</main>
         <BottomNav />
         <CommandPalette />
       </TooltipProvider>

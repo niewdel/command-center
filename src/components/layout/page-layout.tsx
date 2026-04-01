@@ -30,7 +30,6 @@ export function PageLayout({
   title,
   description,
   icon: Icon,
-  iconColor,
   actions,
   breadcrumbs,
   maxWidth = "md",
@@ -42,31 +41,24 @@ export function PageLayout({
   }
 
   return (
-    <div className={cn("p-4 md:p-8 pb-24 md:pb-8 mx-auto space-y-6", maxWidthMap[maxWidth])}>
-      {/* Breadcrumbs */}
+    <div className={cn("p-4 md:p-8 pb-24 md:pb-8 mx-auto space-y-5", maxWidthMap[maxWidth])}>
       {breadcrumbs && breadcrumbs.length > 0 && (
-        <Breadcrumb items={breadcrumbs} className="pt-2" />
+        <Breadcrumb items={breadcrumbs} className="pt-1" />
       )}
 
-      {/* Header */}
-      <div className={cn("flex items-start justify-between gap-4", !breadcrumbs && "pt-2")}>
-        <div className="flex items-center gap-3 min-w-0">
-          {Icon && (
-            <div className={cn("size-10 rounded-lg flex items-center justify-center shrink-0", iconColor || "bg-foreground")}>
-              <Icon className="size-5 text-background" />
-            </div>
-          )}
+      <div className={cn("flex items-center justify-between gap-4", !breadcrumbs && "pt-1")}>
+        <div className="flex items-center gap-2 min-w-0">
+          {Icon && <Icon className="size-5 text-muted-foreground shrink-0" />}
           <div className="min-w-0">
-            <h1 className="text-2xl font-bold text-balance font-heading truncate">{title}</h1>
+            <h1 className="text-lg font-semibold text-balance font-heading truncate">{title}</h1>
             {description && (
-              <p className="text-sm text-muted-foreground text-pretty">{description}</p>
+              <p className="text-xs text-muted-foreground text-pretty mt-0.5">{description}</p>
             )}
           </div>
         </div>
         {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
       </div>
 
-      {/* Content */}
       {children}
     </div>
   );
