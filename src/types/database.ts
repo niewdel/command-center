@@ -222,8 +222,8 @@ export type ContentDigest = {
   guide: string | null;
   tags: string[];
   error_message: string | null;
-  slack_message_ts: string | null;
-  slack_channel_id: string | null;
+  telegram_chat_id: string | null;
+  telegram_message_id: number | null;
   processed_at: string | null;
   created_at: string;
   updated_at: string;

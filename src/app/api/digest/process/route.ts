@@ -14,24 +14,22 @@ function getSupabaseAdmin() {
   );
 }
 
-async function postSlackReply(
-  channelId: string,
-  threadTs: string,
+async function sendTelegramReply(
+  chatId: string,
+  replyToMessageId: number,
   text: string
 ) {
-  const token = process.env.SLACK_BOT_TOKEN;
-  if (!token || !channelId || !threadTs) return;
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (!token || !chatId) return;
 
-  await fetch("https://slack.com/api/chat.postMessage", {
+  await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      channel: channelId,
-      thread_ts: threadTs,
+      chat_id: chatId,
+      reply_to_message_id: replyToMessageId,
       text,
+      parse_mode: "Markdown",
     }),
   });
 }
@@ -139,15 +137,15 @@ export async function POST(request: NextRequest) {
         })
         .eq("id", digestId);
 
-      // Reply in Slack thread
-      if (digest.slack_channel_id && digest.slack_message_ts) {
+      // Reply in Telegram
+      if (digest.telegram_chat_id && digest.telegram_message_id) {
         const appUrl = process.env.NEXT_PUBLIC_APP_URL || "your-app-url";
         const verdict = analysis.guide.match(/## Verdict\n+([\s\S]*?)(?=\n##)/)?.[1]?.trim() || "";
         const shortVerdict = verdict.length > 200 ? verdict.slice(0, 200) + "..." : verdict;
-        await postSlackReply(
-          digest.slack_channel_id,
-          digest.slack_message_ts,
-          `*${title}*\n${shortVerdict}\n\nFull guide -> ${appUrl}/digests?id=${digestId}`
+        await sendTelegramReply(
+          digest.telegram_chat_id,
+          digest.telegram_message_id,
+          `*${title}*\n${shortVerdict}\n\n[Full guide](${appUrl}/digests?id=${digestId})`
         );
       }
 
@@ -167,11 +165,11 @@ export async function POST(request: NextRequest) {
         })
         .eq("id", digestId);
 
-      // Notify failure in Slack
-      if (digest.slack_channel_id && digest.slack_message_ts) {
-        await postSlackReply(
-          digest.slack_channel_id,
-          digest.slack_message_ts,
+      // Notify failure in Telegram
+      if (digest.telegram_chat_id && digest.telegram_message_id) {
+        await sendTelegramReply(
+          digest.telegram_chat_id,
+          digest.telegram_message_id,
           `Failed to process: ${errorMessage}`
         );
       }

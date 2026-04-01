@@ -82,7 +82,7 @@
 - [x] Digest UI overhaul — `COMPLETE` — Proper markdown parser (no dangerouslySetInnerHTML), code block copy buttons, verdict badges (MUST-ACT/WORTH EXPLORING/REFERENCE ONLY/SKIP), inline link/bold/code rendering, blockquote + checkbox support
 - [x] Migration-007 — `COMPLETE` — ALTER TABLE user_settings ADD digest_context text
 - [ ] Slack app setup — `PENDING` — Requires Justin to create Slack app + configure env vars
-- [ ] Anthropic API key — `PENDING` — Needed for Opus analysis
+- [x] Anthropic API key — `COMPLETE` — Used by digest/process, tasks/dump, ai/parse
 - [ ] Run migration-007 — `PENDING` — Run in Supabase SQL Editor
 
 #### Design System + UI Rework (2026-03-29) — `COMPLETE`
@@ -111,7 +111,7 @@
 - [x] Migration-006 run — `COMPLETE` — Tables created in Supabase 2026-03-29
 - [ ] Microsoft OAuth credentials — `PENDING` — Azure AD app registration needed
 - [ ] CRON_SECRET env var — `PENDING` — Add to Railway + set up periodic sync trigger
-- [ ] Anthropic API key — `PENDING` — Needed for AI email classification + content digester
+- [x] Anthropic API key — `COMPLETE` — Already configured
 - [ ] OpenAI API key — `PENDING` — Needed for Instagram Whisper transcription
 - [ ] Slack app setup — `PENDING` — Content digester Slack channel integration
 - [ ] Periodic sync trigger — `PENDING` — Railway cron or cron-job.org for inbox sync every 10 min
