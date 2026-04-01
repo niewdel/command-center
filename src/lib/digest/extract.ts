@@ -180,34 +180,28 @@ export async function getInstagramTranscript(
 
   const postData = await apiRes.json();
 
-  // Find video URL — check common response shapes
-  const videoUrl =
-    postData.video_url ||
-    postData.download_url ||
-    postData.media?.video_url ||
-    postData.result?.video_url ||
-    postData.result?.download_url ||
-    postData.data?.video_url ||
-    postData.data?.download_url ||
-    (Array.isArray(postData.result) && postData.result[0]?.url) ||
-    (Array.isArray(postData.media) && postData.media[0]?.url) ||
-    null;
+  // Response shape: { status: "ok", data: [{ url: "https://scontent..." }] }
+  const data = postData.data;
+  let videoUrl: string | null = null;
 
-  if (!videoUrl) {
-    // Deep debug: show the structure so we can find the video URL
-    const dataKeys = postData.data ? Object.keys(postData.data).join(", ") : "no data";
-    const dataStr = JSON.stringify(postData.data || postData, null, 2).slice(0, 500);
-    throw new Error(`No video URL found. data keys: [${dataKeys}]. Preview: ${dataStr}`);
+  if (Array.isArray(data) && data.length > 0) {
+    // data is an array of media items — find the video URL
+    videoUrl = data[0]?.url || data[0]?.video_url || data[0]?.download_url || null;
+  } else if (data && typeof data === "object") {
+    videoUrl = data.video_url || data.url || data.download_url || null;
   }
 
-  const title =
-    postData.caption || postData.title ||
-    postData.result?.caption || postData.data?.caption?.text?.slice(0, 100) ||
-    "Instagram Reel";
-  const thumbnail_url =
-    postData.thumbnail || postData.image_url ||
-    postData.result?.thumbnail || postData.data?.thumbnail_url ||
-    null;
+  // Fallback: check top-level
+  if (!videoUrl) {
+    videoUrl = postData.video_url || postData.download_url || null;
+  }
+
+  if (!videoUrl) {
+    throw new Error(`No video URL found in Instagram API response.`);
+  }
+
+  const title = (Array.isArray(data) ? data[0]?.title : data?.caption?.text?.slice(0, 100)) || "Instagram Reel";
+  const thumbnail_url = (Array.isArray(data) ? data[0]?.thumbnail : data?.thumbnail_url) || null;
 
   // Download the video
   const videoRes = await fetch(videoUrl);
