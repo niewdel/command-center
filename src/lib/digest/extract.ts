@@ -161,13 +161,14 @@ export async function getInstagramTranscript(
     throw new Error("RAPIDAPI_KEY not configured — needed for Instagram video extraction");
   }
 
-  // Use RapidAPI Instagram Scraper to get video URL
+  // Use RapidAPI Instagram Scraper Pro to get video URL
   const apiRes = await fetch(
-    `https://instagram-scraper-api2.p.rapidapi.com/v1/post_info?code_or_id_or_url=${encodeURIComponent(url)}`,
+    `https://instagram-scraper-pro.p.rapidapi.com/api/instagram?url=${encodeURIComponent(url)}`,
     {
       headers: {
+        "Content-Type": "application/json",
         "x-rapidapi-key": rapidApiKey,
-        "x-rapidapi-host": "instagram-scraper-api2.p.rapidapi.com",
+        "x-rapidapi-host": "instagram-scraper-pro.p.rapidapi.com",
       },
     }
   );
@@ -178,16 +179,32 @@ export async function getInstagramTranscript(
   }
 
   const postData = await apiRes.json();
-  const data = postData.data || postData;
 
-  // Extract video URL — the API returns it in different places depending on post type
-  const videoUrl = data.video_url || data.video_versions?.[0]?.url || null;
+  // Find video URL — check common response shapes
+  const videoUrl =
+    postData.video_url ||
+    postData.download_url ||
+    postData.media?.video_url ||
+    postData.result?.video_url ||
+    postData.result?.download_url ||
+    postData.data?.video_url ||
+    postData.data?.download_url ||
+    (Array.isArray(postData.result) && postData.result[0]?.url) ||
+    (Array.isArray(postData.media) && postData.media[0]?.url) ||
+    null;
+
   if (!videoUrl) {
-    throw new Error("No video found in this Instagram post. It may be an image or carousel.");
+    throw new Error(`No video URL in Instagram API response. Keys: ${Object.keys(postData).join(", ")}`);
   }
 
-  const title = data.caption?.text?.slice(0, 100) || "Instagram Reel";
-  const thumbnail_url = data.thumbnail_url || data.image_versions?.items?.[0]?.url || null;
+  const title =
+    postData.caption || postData.title ||
+    postData.result?.caption || postData.data?.caption?.text?.slice(0, 100) ||
+    "Instagram Reel";
+  const thumbnail_url =
+    postData.thumbnail || postData.image_url ||
+    postData.result?.thumbnail || postData.data?.thumbnail_url ||
+    null;
 
   // Download the video
   const videoRes = await fetch(videoUrl);
