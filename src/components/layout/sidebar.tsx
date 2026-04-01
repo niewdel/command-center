@@ -119,7 +119,7 @@ export function Sidebar() {
   return (
     <>
       {/* Sidebar — desktop only */}
-      <aside className="hidden md:flex fixed inset-y-0 left-0 z-40 w-[var(--sidebar-width)] flex-col bg-sidebar border-r border-sidebar-border">
+      <aside data-slot="sidebar" className="hidden md:flex fixed inset-y-0 left-0 z-40 w-[var(--sidebar-width)] flex-col bg-sidebar border-r border-sidebar-border">
         {/* Header */}
         <div className="flex items-center px-4 py-3 border-b border-sidebar-border">
           <div className="flex items-center gap-2.5">
