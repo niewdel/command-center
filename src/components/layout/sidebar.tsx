@@ -1,26 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
-  User,
   Plus,
-  ChevronRight,
   Lock,
-  Target,
   CalendarDays,
-  Calendar,
   Settings,
-  FileText,
   Newspaper,
   Bug,
   Zap,
-  Briefcase,
-  Building,
-  Folder,
   Pencil,
   Trash2,
   Upload,
@@ -34,13 +25,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -48,18 +32,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { QuickAddDialog } from "@/components/layout/quick-add-dialog";
-
-const ICON_MAP: Record<string, typeof Briefcase> = {
-  briefcase: Briefcase,
-  building: Building,
-  user: User,
-  folder: Folder,
-  target: Target,
-};
-
-function getWorkspaceIcon(iconName: string) {
-  return ICON_MAP[iconName] || Briefcase;
-}
 
 const extraNav = [
   { name: "Dump", href: "/dump", icon: Zap },
@@ -267,19 +239,6 @@ export function Sidebar() {
 
 // --- Workspace Create/Edit Dialog ---
 
-const PRESET_COLORS = [
-  "#64748b", "#ef4444", "#f97316", "#f59e0b",
-  "#10b981", "#14b8a6", "#06b6d4", "#3b82f6",
-  "#6366f1", "#8b5cf6", "#a855f7", "#ec4899", "#f43f5e",
-];
-
-const ICON_OPTIONS = [
-  { value: "briefcase", label: "Briefcase" },
-  { value: "building", label: "Building" },
-  { value: "user", label: "Person" },
-  { value: "folder", label: "Folder" },
-  { value: "target", label: "Target" },
-];
 
 function WorkspaceDialog({
   workspace,
@@ -294,23 +253,18 @@ function WorkspaceDialog({
 }) {
   const router = useRouter();
   const [name, setName] = useState("");
-  const [type, setType] = useState<"business" | "personal">("business");
-  const [color, setColor] = useState("bg-slate-500");
-  const [icon, setIcon] = useState("briefcase");
+  const [color, setColor] = useState("#64748b");
   const [description, setDescription] = useState("");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     if (workspace) {
       setName(workspace.name);
-      setType(workspace.type);
       setColor(workspace.color || "#64748b");
-      setIcon(workspace.icon || "briefcase");
       setDescription(workspace.description || "");
       setLogoUrl(workspace.logo_url);
       setLogoFile(null);
@@ -318,9 +272,7 @@ function WorkspaceDialog({
       setConfirmDelete(false);
     } else {
       setName("");
-      setType("business");
       setColor("#64748b");
-      setIcon("briefcase");
       setDescription("");
       setLogoUrl(null);
       setLogoFile(null);
@@ -336,18 +288,15 @@ function WorkspaceDialog({
     setLogoPreview(URL.createObjectURL(file));
   };
 
-  const uploadLogo = async (workspaceSlug: string): Promise<string | null> => {
+  const uploadLogo = async (identifier: string): Promise<string | null> => {
     if (!logoFile) return logoUrl;
-    setUploading(true);
 
     const ext = logoFile.name.split(".").pop() || "png";
-    const path = `workspace-logos/${workspaceSlug}.${ext}`;
+    const path = `workspace-logos/${identifier}-${Date.now()}.${ext}`;
 
     const { error } = await supabase.storage
       .from("workspace-assets")
       .upload(path, logoFile, { upsert: true });
-
-    setUploading(false);
 
     if (error) {
       console.error("Logo upload failed:", error);
@@ -355,8 +304,7 @@ function WorkspaceDialog({
     }
 
     const { data } = supabase.storage.from("workspace-assets").getPublicUrl(path);
-    // Cache-bust so the browser fetches the new image
-    return `${data.publicUrl}?t=${Date.now()}`;
+    return data.publicUrl;
   };
 
   const removeLogo = () => {
@@ -374,14 +322,14 @@ function WorkspaceDialog({
     if (!name.trim()) return;
     setSaving(true);
 
-    const uploadedLogoUrl = await uploadLogo(slug);
+    const identifier = workspace?.id || slug;
+    const uploadedLogoUrl = await uploadLogo(identifier);
 
     const data = {
       name: name.trim(),
       slug,
-      type,
+      type: "business" as const,
       color,
-      icon,
       description: description || null,
       logo_url: uploadedLogoUrl,
     };
@@ -419,13 +367,8 @@ function WorkspaceDialog({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Acme Corp"
-              className="bg-background/50 border-border/50 rounded-lg"
+              className="bg-card border-border rounded"
             />
-            {name && (
-              <p className="text-[11px] text-muted-foreground text-pretty">
-                Slug: <span className="font-mono text-foreground">{slug}</span>
-              </p>
-            )}
           </div>
 
           <div className="space-y-2">
@@ -434,28 +377,27 @@ function WorkspaceDialog({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="What is this workspace for?"
-              className="bg-background/50 border-border/50 rounded-lg"
+              className="bg-card border-border rounded"
             />
           </div>
 
           <div className="space-y-2">
             <Label>Logo</Label>
             <div className="flex items-center gap-3">
-              {/* Preview */}
               <div
-                className={cn("size-12 rounded-lg flex items-center justify-center shrink-0 overflow-hidden", logoPreview || logoUrl ? "bg-muted" : (!color.startsWith("#") && color))}
-                style={!logoPreview && !logoUrl && color.startsWith("#") ? { backgroundColor: color } : undefined}
+                className="size-12 rounded flex items-center justify-center shrink-0 overflow-hidden"
+                style={{ backgroundColor: logoPreview || logoUrl ? undefined : (color.startsWith("#") ? color : "#64748b") }}
               >
                 {logoPreview ? (
-                  <img src={logoPreview} alt="Preview" className="size-12 object-cover rounded-lg" />
+                  <img src={logoPreview} alt="Preview" className="size-12 object-cover rounded" />
                 ) : logoUrl ? (
-                  <img src={logoUrl} alt="Logo" className="size-12 object-cover rounded-lg" />
+                  <img src={logoUrl} alt="Logo" className="size-12 object-cover rounded" />
                 ) : (
                   <ImageIcon className="size-5 text-white/60" />
                 )}
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted hover:bg-accent text-xs font-medium text-foreground transition-colors">
+                <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-muted hover:bg-accent text-xs font-medium text-foreground transition-colors">
                   <Upload className="size-3" />
                   {logoUrl || logoPreview ? "Change" : "Upload"}
                   <input
@@ -477,63 +419,12 @@ function WorkspaceDialog({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Type</Label>
-              <Select value={type} onValueChange={(v) => setType(v as "business" | "personal")}>
-                <SelectTrigger className="bg-background/50 border-border/50 rounded-lg">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-popover border-border rounded-lg">
-                  <SelectItem value="business" className="rounded-lg">Business</SelectItem>
-                  <SelectItem value="personal" className="rounded-lg">Personal</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Icon</Label>
-              <Select value={icon} onValueChange={(v) => v && setIcon(v)}>
-                <SelectTrigger className="bg-background/50 border-border/50 rounded-lg">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-popover border-border rounded-lg">
-                  {ICON_OPTIONS.map((opt) => {
-                    const IconComp = ICON_MAP[opt.value] || Briefcase;
-                    return (
-                      <SelectItem key={opt.value} value={opt.value} className="rounded-lg">
-                        <div className="flex items-center gap-2">
-                          <IconComp className="size-3.5" />
-                          {opt.label}
-                        </div>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
           <div className="space-y-2">
             <Label>Color</Label>
             <div className="flex items-center gap-3">
-              <div className="flex gap-1.5 flex-wrap flex-1">
-                {PRESET_COLORS.map((c) => (
-                  <button
-                    key={c}
-                    onClick={() => setColor(c)}
-                    className={cn(
-                      "size-6 rounded-md transition-all",
-                      color === c ? "ring-2 ring-foreground ring-offset-2 ring-offset-background scale-110" : "opacity-60 hover:opacity-100"
-                    )}
-                    style={{ backgroundColor: c }}
-                    aria-label={c}
-                  />
-                ))}
-              </div>
-              <label className="relative shrink-0 cursor-pointer" title="Custom color">
+              <label className="relative cursor-pointer" title="Pick a color">
                 <div
-                  className="size-8 rounded-md border border-border"
+                  className="size-10 rounded border border-border hud-glow-hover"
                   style={{ backgroundColor: color.startsWith("#") ? color : "#64748b" }}
                 />
                 <input
@@ -543,6 +434,7 @@ function WorkspaceDialog({
                   className="absolute inset-0 opacity-0 cursor-pointer"
                 />
               </label>
+              <span className="text-xs text-muted-foreground font-mono">{color}</span>
             </div>
           </div>
         </div>
