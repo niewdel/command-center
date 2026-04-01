@@ -88,7 +88,10 @@ export function BottomNav() {
                     isActive ? "bg-accent text-foreground" : "text-muted-foreground"
                   )}
                 >
-                  <span className={cn("size-3 rounded-full shrink-0", ws.color)} />
+                  <span
+                    className={cn("size-3 rounded-full shrink-0", !ws.color?.startsWith("#") && ws.color)}
+                    style={ws.color?.startsWith("#") ? { backgroundColor: ws.color } : undefined}
+                  />
                   <span>{ws.name}</span>
                 </Link>
               );

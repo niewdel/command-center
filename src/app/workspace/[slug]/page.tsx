@@ -151,7 +151,10 @@ export default function WorkspacePage() {
       {/* Header */}
       <div className="pt-10 md:pt-2 space-y-4">
         <div className="flex items-center gap-4">
-          <div className={cn("size-12 rounded-lg flex items-center justify-center shrink-0", workspace.color)}>
+          <div
+            className={cn("size-12 rounded-lg flex items-center justify-center shrink-0", !workspace.color?.startsWith("#") && workspace.color)}
+            style={workspace.color?.startsWith("#") ? { backgroundColor: workspace.color } : undefined}
+          >
             {workspace.logo_url ? (
               <Image
                 src={workspace.logo_url}

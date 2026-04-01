@@ -176,7 +176,10 @@ export function Sidebar() {
                         : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
                     )}
                   >
-                    <span className={cn("size-2 rounded-full shrink-0", ws.color || "bg-muted-foreground")} />
+                    <span
+                      className={cn("size-2 rounded-full shrink-0", !ws.color?.startsWith("#") && (ws.color || "bg-muted-foreground"))}
+                      style={ws.color?.startsWith("#") ? { backgroundColor: ws.color } : undefined}
+                    />
                     <span className="flex-1 truncate">{ws.name}</span>
                   </Link>
                   <button
@@ -264,20 +267,10 @@ export function Sidebar() {
 
 // --- Workspace Create/Edit Dialog ---
 
-const COLOR_OPTIONS = [
-  { value: "bg-slate-500", label: "Slate" },
-  { value: "bg-red-500", label: "Red" },
-  { value: "bg-orange-500", label: "Orange" },
-  { value: "bg-amber-500", label: "Amber" },
-  { value: "bg-emerald-500", label: "Emerald" },
-  { value: "bg-teal-500", label: "Teal" },
-  { value: "bg-cyan-500", label: "Cyan" },
-  { value: "bg-blue-500", label: "Blue" },
-  { value: "bg-indigo-500", label: "Indigo" },
-  { value: "bg-violet-500", label: "Violet" },
-  { value: "bg-purple-500", label: "Purple" },
-  { value: "bg-pink-500", label: "Pink" },
-  { value: "bg-rose-500", label: "Rose" },
+const PRESET_COLORS = [
+  "#64748b", "#ef4444", "#f97316", "#f59e0b",
+  "#10b981", "#14b8a6", "#06b6d4", "#3b82f6",
+  "#6366f1", "#8b5cf6", "#a855f7", "#ec4899", "#f43f5e",
 ];
 
 const ICON_OPTIONS = [
@@ -316,7 +309,7 @@ function WorkspaceDialog({
     if (workspace) {
       setName(workspace.name);
       setType(workspace.type);
-      setColor(workspace.color || "bg-slate-500");
+      setColor(workspace.color || "#64748b");
       setIcon(workspace.icon || "briefcase");
       setDescription(workspace.description || "");
       setLogoUrl(workspace.logo_url);
@@ -326,7 +319,7 @@ function WorkspaceDialog({
     } else {
       setName("");
       setType("business");
-      setColor("bg-slate-500");
+      setColor("#64748b");
       setIcon("briefcase");
       setDescription("");
       setLogoUrl(null);
@@ -362,7 +355,8 @@ function WorkspaceDialog({
     }
 
     const { data } = supabase.storage.from("workspace-assets").getPublicUrl(path);
-    return data.publicUrl;
+    // Cache-bust so the browser fetches the new image
+    return `${data.publicUrl}?t=${Date.now()}`;
   };
 
   const removeLogo = () => {
@@ -448,7 +442,10 @@ function WorkspaceDialog({
             <Label>Logo</Label>
             <div className="flex items-center gap-3">
               {/* Preview */}
-              <div className={cn("size-12 rounded-lg flex items-center justify-center shrink-0 overflow-hidden", logoPreview || logoUrl ? "bg-muted" : color)}>
+              <div
+                className={cn("size-12 rounded-lg flex items-center justify-center shrink-0 overflow-hidden", logoPreview || logoUrl ? "bg-muted" : (!color.startsWith("#") && color))}
+                style={!logoPreview && !logoUrl && color.startsWith("#") ? { backgroundColor: color } : undefined}
+              >
                 {logoPreview ? (
                   <img src={logoPreview} alt="Preview" className="size-12 object-cover rounded-lg" />
                 ) : logoUrl ? (
@@ -519,19 +516,33 @@ function WorkspaceDialog({
 
           <div className="space-y-2">
             <Label>Color</Label>
-            <div className="flex gap-2 flex-wrap">
-              {COLOR_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => setColor(opt.value)}
-                  className={cn(
-                    "size-7 rounded-md transition-opacity",
-                    opt.value,
-                    color === opt.value ? "ring-2 ring-foreground ring-offset-2 ring-offset-background" : "opacity-50 hover:opacity-80"
-                  )}
-                  aria-label={opt.label}
+            <div className="flex items-center gap-3">
+              <div className="flex gap-1.5 flex-wrap flex-1">
+                {PRESET_COLORS.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setColor(c)}
+                    className={cn(
+                      "size-6 rounded-md transition-all",
+                      color === c ? "ring-2 ring-foreground ring-offset-2 ring-offset-background scale-110" : "opacity-60 hover:opacity-100"
+                    )}
+                    style={{ backgroundColor: c }}
+                    aria-label={c}
+                  />
+                ))}
+              </div>
+              <label className="relative shrink-0 cursor-pointer" title="Custom color">
+                <div
+                  className="size-8 rounded-md border border-border"
+                  style={{ backgroundColor: color.startsWith("#") ? color : "#64748b" }}
                 />
-              ))}
+                <input
+                  type="color"
+                  value={color.startsWith("#") ? color : "#64748b"}
+                  onChange={(e) => setColor(e.target.value)}
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                />
+              </label>
             </div>
           </div>
         </div>

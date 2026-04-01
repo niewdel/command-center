@@ -114,7 +114,6 @@ Rules:
     const { data: task, error } = await supabase
       .from("tasks")
       .insert({
-        user_id: userId,
         workspace_id: parsed.workspace_id,
         title: parsed.title,
         description: fullDescription,
