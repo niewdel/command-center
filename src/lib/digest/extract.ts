@@ -85,45 +85,36 @@ async function transcribeYouTubeAudio(videoId: string): Promise<string | null> {
     throw new Error("OPENAI_API_KEY not configured — needed for audio transcription of videos without captions");
   }
 
-  // Use a public audio extraction service to get audio from YouTube
-  // cobalt.tools is a free, open-source media downloader API
-  const cobaltRes = await fetch("https://api.cobalt.tools/", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
-    body: JSON.stringify({
-      url: `https://www.youtube.com/watch?v=${videoId}`,
-      audioFormat: "mp3",
-      isAudioOnly: true,
-    }),
+  // Extract audio directly from YouTube using youtubei.js
+  const { Innertube } = await import("youtubei.js");
+  const yt = await Innertube.create();
+
+  const stream = await yt.download(videoId, {
+    type: "audio",
+    quality: "best",
+    format: "mp4",
   });
 
-  if (!cobaltRes.ok) {
-    throw new Error(`Failed to extract audio from YouTube video: ${cobaltRes.status}`);
+  // Collect stream chunks into a buffer
+  const reader = stream.getReader();
+  const chunks: Uint8Array[] = [];
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (value) chunks.push(value);
   }
+  const audioBuffer = Buffer.concat(chunks);
 
-  const cobaltData = await cobaltRes.json();
-  const audioUrl = cobaltData.url;
-
-  if (!audioUrl) {
-    throw new Error("No audio URL returned from extraction service");
+  if (audioBuffer.length === 0) {
+    throw new Error("Downloaded audio was empty");
   }
-
-  // Download the audio
-  const audioRes = await fetch(audioUrl);
-  if (!audioRes.ok) {
-    throw new Error(`Failed to download audio: ${audioRes.status}`);
-  }
-  const audioBuffer = await audioRes.arrayBuffer();
 
   // Transcribe via OpenAI Whisper
   const formData = new FormData();
   formData.append(
     "file",
-    new Blob([audioBuffer], { type: "audio/mpeg" }),
-    "audio.mp3"
+    new Blob([audioBuffer], { type: "audio/mp4" }),
+    "audio.m4a"
   );
   formData.append("model", "whisper-1");
   formData.append("language", "en");
