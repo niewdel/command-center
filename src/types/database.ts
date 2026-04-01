@@ -238,6 +238,7 @@ export type UserSettings = {
   planning_completed_date: string | null;
   shutdown_completed_date: string | null;
   daily_intention: string | null;
+  digest_context: string | null;
   created_at: string;
   updated_at: string;
 };

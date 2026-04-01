@@ -72,6 +72,19 @@
 - [x] Sidebar navigation — `COMPLETE` — Digests link added to Planning section
 - [ ] Slack app setup — `PENDING` — Requires Justin to create Slack app + configure env vars
 
+#### Content Digester V2 Upgrade (2026-04-01) — `COMPLETE`
+- [x] YouTube transcript extraction — `COMPLETE` — Replaced fragile HTML scraping with youtube-transcript library
+- [x] Claude analysis pipeline rewrite — `COMPLETE` — Opus model, 8192 tokens, deeply personalized prompt with Verdict ratings, Tools & Downloads, Action Items, Commands to Run sections
+- [x] User context injection — `COMPLETE` — digest_context field in user_settings, fetched at processing time, injected into Claude prompt
+- [x] Digest Profile in Settings — `COMPLETE` — Textarea where user describes their projects/stack for personalized guides
+- [x] Slack HMAC signature verification — `COMPLETE` — Replaced deprecated verification token with HMAC-SHA256 signing secret
+- [x] Process route upgrade — `COMPLETE` — Fetches user context, passes to analysis, includes verdict excerpt in Slack reply
+- [x] Digest UI overhaul — `COMPLETE` — Proper markdown parser (no dangerouslySetInnerHTML), code block copy buttons, verdict badges (MUST-ACT/WORTH EXPLORING/REFERENCE ONLY/SKIP), inline link/bold/code rendering, blockquote + checkbox support
+- [x] Migration-007 — `COMPLETE` — ALTER TABLE user_settings ADD digest_context text
+- [ ] Slack app setup — `PENDING` — Requires Justin to create Slack app + configure env vars
+- [ ] Anthropic API key — `PENDING` — Needed for Opus analysis
+- [ ] Run migration-007 — `PENDING` — Run in Supabase SQL Editor
+
 #### Design System + UI Rework (2026-03-29) — `COMPLETE`
 - [x] Geist Sans typography — `COMPLETE` — font-heading for headings, Inter for body
 - [x] Color token refinement — `COMPLETE` — Tighter contrast, inbox semantic colors

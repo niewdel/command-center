@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { createHmac, timingSafeEqual } from "crypto";
 import { detectSource } from "@/lib/digest/extract";
 
-// Use service role key for Slack webhook (no user session)
 function getSupabaseAdmin() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -10,19 +10,49 @@ function getSupabaseAdmin() {
   );
 }
 
+// Verify Slack request signature using HMAC-SHA256
+function verifySlackSignature(
+  signingSecret: string,
+  timestamp: string,
+  body: string,
+  signature: string
+): boolean {
+  // Reject requests older than 5 minutes (replay protection)
+  const fiveMinutesAgo = Math.floor(Date.now() / 1000) - 60 * 5;
+  if (parseInt(timestamp, 10) < fiveMinutesAgo) return false;
+
+  const sigBasestring = `v0:${timestamp}:${body}`;
+  const hmac = createHmac("sha256", signingSecret);
+  hmac.update(sigBasestring);
+  const computed = `v0=${hmac.digest("hex")}`;
+
+  try {
+    return timingSafeEqual(Buffer.from(computed), Buffer.from(signature));
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const rawBody = await request.text();
+    const body = JSON.parse(rawBody);
 
-    // Slack URL verification challenge
+    // Slack URL verification challenge (no signature check needed)
     if (body.type === "url_verification") {
       return NextResponse.json({ challenge: body.challenge });
     }
 
-    // Verify Slack signing secret (basic check)
-    const slackToken = process.env.SLACK_VERIFICATION_TOKEN;
-    if (slackToken && body.token !== slackToken) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    // Verify Slack signing secret (HMAC-SHA256)
+    const signingSecret = process.env.SLACK_SIGNING_SECRET;
+    if (signingSecret) {
+      const timestamp = request.headers.get("x-slack-request-timestamp") || "";
+      const signature = request.headers.get("x-slack-signature") || "";
+
+      if (!verifySlackSignature(signingSecret, timestamp, rawBody, signature)) {
+        console.error("Slack signature verification failed");
+        return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+      }
     }
 
     // Handle event callbacks
@@ -43,7 +73,7 @@ export async function POST(request: NextRequest) {
       // Extract URLs from the message
       // Slack wraps URLs in <url> or <url|label> format
       const urlMatches = text.match(/<(https?:\/\/[^|>]+)/g) || [];
-      const urls = urlMatches.map((m) => m.replace(/^</, ""));
+      const urls = urlMatches.map((m: string) => m.replace(/^</, ""));
 
       // Also check for plain URLs
       const plainUrls =

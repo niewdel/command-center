@@ -1,5 +1,7 @@
 // Transcript extraction for YouTube and Instagram
 
+import { YoutubeTranscript } from "youtube-transcript";
+
 const YOUTUBE_REGEX =
   /(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
 const INSTAGRAM_REGEX =
@@ -23,64 +25,51 @@ export async function getYouTubeTranscript(videoId: string): Promise<{
   title: string;
   thumbnail_url: string;
 }> {
-  // Fetch the YouTube page to get title and auto-generated captions
-  const pageRes = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
-    headers: {
-      "User-Agent":
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-    },
-  });
-  const html = await pageRes.text();
-
-  // Extract title
-  const titleMatch = html.match(/<title>(.+?)<\/title>/);
-  const title = titleMatch
-    ? titleMatch[1].replace(" - YouTube", "").trim()
-    : "Untitled Video";
+  // Get title from YouTube oEmbed (reliable, no scraping)
+  let title = "Untitled Video";
+  try {
+    const oembedRes = await fetch(
+      `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`
+    );
+    if (oembedRes.ok) {
+      const oembed = await oembedRes.json();
+      title = oembed.title || title;
+    }
+  } catch {
+    // Fall back to generic title
+  }
 
   const thumbnail_url = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
 
-  // Extract captions URL from the page's ytInitialPlayerResponse
-  const captionsMatch = html.match(/"captionTracks":(\[.*?\])/);
-  if (!captionsMatch) {
-    throw new Error(
-      "No captions available for this video. It may not have auto-generated subtitles."
-    );
+  // Use youtube-transcript library for reliable caption extraction
+  let segments;
+  try {
+    segments = await YoutubeTranscript.fetchTranscript(videoId, { lang: "en" });
+  } catch {
+    // Retry without language preference (some videos only have auto-generated in other languages)
+    try {
+      segments = await YoutubeTranscript.fetchTranscript(videoId);
+    } catch (retryErr) {
+      throw new Error(
+        `No transcript available for this video. It may not have captions enabled. ${retryErr instanceof Error ? retryErr.message : ""}`
+      );
+    }
   }
 
-  const captionTracks = JSON.parse(captionsMatch[1]);
-  // Prefer English, fall back to first available
-  const track =
-    captionTracks.find(
-      (t: { languageCode: string }) => t.languageCode === "en"
-    ) || captionTracks[0];
-
-  if (!track?.baseUrl) {
-    throw new Error("Could not find caption track URL");
+  if (!segments || segments.length === 0) {
+    throw new Error("Transcript was found but contained no text segments");
   }
 
-  // Fetch the captions XML
-  const captionRes = await fetch(track.baseUrl);
-  const captionXml = await captionRes.text();
-
-  // Parse XML captions into plain text
-  const textSegments = captionXml.match(/<text[^>]*>(.*?)<\/text>/g) || [];
-  const transcript = textSegments
-    .map((seg) =>
-      seg
-        .replace(/<[^>]+>/g, "")
-        .replace(/&amp;/g, "&")
-        .replace(/&lt;/g, "<")
-        .replace(/&gt;/g, ">")
-        .replace(/&quot;/g, '"')
-        .replace(/&#39;/g, "'")
-        .replace(/\n/g, " ")
-    )
+  // Join segments into clean text, preserving natural sentence breaks
+  const transcript = segments
+    .map((seg) => seg.text.replace(/\n/g, " ").trim())
+    .filter(Boolean)
     .join(" ")
+    .replace(/\s{2,}/g, " ")
     .trim();
 
   if (!transcript) {
-    throw new Error("Captions were found but contained no text");
+    throw new Error("Transcript segments were empty after processing");
   }
 
   return { transcript, title, thumbnail_url };
@@ -94,11 +83,7 @@ export async function getInstagramTranscript(
   title: string;
   thumbnail_url: string | null;
 }> {
-  // For Instagram, we need to:
-  // 1. Download the video audio
-  // 2. Send to Whisper for transcription
-  //
-  // We use a public embed endpoint to get video URL
+  // Fetch metadata via oEmbed
   const oembedRes = await fetch(
     `https://api.instagram.com/oembed/?url=${encodeURIComponent(url)}`
   );
@@ -113,8 +98,7 @@ export async function getInstagramTranscript(
   const title = oembed.title || "Instagram Reel";
   const thumbnail_url = oembed.thumbnail_url || null;
 
-  // For audio extraction from Instagram, we need a proxy approach.
-  // Use a lightweight fetch to get the video URL from the page.
+  // Extract video URL from the page's og:video meta tag
   const pageRes = await fetch(url, {
     headers: {
       "User-Agent":
@@ -123,7 +107,6 @@ export async function getInstagramTranscript(
   });
   const html = await pageRes.text();
 
-  // Try to extract video URL from meta tags
   const videoUrlMatch = html.match(
     /property="og:video"\s+content="([^"]+)"/
   );
@@ -140,7 +123,7 @@ export async function getInstagramTranscript(
   const videoRes = await fetch(videoUrl);
   const videoBuffer = await videoRes.arrayBuffer();
 
-  // Send to OpenAI Whisper for transcription
+  // Transcribe via OpenAI Whisper
   const formData = new FormData();
   formData.append(
     "file",

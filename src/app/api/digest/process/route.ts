@@ -100,6 +100,18 @@ export async function POST(request: NextRequest) {
         throw new Error(`Unsupported source: ${source}`);
       }
 
+      // Fetch user's digest context for personalization
+      let userContext: string | null = null;
+      const { data: settings } = await supabase
+        .from("user_settings")
+        .select("digest_context")
+        .eq("user_id", digest.user_id)
+        .single();
+
+      if (settings?.digest_context) {
+        userContext = settings.digest_context;
+      }
+
       // Analyze with Claude
       const anthropicKey = process.env.ANTHROPIC_API_KEY;
       if (!anthropicKey) throw new Error("ANTHROPIC_API_KEY not configured");
@@ -108,7 +120,8 @@ export async function POST(request: NextRequest) {
         transcript,
         title,
         digest.url,
-        anthropicKey
+        anthropicKey,
+        userContext
       );
 
       // Update the digest with results
@@ -129,10 +142,12 @@ export async function POST(request: NextRequest) {
       // Reply in Slack thread
       if (digest.slack_channel_id && digest.slack_message_ts) {
         const appUrl = process.env.NEXT_PUBLIC_APP_URL || "your-app-url";
+        const verdict = analysis.guide.match(/## Verdict\n+([\s\S]*?)(?=\n##)/)?.[1]?.trim() || "";
+        const shortVerdict = verdict.length > 200 ? verdict.slice(0, 200) + "..." : verdict;
         await postSlackReply(
           digest.slack_channel_id,
           digest.slack_message_ts,
-          `✅ *${title}*\nGuide ready → ${appUrl}/digests?id=${digestId}`
+          `*${title}*\n${shortVerdict}\n\nFull guide -> ${appUrl}/digests?id=${digestId}`
         );
       }
 
@@ -157,7 +172,7 @@ export async function POST(request: NextRequest) {
         await postSlackReply(
           digest.slack_channel_id,
           digest.slack_message_ts,
-          `❌ Failed to process: ${errorMessage}`
+          `Failed to process: ${errorMessage}`
         );
       }
 

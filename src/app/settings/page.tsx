@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageLayout } from "@/components/layout/page-layout";
-import { Settings, Save, Check, Bell, BellOff, Mail, RefreshCw, Trash2, Loader2 } from "lucide-react";
+import { Settings, Save, Check, Bell, BellOff, Mail, RefreshCw, Trash2, Loader2, BookOpen } from "lucide-react";
 import {
   requestNotificationPermission,
   getNotificationStatus,
@@ -73,6 +73,7 @@ export default function SettingsPage() {
         available_hours_weekday: settings.available_hours_weekday,
         available_hours_weekend: settings.available_hours_weekend,
         shutdown_time: settings.shutdown_time,
+        digest_context: settings.digest_context || null,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "user_id" }
@@ -202,6 +203,28 @@ export default function SettingsPage() {
             <span className="text-xs text-emerald-400 font-medium">Active</span>
           )}
         </div>
+      </div>
+
+      {/* Digest Profile */}
+      <div className="space-y-4">
+        <div>
+          <h2 className="text-sm font-semibold text-balance font-heading flex items-center gap-2">
+            <BookOpen className="size-4" />
+            Digest Profile
+          </h2>
+          <p className="text-xs text-muted-foreground mt-1 text-pretty">
+            Tell the AI what you're working on so every video digest is personalized to your projects, tech stack, and priorities. The more specific, the better the action items.
+          </p>
+        </div>
+        <textarea
+          value={settings.digest_context ?? ""}
+          onChange={(e) =>
+            setSettings((s) => ({ ...s, digest_context: e.target.value }))
+          }
+          rows={8}
+          placeholder={`Example:\n- Building a Next.js + Supabase command center with integrations to HubSpot, Slack, Gmail\n- Using Claude Code daily with custom MCP servers and hooks\n- Interested in: AI agents, workflow automation, voice AI, content pipelines\n- Current focus: Getting Slack integration and content digester working\n- Tech I use: TypeScript, React 19, Tailwind CSS 4, Railway, Vercel`}
+          className="w-full rounded-lg border border-border/50 bg-background/50 px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring resize-y min-h-[120px]"
+        />
       </div>
 
       {/* Calendar integrations */}

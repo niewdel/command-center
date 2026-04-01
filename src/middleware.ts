@@ -38,8 +38,15 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/signup") ||
     request.nextUrl.pathname.startsWith("/auth/callback");
 
-  // Not logged in and not on an auth page → redirect to login
-  if (!user && !isAuthPage) {
+  // Public API routes — webhooks and processing endpoints that authenticate internally
+  const isPublicApi =
+    request.nextUrl.pathname.startsWith("/api/digest/") ||
+    request.nextUrl.pathname.startsWith("/api/webhooks/") ||
+    request.nextUrl.pathname.startsWith("/api/cron/") ||
+    request.nextUrl.pathname.startsWith("/api/health");
+
+  // Not logged in and not on an auth/public page → redirect to login
+  if (!user && !isAuthPage && !isPublicApi) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

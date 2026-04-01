@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { supabase } from "@/lib/supabase";
@@ -29,7 +29,334 @@ import {
   Play,
   Camera,
   RefreshCw,
+  Copy,
+  Check,
 } from "lucide-react";
+
+// Copy button component for code blocks
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <button
+      onClick={handleCopy}
+      className="absolute top-2 right-2 p-1.5 rounded-md bg-foreground/10 hover:bg-foreground/20 text-muted-foreground hover:text-foreground transition-colors"
+      aria-label="Copy code"
+    >
+      {copied ? (
+        <Check className="size-3.5 text-emerald-400" />
+      ) : (
+        <Copy className="size-3.5" />
+      )}
+    </button>
+  );
+}
+
+// Markdown renderer with code block copy buttons
+function MarkdownRenderer({ content }: { content: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Parse markdown into structured blocks
+  const blocks = parseMarkdown(content);
+
+  return (
+    <div ref={containerRef} className="space-y-0">
+      {blocks.map((block, i) => {
+        switch (block.type) {
+          case "heading1":
+            return (
+              <h1
+                key={i}
+                className="text-lg font-bold mt-4 mb-3 text-foreground text-balance"
+              >
+                {block.content}
+              </h1>
+            );
+          case "heading2":
+            return (
+              <h2
+                key={i}
+                className="text-base font-bold mt-6 mb-2 text-foreground text-balance"
+              >
+                {block.content}
+              </h2>
+            );
+          case "heading3":
+            return (
+              <h3
+                key={i}
+                className="text-sm font-semibold mt-4 mb-1 text-foreground"
+              >
+                {block.content}
+              </h3>
+            );
+          case "code":
+            return (
+              <div key={i} className="relative group my-3">
+                <CopyButton text={block.content} />
+                {block.lang && (
+                  <span className="absolute top-2 left-3 text-[10px] uppercase tracking-wide text-muted-foreground/60 font-mono">
+                    {block.lang}
+                  </span>
+                )}
+                <pre
+                  className={cn(
+                    "bg-background/80 border border-border/50 rounded-lg overflow-x-auto text-xs font-mono leading-relaxed",
+                    block.lang ? "pt-7 pb-3 px-3" : "p-3"
+                  )}
+                >
+                  <code>{block.content}</code>
+                </pre>
+              </div>
+            );
+          case "blockquote":
+            return (
+              <blockquote
+                key={i}
+                className="border-l-2 border-border/60 pl-3 my-2 text-sm text-muted-foreground italic"
+              >
+                <InlineMarkdown text={block.content} />
+              </blockquote>
+            );
+          case "checkbox":
+            return (
+              <div
+                key={i}
+                className="flex items-start gap-2 my-1 ml-1"
+              >
+                <div
+                  className={cn(
+                    "mt-0.5 size-4 rounded border flex items-center justify-center shrink-0",
+                    block.checked
+                      ? "bg-emerald-500/20 border-emerald-500/40"
+                      : "border-border/60"
+                  )}
+                >
+                  {block.checked && (
+                    <Check className="size-2.5 text-emerald-400" />
+                  )}
+                </div>
+                <span className="text-sm text-muted-foreground leading-relaxed">
+                  <InlineMarkdown text={block.content} />
+                </span>
+              </div>
+            );
+          case "list":
+            return (
+              <li
+                key={i}
+                className="text-sm text-muted-foreground ml-4 list-disc leading-relaxed"
+              >
+                <InlineMarkdown text={block.content} />
+              </li>
+            );
+          case "numbered":
+            return (
+              <li
+                key={i}
+                className="text-sm text-muted-foreground ml-4 list-decimal leading-relaxed"
+                value={block.number}
+              >
+                <InlineMarkdown text={block.content} />
+              </li>
+            );
+          case "paragraph":
+            return (
+              <p
+                key={i}
+                className="text-sm text-muted-foreground leading-relaxed text-pretty my-1.5"
+              >
+                <InlineMarkdown text={block.content} />
+              </p>
+            );
+          case "empty":
+            return <div key={i} className="h-2" />;
+          default:
+            return null;
+        }
+      })}
+    </div>
+  );
+}
+
+// Inline markdown: bold, code, links
+function InlineMarkdown({ text }: { text: string }) {
+  // Process inline elements: bold, inline code, links
+  const parts: React.ReactNode[] = [];
+  let remaining = text;
+  let key = 0;
+
+  while (remaining.length > 0) {
+    // Find the next special pattern
+    const boldMatch = remaining.match(/\*\*(.+?)\*\*/);
+    const codeMatch = remaining.match(/`([^`]+)`/);
+    const linkMatch = remaining.match(/\[([^\]]+)\]\(([^)]+)\)/);
+
+    // Find which comes first
+    const candidates = [
+      boldMatch ? { type: "bold", index: boldMatch.index!, match: boldMatch } : null,
+      codeMatch ? { type: "code", index: codeMatch.index!, match: codeMatch } : null,
+      linkMatch ? { type: "link", index: linkMatch.index!, match: linkMatch } : null,
+    ].filter(Boolean) as { type: string; index: number; match: RegExpMatchArray }[];
+
+    if (candidates.length === 0) {
+      parts.push(remaining);
+      break;
+    }
+
+    const first = candidates.reduce((a, b) => (a.index < b.index ? a : b));
+
+    // Add text before the match
+    if (first.index > 0) {
+      parts.push(remaining.slice(0, first.index));
+    }
+
+    switch (first.type) {
+      case "bold":
+        parts.push(
+          <strong key={key++} className="text-foreground font-semibold">
+            {first.match[1]}
+          </strong>
+        );
+        remaining = remaining.slice(first.index + first.match[0].length);
+        break;
+      case "code":
+        parts.push(
+          <code
+            key={key++}
+            className="bg-muted/50 px-1.5 py-0.5 rounded text-[11px] text-pink-400 font-mono"
+          >
+            {first.match[1]}
+          </code>
+        );
+        remaining = remaining.slice(first.index + first.match[0].length);
+        break;
+      case "link":
+        parts.push(
+          <a
+            key={key++}
+            href={first.match[2]}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-400 hover:text-blue-300 underline underline-offset-2"
+          >
+            {first.match[1]}
+          </a>
+        );
+        remaining = remaining.slice(first.index + first.match[0].length);
+        break;
+    }
+  }
+
+  return <>{parts}</>;
+}
+
+type Block =
+  | { type: "heading1"; content: string }
+  | { type: "heading2"; content: string }
+  | { type: "heading3"; content: string }
+  | { type: "code"; content: string; lang?: string }
+  | { type: "blockquote"; content: string }
+  | { type: "checkbox"; content: string; checked: boolean }
+  | { type: "list"; content: string }
+  | { type: "numbered"; content: string; number: number }
+  | { type: "paragraph"; content: string }
+  | { type: "empty" };
+
+function parseMarkdown(content: string): Block[] {
+  const blocks: Block[] = [];
+  const lines = content.split("\n");
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    // Code block
+    if (line.startsWith("```")) {
+      const lang = line.slice(3).trim() || undefined;
+      const codeLines: string[] = [];
+      i++;
+      while (i < lines.length && !lines[i].startsWith("```")) {
+        codeLines.push(lines[i]);
+        i++;
+      }
+      blocks.push({ type: "code", content: codeLines.join("\n"), lang });
+      i++; // skip closing ```
+      continue;
+    }
+
+    // Headings
+    if (line.startsWith("### ")) {
+      blocks.push({ type: "heading3", content: line.slice(4) });
+      i++;
+      continue;
+    }
+    if (line.startsWith("## ")) {
+      blocks.push({ type: "heading2", content: line.slice(3) });
+      i++;
+      continue;
+    }
+    if (line.startsWith("# ")) {
+      blocks.push({ type: "heading1", content: line.slice(2) });
+      i++;
+      continue;
+    }
+
+    // Blockquote
+    if (line.startsWith("> ")) {
+      blocks.push({ type: "blockquote", content: line.slice(2) });
+      i++;
+      continue;
+    }
+
+    // Checkbox
+    if (line.match(/^- \[[ x]\] /)) {
+      const checked = line.charAt(3) === "x";
+      blocks.push({ type: "checkbox", content: line.slice(6), checked });
+      i++;
+      continue;
+    }
+
+    // Bullet list
+    if (line.match(/^[-*] /)) {
+      blocks.push({ type: "list", content: line.slice(2) });
+      i++;
+      continue;
+    }
+
+    // Numbered list
+    const numMatch = line.match(/^(\d+)\. (.+)/);
+    if (numMatch) {
+      blocks.push({
+        type: "numbered",
+        content: numMatch[2],
+        number: parseInt(numMatch[1], 10),
+      });
+      i++;
+      continue;
+    }
+
+    // Empty line
+    if (line.trim() === "") {
+      blocks.push({ type: "empty" });
+      i++;
+      continue;
+    }
+
+    // Paragraph (default)
+    blocks.push({ type: "paragraph", content: line });
+    i++;
+  }
+
+  return blocks;
+}
 
 function DigestsContent() {
   const searchParams = useSearchParams();
@@ -167,6 +494,25 @@ function DigestsContent() {
     }
   };
 
+  // Extract verdict badge from guide content
+  const getVerdictBadge = (guide: string | null) => {
+    if (!guide) return null;
+    const verdictMatch = guide.match(/\b(MUST-ACT|WORTH EXPLORING|REFERENCE ONLY|SKIP)\b/);
+    if (!verdictMatch) return null;
+    const verdict = verdictMatch[1];
+    const colors: Record<string, string> = {
+      "MUST-ACT": "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+      "WORTH EXPLORING": "bg-blue-500/20 text-blue-400 border-blue-500/30",
+      "REFERENCE ONLY": "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
+      "SKIP": "bg-muted text-muted-foreground border-border/50",
+    };
+    return (
+      <span className={cn("text-[10px] font-semibold px-1.5 py-0.5 rounded border", colors[verdict])}>
+        {verdict}
+      </span>
+    );
+  };
+
   return (
     <PageLayout
       title="Digests"
@@ -294,6 +640,7 @@ function DigestsContent() {
                     <h3 className="text-sm font-semibold truncate flex-1">
                       {digest.title || digest.url}
                     </h3>
+                    {getVerdictBadge(digest.guide)}
                   </div>
 
                   {/* Tags */}
@@ -374,17 +721,17 @@ function DigestsContent() {
         open={!!selectedDigest}
         onOpenChange={() => setSelectedDigest(null)}
       >
-        <DialogContent className="sm:max-w-[700px] max-h-[85vh] overflow-y-auto bg-card border-border rounded-lg shadow-md">
+        <DialogContent className="sm:max-w-[750px] max-h-[85vh] overflow-y-auto bg-card border-border rounded-lg shadow-md">
           {selectedDigest && (
             <>
               <DialogHeader>
                 <div className="flex items-center gap-2 mb-1">
                   {sourceIcon(selectedDigest.source)}
-                  <DialogTitle className="text-lg">
+                  <DialogTitle className="text-lg leading-snug">
                     {selectedDigest.title}
                   </DialogTitle>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
                   <a
                     href={selectedDigest.url}
                     target="_blank"
@@ -401,6 +748,7 @@ function DigestsContent() {
                       { month: "short", day: "numeric", year: "numeric" }
                     )}
                   </span>
+                  {getVerdictBadge(selectedDigest.guide)}
                 </div>
                 {selectedDigest.tags && selectedDigest.tags.length > 0 && (
                   <div className="flex gap-1.5 flex-wrap pt-2">
@@ -416,7 +764,7 @@ function DigestsContent() {
                   </div>
                 )}
               </DialogHeader>
-              <div className="prose prose-invert prose-sm max-w-none pt-2">
+              <div className="pt-2">
                 <MarkdownRenderer content={selectedDigest.guide || ""} />
               </div>
             </>
@@ -475,59 +823,9 @@ function DigestsContent() {
   );
 }
 
-// Simple markdown renderer for the guide content
-function MarkdownRenderer({ content }: { content: string }) {
-  // Convert markdown to basic HTML
-  const html = content
-    // Code blocks
-    .replace(
-      /```(\w*)\n([\s\S]*?)```/g,
-      '<pre class="bg-background/80 border border-border/50 rounded-lg p-3 overflow-x-auto text-xs"><code>$2</code></pre>'
-    )
-    // Headers
-    .replace(
-      /^### (.+)$/gm,
-      '<h3 class="text-sm font-semibold mt-4 mb-1">$1</h3>'
-    )
-    .replace(
-      /^## (.+)$/gm,
-      '<h2 class="text-base font-bold mt-6 mb-2 text-foreground text-balance">$1</h2>'
-    )
-    .replace(
-      /^# (.+)$/gm,
-      '<h1 class="text-lg font-bold mt-4 mb-3 text-foreground text-balance">$1</h1>'
-    )
-    // Bold
-    .replace(/\*\*(.+?)\*\*/g, '<strong class="text-foreground">$1</strong>')
-    // Inline code
-    .replace(
-      /`([^`]+)`/g,
-      '<code class="bg-muted/50 px-1.5 py-0.5 rounded text-[11px] text-pink-400">$1</code>'
-    )
-    // Bullet points
-    .replace(
-      /^- (.+)$/gm,
-      '<li class="text-sm text-muted-foreground ml-4 list-disc">$1</li>'
-    )
-    // Numbered lists
-    .replace(
-      /^(\d+)\. (.+)$/gm,
-      '<li class="text-sm text-muted-foreground ml-4 list-decimal" value="$1">$2</li>'
-    )
-    // Paragraphs (lines that aren't already wrapped)
-    .replace(
-      /^(?!<[hluop]|<li|<pre|<code)(.+)$/gm,
-      '<p class="text-sm text-muted-foreground leading-relaxed text-pretty">$1</p>'
-    );
-
-  return <div dangerouslySetInnerHTML={{ __html: html }} />;
-}
-
 export default function DigestsPage() {
   return (
-    <Suspense
-      fallback={<SkeletonPage />}
-    >
+    <Suspense fallback={<SkeletonPage />}>
       <DigestsContent />
     </Suspense>
   );
