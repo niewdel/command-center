@@ -288,23 +288,31 @@ function WorkspaceDialog({
     setLogoPreview(URL.createObjectURL(file));
   };
 
-  const uploadLogo = async (identifier: string): Promise<string | null> => {
+  const uploadLogo = async (): Promise<string | null> => {
     if (!logoFile) return logoUrl;
 
-    const ext = logoFile.name.split(".").pop() || "png";
-    const path = `workspace-logos/${identifier}-${Date.now()}.${ext}`;
+    const formData = new FormData();
+    formData.append("file", logoFile);
+    formData.append("folder", "workspace-logos");
 
-    const { error } = await supabase.storage
-      .from("workspace-assets")
-      .upload(path, logoFile, { upsert: true });
+    try {
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
 
-    if (error) {
-      console.error("Logo upload failed:", error);
+      if (!res.ok) {
+        const err = await res.json();
+        console.error("Logo upload failed:", err.error);
+        return logoUrl;
+      }
+
+      const { url } = await res.json();
+      return url;
+    } catch (err) {
+      console.error("Logo upload failed:", err);
       return logoUrl;
     }
-
-    const { data } = supabase.storage.from("workspace-assets").getPublicUrl(path);
-    return data.publicUrl;
   };
 
   const removeLogo = () => {
@@ -322,8 +330,7 @@ function WorkspaceDialog({
     if (!name.trim()) return;
     setSaving(true);
 
-    const identifier = workspace?.id || slug;
-    const uploadedLogoUrl = await uploadLogo(identifier);
+    const uploadedLogoUrl = await uploadLogo();
 
     const data = {
       name: name.trim(),
