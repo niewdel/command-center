@@ -11,7 +11,6 @@ import { CapacityBar } from "@/components/dashboard/capacity-bar";
 import { MorningRitual } from "@/components/planning/morning-ritual";
 import { ShutdownRitual } from "@/components/planning/shutdown-ritual";
 import { WelcomeFlow } from "@/components/onboarding/welcome-flow";
-import { PageLayout } from "@/components/layout/page-layout";
 import { SkeletonPage } from "@/components/ui/skeleton";
 import { calculateCapacity } from "@/lib/capacity";
 import { useTaskActions } from "@/lib/hooks/use-task-actions";
@@ -19,14 +18,10 @@ import { KanbanBoard } from "@/components/tasks/kanban-board";
 import { ViewToggle } from "@/components/tasks/view-toggle";
 import { cn } from "@/lib/utils";
 import {
-  AlertCircle,
-  CheckCircle2,
-  ListTodo,
   Sunrise,
   Moon,
-  Star,
-  ChevronDown,
-  ChevronUp,
+  ChevronRight,
+  Filter,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -47,10 +42,11 @@ function DashboardContent() {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [showAllTasks, setShowAllTasks] = useState(false);
+  const [showBacklog, setShowBacklog] = useState(false);
   const [showCompleted, setShowCompleted] = useState(false);
   const [showRitual, setShowRitual] = useState(false);
   const [showShutdown, setShowShutdown] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   const [taskView, setTaskView] = useState<"list" | "kanban">("list");
   const [filterWorkspace, setFilterWorkspace] = useState<string>("all");
   const [filterPriority, setFilterPriority] = useState<string>("all");
@@ -59,10 +55,7 @@ function DashboardContent() {
   const fetchData = useCallback(async () => {
     const [{ data: ws }, { data: t }, { data: s }] = await Promise.all([
       supabase.from("workspaces").select("*").order("name"),
-      supabase
-        .from("tasks")
-        .select("*")
-        .order("position", { ascending: true }),
+      supabase.from("tasks").select("*").order("position", { ascending: true }),
       supabase.from("user_settings").select("*").limit(1).single(),
     ]);
     setWorkspaces(ws || []);
@@ -73,28 +66,20 @@ function DashboardContent() {
 
   useEffect(() => {
     fetchData();
-
     const channel = supabase
       .channel("tasks-realtime")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "tasks" },
-        () => fetchData()
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, () => fetchData())
       .subscribe();
-
     const handleVisibility = () => {
       if (document.visibilityState === "visible") fetchData();
     };
     document.addEventListener("visibilitychange", handleVisibility);
-
     return () => {
       supabase.removeChannel(channel);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, [fetchData]);
 
-  // Open task edit dialog from search (via ?task=id)
   useEffect(() => {
     const taskId = searchParams.get("task");
     if (taskId && tasks.length > 0) {
@@ -108,17 +93,12 @@ function DashboardContent() {
 
   const workspaceMap = Object.fromEntries(workspaces.map((w) => [w.id, w]));
   const todayStr = today();
-
   const hasActiveFilters = filterWorkspace !== "all" || filterPriority !== "all";
 
   const applyFilters = (taskList: Task[]) => {
     let filtered = taskList;
-    if (filterWorkspace !== "all") {
-      filtered = filtered.filter((t) => t.workspace_id === filterWorkspace);
-    }
-    if (filterPriority !== "all") {
-      filtered = filtered.filter((t) => t.priority === filterPriority);
-    }
+    if (filterWorkspace !== "all") filtered = filtered.filter((t) => t.workspace_id === filterWorkspace);
+    if (filterPriority !== "all") filtered = filtered.filter((t) => t.priority === filterPriority);
     return filtered;
   };
 
@@ -133,37 +113,25 @@ function DashboardContent() {
     });
 
   const focusTasks = plannedToday.filter((t) => t.is_focus);
+  const nonFocusPlanned = plannedToday.filter((t) => !t.is_focus);
 
   const overdueTasks = filteredTasks.filter(
-    (t) =>
-      t.due_date &&
-      t.due_date < todayStr &&
-      t.status !== "done"
+    (t) => t.due_date && t.due_date < todayStr && t.status !== "done"
   );
 
   const completedToday = filteredTasks.filter(
-    (t) =>
-      t.status === "done" &&
-      t.completed_at &&
-      t.completed_at.split("T")[0] === todayStr
+    (t) => t.status === "done" && t.completed_at && t.completed_at.split("T")[0] === todayStr
   );
 
-  const unplannedActive = filteredTasks.filter(
-    (t) =>
-      t.status !== "done" &&
-      t.planned_date !== todayStr &&
-      !(t.due_date && t.due_date < todayStr)
+  const backlog = filteredTasks.filter(
+    (t) => t.status !== "done" && t.planned_date !== todayStr && !(t.due_date && t.due_date < todayStr)
   );
 
   const capacity = calculateCapacity(tasks, new Date(), settings);
   const planningDone = settings?.planning_completed_date === todayStr;
+  const shutdownDone = settings?.shutdown_completed_date === todayStr;
 
-  const {
-    handleToggle,
-    handleDelete,
-    handleEdit,
-    handleAdd: handleAddTask,
-  } = useTaskActions(tasks, fetchData);
+  const { handleToggle, handleDelete, handleEdit, handleAdd: handleAddTask } = useTaskActions(tasks, fetchData);
 
   const handleStatusChange = async (taskId: string, newStatus: Task["status"]) => {
     await supabase.from("tasks").update({
@@ -173,33 +141,16 @@ function DashboardContent() {
     fetchData();
   };
 
-  // Loading state — show skeleton before anything else
-  if (loading) {
-    return <SkeletonPage />;
-  }
+  if (loading) return <SkeletonPage />;
 
-  const shutdownDone = settings?.shutdown_completed_date === todayStr;
   const isNewUser = !settings;
-
-  if (!loading && isNewUser) {
-    return (
-      <WelcomeFlow
-        workspaces={workspaces}
-        onComplete={fetchData}
-      />
-    );
-  }
+  if (isNewUser) return <WelcomeFlow workspaces={workspaces} onComplete={fetchData} />;
 
   if (showRitual) {
     return (
       <MorningRitual
-        tasks={tasks}
-        workspaces={workspaces}
-        settings={settings}
-        onComplete={() => {
-          setShowRitual(false);
-          fetchData();
-        }}
+        tasks={tasks} workspaces={workspaces} settings={settings}
+        onComplete={() => { setShowRitual(false); fetchData(); }}
         onCancel={() => setShowRitual(false)}
       />
     );
@@ -208,119 +159,106 @@ function DashboardContent() {
   if (showShutdown) {
     return (
       <ShutdownRitual
-        tasks={tasks}
-        workspaces={workspaces}
-        settings={settings}
-        onComplete={() => {
-          setShowShutdown(false);
-          fetchData();
-        }}
+        tasks={tasks} workspaces={workspaces} settings={settings}
+        onComplete={() => { setShowShutdown(false); fetchData(); }}
         onCancel={() => setShowShutdown(false)}
       />
     );
   }
 
-  const greeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return "Good morning";
-    if (hour < 17) return "Good afternoon";
-    return "Good evening";
-  };
+  const dateStr = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
 
-  const headerActions = (
-    <>
-      <ViewToggle view={taskView} onChange={setTaskView} />
-      {!planningDone && (
-        <Button
-          onClick={() => setShowRitual(true)}
-          className="gap-2 bg-foreground text-background hover:bg-foreground/90 border-0 rounded-lg"
-          size="sm"
-        >
-          <Sunrise className="size-4" />
-          Plan My Day
-        </Button>
-      )}
-      {planningDone && !shutdownDone && (
-        <Button
-          onClick={() => setShowShutdown(true)}
-          variant="outline"
-          className="gap-2 rounded-lg"
-          size="sm"
-        >
-          <Moon className="size-4" />
-          Shutdown
-        </Button>
-      )}
-    </>
-  );
+  // All planned tasks: overdue mixed in with planned, focus first
+  const allTodayTasks = [...overdueTasks.filter((t) => !plannedToday.includes(t)), ...plannedToday];
 
   return (
-    <PageLayout
-      title={`${greeting()}, Justin`}
-      description={new Date().toLocaleDateString("en-US", {
-        weekday: "long",
-        month: "long",
-        day: "numeric",
-      })}
-      actions={headerActions}
-    >
-      {/* Daily intention */}
-      {settings?.daily_intention && planningDone && (
-        <div className="rounded-lg border border-border bg-muted/30 p-4">
-          <p className="text-sm text-muted-foreground italic text-pretty">
-            &ldquo;{settings.daily_intention}&rdquo;
-          </p>
+    <div className="max-w-3xl mx-auto p-4 md:p-8 pb-24 md:pb-8 space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between pt-1">
+        <div>
+          <h1 className="text-lg font-semibold font-heading">{dateStr}</h1>
+          {settings?.daily_intention && planningDone && (
+            <p className="text-sm text-muted-foreground italic mt-0.5">{settings.daily_intention}</p>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <ViewToggle view={taskView} onChange={setTaskView} />
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={cn(
+              "p-2 rounded-md text-muted-foreground hover:text-foreground transition-colors",
+              hasActiveFilters && "text-primary"
+            )}
+            aria-label="Toggle filters"
+          >
+            <Filter className="size-4" />
+          </button>
+          {!planningDone && (
+            <Button onClick={() => setShowRitual(true)} variant="outline" size="sm" className="gap-1.5 h-8">
+              <Sunrise className="size-3.5" />
+              Plan
+            </Button>
+          )}
+          {planningDone && !shutdownDone && (
+            <Button onClick={() => setShowShutdown(true)} variant="ghost" size="sm" className="gap-1.5 h-8 text-muted-foreground">
+              <Moon className="size-3.5" />
+              Shutdown
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Filters (collapsible) */}
+      {showFilters && (
+        <div className="flex items-center gap-1.5 flex-wrap text-xs">
+          {[{ id: "all", label: "All" }, ...workspaces.map((ws) => ({ id: ws.id, label: ws.name }))].map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setFilterWorkspace(item.id)}
+              className={cn(
+                "px-2 py-1 rounded-md transition-colors",
+                filterWorkspace === item.id
+                  ? "bg-accent text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {item.label}
+            </button>
+          ))}
+          <span className="text-border mx-1">·</span>
+          {["all", "high", "medium", "low"].map((p) => (
+            <button
+              key={p}
+              onClick={() => setFilterPriority(p)}
+              className={cn(
+                "px-2 py-1 rounded-md transition-colors capitalize",
+                filterPriority === p
+                  ? "bg-accent text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {p === "all" ? "Any" : p}
+            </button>
+          ))}
+          {hasActiveFilters && (
+            <button
+              onClick={() => { setFilterWorkspace("all"); setFilterPriority("all"); }}
+              className="px-2 py-1 text-muted-foreground hover:text-foreground"
+            >
+              Clear
+            </button>
+          )}
         </div>
       )}
 
-      {/* Filters */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-[10px] text-muted-foreground/60 uppercase font-medium">Filter:</span>
-        {[{ id: "all", label: "All" }, ...workspaces.map((ws) => ({ id: ws.id, label: ws.name }))].map((item) => (
-          <button
-            key={item.id}
-            onClick={() => setFilterWorkspace(item.id)}
-            className={cn(
-              "px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors",
-              filterWorkspace === item.id
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
-            )}
-          >
-            {item.label}
-          </button>
-        ))}
-        <span className="text-border">|</span>
-        {[
-          { id: "all", label: "Any Priority" },
-          { id: "high", label: "High" },
-          { id: "medium", label: "Medium" },
-          { id: "low", label: "Low" },
-        ].map((item) => (
-          <button
-            key={item.id}
-            onClick={() => setFilterPriority(item.id)}
-            className={cn(
-              "px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors",
-              filterPriority === item.id
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
-            )}
-          >
-            {item.label}
-          </button>
-        ))}
-        {hasActiveFilters && (
-          <button
-            onClick={() => { setFilterWorkspace("all"); setFilterPriority("all"); }}
-            className="px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Clear
-          </button>
-        )}
-      </div>
+      {/* Capacity bar */}
+      {plannedToday.length > 0 && <CapacityBar capacity={capacity} />}
 
-      {/* Kanban view */}
+      {/* Task list or Kanban */}
       {taskView === "kanban" ? (
         <>
           <KanbanBoard
@@ -332,134 +270,77 @@ function DashboardContent() {
           <AddTaskForm workspaces={workspaces} onAdd={handleAddTask} />
         </>
       ) : (
-        <>
-          {/* Overdue alert */}
-          {overdueTasks.length > 0 && (
-            <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-4 space-y-3">
-              <div className="flex items-center gap-2 text-red-400">
-                <AlertCircle className="size-4" />
-                <span className="text-sm font-semibold">
-                  {overdueTasks.length} overdue task
-                  {overdueTasks.length > 1 ? "s" : ""}
-                </span>
-              </div>
-              <div className="space-y-2">
-                {overdueTasks.map((task) => (
-                  <TaskItem
-                    key={task.id}
-                    task={task}
-                    workspace={workspaceMap[task.workspace_id]}
-                    onToggle={handleToggle}
-                    onDelete={handleDelete}
-                    onEdit={setEditingTask}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Capacity bar */}
-          {plannedToday.length > 0 && <CapacityBar capacity={capacity} />}
-
+        <div className="space-y-1">
           {/* Focus tasks */}
           {focusTasks.length > 0 && (
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Star className="size-4 text-foreground fill-foreground" />
-                <h2 className="text-xs font-medium font-heading text-muted-foreground uppercase text-balance">
-                  Today&apos;s Focus
-                </h2>
-              </div>
-              <div className="space-y-2">
-                {focusTasks.map((task) => (
-                  <TaskItem
-                    key={task.id}
-                    task={task}
-                    workspace={workspaceMap[task.workspace_id]}
-                    onToggle={handleToggle}
-                    onDelete={handleDelete}
-                    onEdit={setEditingTask}
-                  />
-                ))}
-              </div>
-            </div>
+            <>
+              <p className="text-[11px] font-medium uppercase text-muted-foreground pt-2 pb-1">Focus</p>
+              {focusTasks.map((task) => (
+                <TaskItem
+                  key={task.id} task={task} workspace={workspaceMap[task.workspace_id]}
+                  onToggle={handleToggle} onDelete={handleDelete} onEdit={setEditingTask}
+                />
+              ))}
+            </>
           )}
 
-          {/* Today's planned tasks (non-focus) */}
-          {plannedToday.filter((t) => !t.is_focus).length > 0 && (
-            <div className="space-y-3">
-              <h2 className="text-xs font-medium font-heading text-muted-foreground uppercase text-balance">
-                Planned for Today
-              </h2>
-              <div className="space-y-2">
-                {plannedToday
-                  .filter((t) => !t.is_focus)
-                  .map((task) => (
-                    <TaskItem
-                      key={task.id}
-                      task={task}
-                      workspace={workspaceMap[task.workspace_id]}
-                      onToggle={handleToggle}
-                      onDelete={handleDelete}
-                      onEdit={setEditingTask}
-                    />
-                  ))}
-              </div>
-            </div>
+          {/* Planned tasks (non-focus) — includes overdue, they just have red dates */}
+          {(nonFocusPlanned.length > 0 || overdueTasks.length > 0) && (
+            <>
+              <p className="text-[11px] font-medium uppercase text-muted-foreground pt-3 pb-1">
+                {focusTasks.length > 0 ? "Planned" : "Today"}
+              </p>
+              {overdueTasks.filter((t) => !focusTasks.includes(t) && !nonFocusPlanned.includes(t)).map((task) => (
+                <TaskItem
+                  key={task.id} task={task} workspace={workspaceMap[task.workspace_id]}
+                  onToggle={handleToggle} onDelete={handleDelete} onEdit={setEditingTask}
+                />
+              ))}
+              {nonFocusPlanned.map((task) => (
+                <TaskItem
+                  key={task.id} task={task} workspace={workspaceMap[task.workspace_id]}
+                  onToggle={handleToggle} onDelete={handleDelete} onEdit={setEditingTask}
+                />
+              ))}
+            </>
           )}
 
-          {/* Empty state for today */}
-          {plannedToday.length === 0 && overdueTasks.length === 0 && (
-            <div className="text-center py-12 space-y-4">
-              <div className="inline-flex size-14 items-center justify-center rounded-2xl bg-muted/50">
-                <ListTodo className="size-7 text-muted-foreground" />
-              </div>
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-balance">Nothing planned for today</p>
-                <p className="text-xs text-muted-foreground text-pretty">
-                  Start your morning planning ritual or add a task below.
-                </p>
-              </div>
-              <Button
-                onClick={() => setShowRitual(true)}
-                variant="outline"
-                className="gap-2 rounded-lg"
-                size="sm"
-              >
-                <Sunrise className="size-4" />
-                Plan My Day
-              </Button>
+          {/* Empty state */}
+          {allTodayTasks.length === 0 && (
+            <div className="text-center py-16">
+              <p className="text-sm text-muted-foreground">Nothing planned for today</p>
+              {!planningDone && (
+                <button
+                  onClick={() => setShowRitual(true)}
+                  className="text-sm text-primary hover:underline mt-2 inline-block"
+                >
+                  Start planning
+                </button>
+              )}
             </div>
           )}
 
           {/* Add task */}
-          <AddTaskForm workspaces={workspaces} onAdd={handleAddTask} />
+          <div className="pt-2">
+            <AddTaskForm workspaces={workspaces} onAdd={handleAddTask} />
+          </div>
 
           {/* Completed today */}
           {completedToday.length > 0 && (
-            <div className="space-y-3">
+            <div className="pt-3">
               <button
                 onClick={() => setShowCompleted(!showCompleted)}
-                className="flex items-center gap-2 text-xs font-medium font-heading text-muted-foreground uppercase hover:text-foreground transition-colors"
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors py-1"
               >
-                {showCompleted ? (
-                  <ChevronUp className="size-3.5" />
-                ) : (
-                  <ChevronDown className="size-3.5" />
-                )}
-                <CheckCircle2 className="size-3.5 text-emerald-400" />
-                Completed Today ({completedToday.length})
+                <ChevronRight className={cn("size-3 transition-transform", showCompleted && "rotate-90")} />
+                Completed today ({completedToday.length})
               </button>
               {showCompleted && (
-                <div className="space-y-2">
+                <div className="mt-1">
                   {completedToday.map((task) => (
                     <TaskItem
-                      key={task.id}
-                      task={task}
-                      workspace={workspaceMap[task.workspace_id]}
-                      onToggle={handleToggle}
-                      onDelete={handleDelete}
-                      onEdit={setEditingTask}
+                      key={task.id} task={task} workspace={workspaceMap[task.workspace_id]}
+                      onToggle={handleToggle} onDelete={handleDelete} onEdit={setEditingTask}
                     />
                   ))}
                 </div>
@@ -467,37 +348,29 @@ function DashboardContent() {
             </div>
           )}
 
-          {/* Backlog / all tasks */}
-          {unplannedActive.length > 0 && (
-            <div className="space-y-3">
+          {/* Backlog */}
+          {backlog.length > 0 && (
+            <div className="pt-1">
               <button
-                onClick={() => setShowAllTasks(!showAllTasks)}
-                className="flex items-center gap-2 text-xs font-medium font-heading text-muted-foreground uppercase hover:text-foreground transition-colors"
+                onClick={() => setShowBacklog(!showBacklog)}
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors py-1"
               >
-                {showAllTasks ? (
-                  <ChevronUp className="size-3.5" />
-                ) : (
-                  <ChevronDown className="size-3.5" />
-                )}
-                Backlog ({unplannedActive.length})
+                <ChevronRight className={cn("size-3 transition-transform", showBacklog && "rotate-90")} />
+                Backlog ({backlog.length})
               </button>
-              {showAllTasks && (
-                <div className="space-y-2">
-                  {unplannedActive.map((task) => (
+              {showBacklog && (
+                <div className="mt-1">
+                  {backlog.map((task) => (
                     <TaskItem
-                      key={task.id}
-                      task={task}
-                      workspace={workspaceMap[task.workspace_id]}
-                      onToggle={handleToggle}
-                      onDelete={handleDelete}
-                      onEdit={setEditingTask}
+                      key={task.id} task={task} workspace={workspaceMap[task.workspace_id]}
+                      onToggle={handleToggle} onDelete={handleDelete} onEdit={setEditingTask}
                     />
                   ))}
                 </div>
               )}
             </div>
           )}
-        </>
+        </div>
       )}
 
       {/* Edit dialog */}
@@ -508,6 +381,6 @@ function DashboardContent() {
         onClose={() => setEditingTask(null)}
         onSave={handleEdit}
       />
-    </PageLayout>
+    </div>
   );
 }
