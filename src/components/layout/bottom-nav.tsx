@@ -8,6 +8,7 @@ import {
   Layers,
   MoreHorizontal,
   Newspaper,
+  Play,
   Bug,
   Settings,
   CalendarDays,
@@ -25,6 +26,7 @@ const mainTabs = [
 const moreItems = [
   { name: "Dump", href: "/dump", icon: Zap },
   { name: "Upcoming", href: "/upcoming", icon: CalendarDays },
+  { name: "Videos", href: "/videos", icon: Play },
   { name: "News", href: "/news", icon: Newspaper },
   { name: "Issues", href: "/issues", icon: Bug },
   { name: "Settings", href: "/settings", icon: Settings },

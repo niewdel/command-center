@@ -12,6 +12,7 @@ import {
   Newspaper,
   Bug,
   Zap,
+  Play,
   Pencil,
   Trash2,
   Upload,
@@ -36,6 +37,7 @@ import { QuickAddDialog } from "@/components/layout/quick-add-dialog";
 const extraNav = [
   { name: "Dump", href: "/dump", icon: Zap },
   { name: "Upcoming", href: "/upcoming", icon: CalendarDays },
+  { name: "Videos", href: "/videos", icon: Play },
   { name: "News", href: "/news", icon: Newspaper },
   { name: "Issues", href: "/issues", icon: Bug },
   { name: "Settings", href: "/settings", icon: Settings },

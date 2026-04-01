@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
         await sendTelegramReply(
           digest.telegram_chat_id,
           digest.telegram_message_id,
-          `*${title}*\n${shortVerdict}\n\n[Full guide](${appUrl}/news?id=${digestId})`
+          `*${title}*\n${shortVerdict}\n\n[Full guide](${appUrl}/videos?id=${digestId})`
         );
       }
 
