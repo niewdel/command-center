@@ -41,38 +41,111 @@ export async function getYouTubeTranscript(videoId: string): Promise<{
 
   const thumbnail_url = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
 
-  // Use youtube-transcript library for reliable caption extraction
-  let segments;
-  try {
-    segments = await YoutubeTranscript.fetchTranscript(videoId, { lang: "en" });
-  } catch {
-    // Retry without language preference (some videos only have auto-generated in other languages)
-    try {
-      segments = await YoutubeTranscript.fetchTranscript(videoId);
-    } catch (retryErr) {
-      throw new Error(
-        `No transcript available for this video. It may not have captions enabled. ${retryErr instanceof Error ? retryErr.message : ""}`
-      );
-    }
-  }
-
-  if (!segments || segments.length === 0) {
-    throw new Error("Transcript was found but contained no text segments");
-  }
-
-  // Join segments into clean text, preserving natural sentence breaks
-  const transcript = segments
-    .map((seg) => seg.text.replace(/\n/g, " ").trim())
-    .filter(Boolean)
-    .join(" ")
-    .replace(/\s{2,}/g, " ")
-    .trim();
+  // Try captions first, fall back to Whisper audio transcription
+  let transcript = await tryYouTubeCaptions(videoId);
 
   if (!transcript) {
-    throw new Error("Transcript segments were empty after processing");
+    transcript = await transcribeYouTubeAudio(videoId);
+  }
+
+  if (!transcript) {
+    throw new Error("Could not extract transcript via captions or audio transcription");
   }
 
   return { transcript, title, thumbnail_url };
+}
+
+async function tryYouTubeCaptions(videoId: string): Promise<string | null> {
+  try {
+    let segments;
+    try {
+      segments = await YoutubeTranscript.fetchTranscript(videoId, { lang: "en" });
+    } catch {
+      segments = await YoutubeTranscript.fetchTranscript(videoId);
+    }
+
+    if (!segments || segments.length === 0) return null;
+
+    const transcript = segments
+      .map((seg) => seg.text.replace(/\n/g, " ").trim())
+      .filter(Boolean)
+      .join(" ")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+
+    return transcript || null;
+  } catch {
+    return null;
+  }
+}
+
+async function transcribeYouTubeAudio(videoId: string): Promise<string | null> {
+  const openaiKey = process.env.OPENAI_API_KEY;
+  if (!openaiKey) {
+    throw new Error("OPENAI_API_KEY not configured — needed for audio transcription of videos without captions");
+  }
+
+  // Use a public audio extraction service to get audio from YouTube
+  // cobalt.tools is a free, open-source media downloader API
+  const cobaltRes = await fetch("https://api.cobalt.tools/", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({
+      url: `https://www.youtube.com/watch?v=${videoId}`,
+      audioFormat: "mp3",
+      isAudioOnly: true,
+    }),
+  });
+
+  if (!cobaltRes.ok) {
+    throw new Error(`Failed to extract audio from YouTube video: ${cobaltRes.status}`);
+  }
+
+  const cobaltData = await cobaltRes.json();
+  const audioUrl = cobaltData.url;
+
+  if (!audioUrl) {
+    throw new Error("No audio URL returned from extraction service");
+  }
+
+  // Download the audio
+  const audioRes = await fetch(audioUrl);
+  if (!audioRes.ok) {
+    throw new Error(`Failed to download audio: ${audioRes.status}`);
+  }
+  const audioBuffer = await audioRes.arrayBuffer();
+
+  // Transcribe via OpenAI Whisper
+  const formData = new FormData();
+  formData.append(
+    "file",
+    new Blob([audioBuffer], { type: "audio/mpeg" }),
+    "audio.mp3"
+  );
+  formData.append("model", "whisper-1");
+  formData.append("language", "en");
+
+  const whisperRes = await fetch(
+    "https://api.openai.com/v1/audio/transcriptions",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${openaiKey}`,
+      },
+      body: formData,
+    }
+  );
+
+  if (!whisperRes.ok) {
+    const err = await whisperRes.text();
+    throw new Error(`Whisper transcription failed: ${err}`);
+  }
+
+  const whisperData = await whisperRes.json();
+  return whisperData.text || null;
 }
 
 export async function getInstagramTranscript(
