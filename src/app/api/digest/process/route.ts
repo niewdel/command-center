@@ -180,9 +180,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
   } catch (error) {
-    console.error("Process error:", error);
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("Process error:", msg);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: msg },
       { status: 500 }
     );
   }
