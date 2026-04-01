@@ -36,11 +36,14 @@ async function sendTelegramReply(
 
 export async function POST(request: NextRequest) {
   try {
-    // Verify internal secret
+    // Verify internal secret (skip if not configured)
     const authHeader = request.headers.get("authorization");
     const expectedSecret = process.env.DIGEST_PROCESS_SECRET;
-    if (expectedSecret && authHeader !== `Bearer ${expectedSecret}`) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (expectedSecret) {
+      const token = authHeader?.replace("Bearer ", "").trim();
+      if (token !== expectedSecret.trim()) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
     }
 
     const { digestId } = await request.json();
