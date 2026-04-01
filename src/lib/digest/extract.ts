@@ -194,7 +194,10 @@ export async function getInstagramTranscript(
     null;
 
   if (!videoUrl) {
-    throw new Error(`No video URL in Instagram API response. Keys: ${Object.keys(postData).join(", ")}`);
+    // Deep debug: show the structure so we can find the video URL
+    const dataKeys = postData.data ? Object.keys(postData.data).join(", ") : "no data";
+    const dataStr = JSON.stringify(postData.data || postData, null, 2).slice(0, 500);
+    throw new Error(`No video URL found. data keys: [${dataKeys}]. Preview: ${dataStr}`);
   }
 
   const title =
