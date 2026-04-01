@@ -1,16 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase-server";
+import { createClient } from "@supabase/supabase-js";
 import { detectSource } from "@/lib/digest/extract";
+
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 // Manual ingest — add a link directly from the Command Center UI
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const supabase = getSupabaseAdmin();
+    const { data: users } = await supabase.auth.admin.listUsers();
+    const userId = users?.users?.[0]?.id;
 
-    if (!user) {
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -45,7 +51,7 @@ export async function POST(request: NextRequest) {
     const { data: digest, error } = await supabase
       .from("content_digests")
       .insert({
-        user_id: user.id,
+        user_id: userId,
         url,
         source,
         status: "queued",

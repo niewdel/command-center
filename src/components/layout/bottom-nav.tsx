@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
-  Mail,
   Calendar,
   Layers,
   MoreHorizontal,
@@ -15,6 +14,7 @@ import {
   Bug,
   Settings,
   CalendarDays,
+  Zap,
   X,
 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
@@ -23,11 +23,11 @@ import { Workspace } from "@/types/database";
 
 const mainTabs = [
   { name: "Today", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Inbox", href: "/inbox", icon: Mail },
   { name: "Calendar", href: "/calendar", icon: Calendar },
 ];
 
 const moreItems = [
+  { name: "Dump", href: "/dump", icon: Zap },
   { name: "Upcoming", href: "/upcoming", icon: CalendarDays },
   { name: "Goals", href: "/goals", icon: Target },
   { name: "Notes", href: "/notes", icon: FileText },

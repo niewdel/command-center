@@ -9,15 +9,15 @@ import {
   User,
   Plus,
   ChevronRight,
-  LogOut,
+  Lock,
   Target,
   CalendarDays,
   Calendar,
-  Mail,
   Settings,
   FileText,
   BookOpen,
   Bug,
+  Zap,
   Briefcase,
   Building,
   Folder,
@@ -62,7 +62,7 @@ function getWorkspaceIcon(iconName: string) {
 }
 
 const extraNav = [
-  { name: "Inbox", href: "/inbox", icon: Mail },
+  { name: "Dump", href: "/dump", icon: Zap },
   { name: "Upcoming", href: "/upcoming", icon: CalendarDays },
   { name: "Calendar", href: "/calendar", icon: Calendar },
   { name: "Goals", href: "/goals", icon: Target },
@@ -111,8 +111,8 @@ export function Sidebar() {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
+  const handleLock = () => {
+    document.cookie = "cc-auth=; path=/; max-age=0";
     router.push("/login");
     router.refresh();
   };
@@ -265,11 +265,11 @@ export function Sidebar() {
             </kbd>
           </Button>
           <button
-            onClick={handleSignOut}
+            onClick={handleLock}
             className="w-full flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
           >
-            <LogOut className="size-3.5" />
-            Sign out
+            <Lock className="size-3.5" />
+            Lock
           </button>
         </div>
       </aside>

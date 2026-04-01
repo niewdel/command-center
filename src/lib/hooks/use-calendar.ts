@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabase, getUserId } from "@/lib/supabase";
 import type { CalendarEvent } from "@/types/database";
 
 export type CalendarView = "day" | "week" | "month";
@@ -98,13 +98,13 @@ export function useCalendar() {
   );
 
   const createEvent = async (event: Partial<CalendarEvent>) => {
-    const { data: user } = await supabase.auth.getUser();
-    if (!user?.user) return null;
+    const userId = await getUserId();
+    if (!userId) return null;
 
     const { data, error } = await supabase
       .from("calendar_events")
       .insert({
-        user_id: user.user.id,
+        user_id: userId,
         title: event.title || "New Event",
         start_time: event.start_time,
         end_time: event.end_time,

@@ -9,3 +9,16 @@ export function createClient() {
 
 // Singleton for client-side use (backwards-compatible with existing code)
 export const supabase = createClient();
+
+// Get the single user's ID (PIN-auth app — no Supabase Auth session)
+let cachedUserId: string | null = null;
+export async function getUserId(): Promise<string | null> {
+  if (cachedUserId) return cachedUserId;
+  const { data } = await supabase
+    .from("user_settings")
+    .select("user_id")
+    .limit(1)
+    .single();
+  cachedUserId = data?.user_id ?? null;
+  return cachedUserId;
+}

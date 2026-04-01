@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/lib/supabase";
+import { supabase, getUserId } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -67,8 +67,8 @@ export function CreateEventDialog({
     if (!title.trim()) return;
     setSaving(true);
 
-    const { data: user } = await supabase.auth.getUser();
-    if (!user?.user) return;
+    const userId = await getUserId();
+    if (!userId) return;
 
     const startDateTime = allDay
       ? `${date}T00:00:00`
@@ -78,7 +78,7 @@ export function CreateEventDialog({
       : `${date}T${endTime}:00`;
 
     await supabase.from("calendar_events").insert({
-      user_id: user.user.id,
+      user_id: userId,
       title: title.trim(),
       start_time: startDateTime,
       end_time: endDateTime,

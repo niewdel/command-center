@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabase, getUserId } from "@/lib/supabase";
 import { Workspace } from "@/types/database";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,11 +52,11 @@ export function WelcomeFlow({ workspaces, onComplete }: WelcomeFlowProps) {
 
   const handleFinish = async () => {
     setSaving(true);
-    const { data: user } = await supabase.auth.getUser();
-    if (user?.user) {
+    const userId = await getUserId();
+    if (userId) {
       await supabase.from("user_settings").upsert(
         {
-          user_id: user.user.id,
+          user_id: userId,
           available_hours_weekday: weekdayHours,
           available_hours_weekend: weekendHours,
           shutdown_time: shutdownTime,

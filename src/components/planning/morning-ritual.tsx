@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabase, getUserId } from "@/lib/supabase";
 import { Task, Workspace, UserSettings } from "@/types/database";
 import { calculateCapacity, formatMinutes, ESTIMATE_PRESETS } from "@/lib/capacity";
 import { CapacityBar } from "@/components/dashboard/capacity-bar";
@@ -242,11 +242,11 @@ export function MorningRitual({
     }
 
     // Save settings
-    const { data: user } = await supabase.auth.getUser();
-    if (user?.user) {
+    const userId = await getUserId();
+    if (userId) {
       await supabase.from("user_settings").upsert(
         {
-          user_id: user.user.id,
+          user_id: userId,
           planning_completed_date: td,
           daily_intention: intention || null,
           updated_at: new Date().toISOString(),

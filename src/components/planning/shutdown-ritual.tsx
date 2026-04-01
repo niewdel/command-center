@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabase, getUserId } from "@/lib/supabase";
 import { Task, Workspace, UserSettings } from "@/types/database";
 import { formatMinutes } from "@/lib/capacity";
 import { Button } from "@/components/ui/button";
@@ -119,11 +119,11 @@ export function ShutdownRitual({
     }
 
     // Save shutdown completion
-    const { data: user } = await supabase.auth.getUser();
-    if (user?.user) {
+    const userId = await getUserId();
+    if (userId) {
       await supabase.from("user_settings").upsert(
         {
-          user_id: user.user.id,
+          user_id: userId,
           shutdown_completed_date: td,
           updated_at: new Date().toISOString(),
         },

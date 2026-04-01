@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabase, getUserId } from "@/lib/supabase";
 import { Issue, Workspace, Project, Client, Goal } from "@/types/database";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -428,9 +428,7 @@ function IssueDialog({
       )?.label || null;
     }
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const userId = await getUserId();
 
     const data = {
       title: title.trim(),
@@ -440,7 +438,7 @@ function IssueDialog({
       linked_entity_type,
       linked_entity_id,
       linked_entity_label,
-      user_id: user?.id,
+      user_id: userId,
     };
 
     if (issue) {
