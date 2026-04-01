@@ -89,7 +89,8 @@ export async function POST(request: NextRequest) {
       await sendTelegramReply(chatId, messageId, `Queued for processing...`);
 
       // Trigger async processing
-      const processUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/digest/process`;
+      const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL;
+      const processUrl = `${appUrl}/api/digest/process`;
       fetch(processUrl, {
         method: "POST",
         headers: {
