@@ -89,11 +89,20 @@ async function transcribeYouTubeAudio(videoId: string): Promise<string | null> {
   const { Innertube } = await import("youtubei.js");
   const yt = await Innertube.create();
 
-  const stream = await yt.download(videoId, {
-    type: "audio",
-    quality: "best",
-    format: "mp4",
-  });
+  let stream;
+  try {
+    stream = await yt.download(videoId, {
+      type: "audio",
+      quality: "best",
+      format: "mp4",
+    });
+  } catch (dlErr) {
+    const msg = dlErr instanceof Error ? dlErr.message : String(dlErr);
+    if (msg.toLowerCase().includes("login") || msg.toLowerCase().includes("sign in")) {
+      throw new Error("This video requires YouTube login (age-restricted or region-locked) and can't be processed.");
+    }
+    throw dlErr;
+  }
 
   // Collect stream chunks into a buffer
   const reader = stream.getReader();
