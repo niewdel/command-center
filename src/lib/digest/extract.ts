@@ -172,13 +172,26 @@ export async function getInstagramTranscript(
   const thumbnail_url = oembed.thumbnail_url || null;
 
   // Extract video URL from the page's og:video meta tag
-  const pageRes = await fetch(url, {
-    headers: {
-      "User-Agent":
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-    },
-  });
-  const html = await pageRes.text();
+  let html: string;
+  try {
+    const pageRes = await fetch(url, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml",
+        "Accept-Language": "en-US,en;q=0.9",
+      },
+      redirect: "follow",
+    });
+    html = await pageRes.text();
+  } catch {
+    throw new Error("Instagram is not accessible from the server. Instagram blocks server-side requests — try YouTube links instead.");
+  }
+
+  // Check if Instagram returned a login page instead of the video page
+  if (html.includes("loginForm") || html.includes("Log in") || !html.includes("og:video")) {
+    throw new Error("Instagram requires login to access this content from a server. Instagram videos cannot be processed — try YouTube links instead.");
+  }
 
   const videoUrlMatch = html.match(
     /property="og:video"\s+content="([^"]+)"/
