@@ -85,20 +85,33 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
-      // Acknowledge receipt
-      await sendTelegramReply(chatId, messageId, `Queued for processing...`);
-
-      // Trigger async processing
+      // Trigger processing and report status back to Telegram
       const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL;
+      if (!appUrl) {
+        await sendTelegramReply(chatId, messageId, `Error: APP_URL not configured`);
+        continue;
+      }
+
+      await sendTelegramReply(chatId, messageId, `Processing...`);
+
       const processUrl = `${appUrl}/api/digest/process`;
-      fetch(processUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.DIGEST_PROCESS_SECRET}`,
-        },
-        body: JSON.stringify({ digestId: digest.id }),
-      }).catch((err) => console.error("Failed to trigger processing:", err));
+      try {
+        const res = await fetch(processUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${process.env.DIGEST_PROCESS_SECRET}`,
+          },
+          body: JSON.stringify({ digestId: digest.id }),
+        });
+        const resBody = await res.text();
+        if (!res.ok) {
+          await sendTelegramReply(chatId, messageId, `Processing failed (${res.status}): ${resBody.slice(0, 200)}`);
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Unknown error";
+        await sendTelegramReply(chatId, messageId, `Failed to reach process endpoint: ${msg}`);
+      }
     }
 
     return NextResponse.json({ ok: true });
