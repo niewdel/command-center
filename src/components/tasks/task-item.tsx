@@ -3,7 +3,6 @@
 import { Task, Workspace } from "@/types/database";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
-import { PRIORITY_CONFIG } from "@/lib/priority";
 import { MoreHorizontal, Pencil, Trash2, Star, ArrowRight } from "lucide-react";
 import {
   DropdownMenu,
@@ -33,7 +32,6 @@ export function TaskItem({
   const isDone = task.status === "done";
   const isOverdue =
     task.due_date && new Date(task.due_date) < new Date() && !isDone;
-  const priorityCfg = PRIORITY_CONFIG[task.priority];
 
   return (
     <div
@@ -49,8 +47,11 @@ export function TaskItem({
         className="shrink-0 border-muted-foreground/40 data-[state=checked]:bg-primary data-[state=checked]:border-primary transition-colors"
       />
 
-      {task.priority !== "none" && (
-        <span className={cn("size-1.5 rounded-full shrink-0", priorityCfg.dot)} />
+      {showWorkspace && workspace?.color && (
+        <span
+          className={cn("size-1.5 rounded-full shrink-0", !workspace.color.startsWith("#") && workspace.color)}
+          style={workspace.color.startsWith("#") ? { backgroundColor: workspace.color } : undefined}
+        />
       )}
 
       <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onEdit(task)}>
