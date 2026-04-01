@@ -663,6 +663,7 @@ function DigestsContent() {
   const searchParams = useSearchParams();
   const highlightId = searchParams.get("id");
 
+  const [activeTab, setActiveTab] = useState<"news" | "videos">("news");
   const [digests, setDigests] = useState<ContentDigest[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -831,35 +832,60 @@ function DigestsContent() {
   return (
     <PageLayout
       title="News"
-      description="Curated stories & video guides"
       icon={Newspaper}
       loading={loading}
       maxWidth="lg"
       actions={
-        <Button
-          onClick={() => setShowAddDialog(true)}
-          variant="outline"
-          size="sm"
-          className="gap-1.5 h-8"
-        >
-          <Plus className="size-3.5" />
-          Add Link
-        </Button>
+        activeTab === "videos" ? (
+          <Button
+            onClick={() => setShowAddDialog(true)}
+            variant="outline"
+            size="sm"
+            className="gap-1.5 h-8"
+          >
+            <Plus className="size-3.5" />
+            Add Link
+          </Button>
+        ) : undefined
       }
     >
-      {/* Top Stories */}
-      <TopStories filterTopic={filterTopic} />
-
-      {/* Topic filters */}
-      <TopicPills activeTopic={filterTopic} onTopicChange={setFilterTopic} />
-
-      {/* Divider */}
-      <div className="flex items-center gap-3 pt-2">
-        <div className="h-px flex-1 bg-border" />
-        <span className="text-[11px] font-medium uppercase text-muted-foreground">Your Digests</span>
-        <div className="h-px flex-1 bg-border" />
+      {/* Tabs */}
+      <div className="flex items-center gap-1 border-b border-border -mt-2">
+        <button
+          onClick={() => setActiveTab("news")}
+          className={cn(
+            "px-3 py-2 text-sm font-medium transition-colors border-b-2 -mb-px",
+            activeTab === "news"
+              ? "border-primary text-foreground"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          )}
+        >
+          News
+        </button>
+        <button
+          onClick={() => setActiveTab("videos")}
+          className={cn(
+            "px-3 py-2 text-sm font-medium transition-colors border-b-2 -mb-px",
+            activeTab === "videos"
+              ? "border-primary text-foreground"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          )}
+        >
+          Videos
+        </button>
       </div>
 
+      {/* News Tab */}
+      {activeTab === "news" && (
+        <div className="space-y-5">
+          <TopStories filterTopic={filterTopic} />
+          <TopicPills activeTopic={filterTopic} onTopicChange={setFilterTopic} />
+        </div>
+      )}
+
+      {/* Videos Tab */}
+      {activeTab === "videos" && (
+        <div className="space-y-5">
       {/* Search + Filters */}
       <div className="space-y-3">
         <div className="relative">
@@ -1062,6 +1088,9 @@ function DigestsContent() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
         </div>
       )}
 
