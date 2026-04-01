@@ -150,13 +150,69 @@
     font-family: var(--font-heading);
   }
 
-  /* Subtle dot grid background — use on main content areas */
+  /* Dot grid pattern */
   .bg-dot-grid {
     background-image: radial-gradient(
       circle at center,
-      oklch(0.25 0.005 270) 1px,
+      oklch(0.22 0.005 270) 1px,
       transparent 1px
     );
-    background-size: 24px 24px;
+    background-size: 32px 32px;
   }
+}
+
+/* ── Background atmosphere animations ── */
+
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  will-change: transform;
+}
+
+.orb-1 {
+  width: 600px;
+  height: 600px;
+  top: -10%;
+  right: -5%;
+  background: oklch(0.2 0.12 265 / 0.12);
+  animation: float-1 25s ease-in-out infinite;
+}
+
+.orb-2 {
+  width: 500px;
+  height: 500px;
+  bottom: -15%;
+  left: -10%;
+  background: oklch(0.18 0.1 220 / 0.08);
+  animation: float-2 30s ease-in-out infinite;
+}
+
+.orb-3 {
+  width: 400px;
+  height: 400px;
+  top: 40%;
+  left: 50%;
+  background: oklch(0.15 0.08 300 / 0.06);
+  animation: float-3 35s ease-in-out infinite;
+}
+
+@keyframes float-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(-40px, 30px) scale(1.05); }
+  50% { transform: translate(-20px, 60px) scale(0.95); }
+  75% { transform: translate(30px, 20px) scale(1.02); }
+}
+
+@keyframes float-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(30px, -40px) scale(1.03); }
+  50% { transform: translate(60px, -20px) scale(0.97); }
+  75% { transform: translate(20px, -50px) scale(1.04); }
+}
+
+@keyframes float-3 {
+  0%, 100% { transform: translate(-50%, 0) scale(1); }
+  33% { transform: translate(calc(-50% + 50px), -30px) scale(1.06); }
+  66% { transform: translate(calc(-50% - 30px), 40px) scale(0.94); }
 }
