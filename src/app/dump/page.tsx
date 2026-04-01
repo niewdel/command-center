@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { Workspace } from "@/types/database";
 import { PageLayout } from "@/components/layout/page-layout";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -13,11 +14,13 @@ import {
   Clock,
   ChevronDown,
   ChevronUp,
+  Trash2,
 } from "lucide-react";
 
 type DumpResult = {
   id: string;
   title: string;
+  workspace_id: string;
   workspace_name: string;
   priority: string;
   research: string;
@@ -31,23 +34,30 @@ export default function DumpPage() {
   const [results, setResults] = useState<DumpResult[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [recentTasks, setRecentTasks] = useState<DumpResult[]>([]);
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Load recent AI-created tasks on mount
+  // Load workspaces + recent AI-created tasks on mount
   useEffect(() => {
-    async function loadRecent() {
-      const { data } = await supabase
-        .from("tasks")
-        .select("id, title, priority, description, estimated_minutes, workspace_id, created_at, workspaces(name)")
-        .eq("source", "ai")
-        .order("created_at", { ascending: false })
-        .limit(20);
+    async function loadData() {
+      const [{ data: ws }, { data: tasks }] = await Promise.all([
+        supabase.from("workspaces").select("*").order("name"),
+        supabase
+          .from("tasks")
+          .select("id, title, priority, description, estimated_minutes, workspace_id, created_at, workspaces(name)")
+          .eq("source", "ai")
+          .order("created_at", { ascending: false })
+          .limit(20),
+      ]);
 
-      if (data) {
+      setWorkspaces(ws || []);
+
+      if (tasks) {
         setRecentTasks(
-          data.map((t) => ({
+          tasks.map((t) => ({
             id: t.id,
             title: t.title,
+            workspace_id: t.workspace_id,
             workspace_name: (t.workspaces as unknown as { name: string } | null)?.name || "Unknown",
             priority: t.priority,
             research: extractResearch(t.description || ""),
@@ -57,7 +67,7 @@ export default function DumpPage() {
         );
       }
     }
-    loadRecent();
+    loadData();
   }, []);
 
   const handleSubmit = useCallback(async () => {
@@ -80,6 +90,7 @@ export default function DumpPage() {
         const result: DumpResult = {
           id: data.task.id,
           title: data.task.title,
+          workspace_id: data.task.workspace_id,
           workspace_name: data.workspace_name,
           priority: data.task.priority,
           research: data.research,
@@ -90,7 +101,7 @@ export default function DumpPage() {
         setExpandedId(result.id);
       }
     } catch {
-      // Silently handle — task will show up on retry
+      // Silently handle
     }
 
     setProcessing(false);
@@ -102,6 +113,27 @@ export default function DumpPage() {
       e.preventDefault();
       handleSubmit();
     }
+  };
+
+  const handleChangeWorkspace = async (taskId: string, newWorkspaceId: string) => {
+    const ws = workspaces.find((w) => w.id === newWorkspaceId);
+    if (!ws) return;
+
+    await supabase.from("tasks").update({ workspace_id: newWorkspaceId }).eq("id", taskId);
+
+    // Update local state
+    const update = (list: DumpResult[]) =>
+      list.map((r) =>
+        r.id === taskId ? { ...r, workspace_id: newWorkspaceId, workspace_name: ws.name } : r
+      );
+    setResults(update);
+    setRecentTasks(update);
+  };
+
+  const handleDiscard = async (taskId: string) => {
+    await supabase.from("tasks").delete().eq("id", taskId);
+    setResults((prev) => prev.filter((r) => r.id !== taskId));
+    setRecentTasks((prev) => prev.filter((r) => r.id !== taskId));
   };
 
   const allResults = [...results, ...recentTasks.filter((r) => !results.some((s) => s.id === r.id))];
@@ -127,9 +159,9 @@ export default function DumpPage() {
           rows={3}
           placeholder="Dump a task... hit Enter to file it"
           className={cn(
-            "w-full rounded-lg border bg-background/50 px-4 py-3 text-sm text-foreground resize-none",
+            "w-full rounded-md border bg-transparent px-4 py-3 text-sm text-foreground resize-none",
             "placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring",
-            "border-border/50",
+            "border-border",
             processing && "opacity-60"
           )}
         />
@@ -162,7 +194,7 @@ export default function DumpPage() {
             return (
               <div
                 key={result.id}
-                className="rounded-lg border border-border/50 bg-card/50 overflow-hidden transition-colors hover:border-border"
+                className="rounded-md border border-border overflow-hidden transition-colors"
               >
                 <button
                   onClick={() => setExpandedId(isExpanded ? null : result.id)}
@@ -177,7 +209,7 @@ export default function DumpPage() {
                       </span>
                       {result.estimated_minutes && (
                         <>
-                          <span className="text-border">|</span>
+                          <span className="text-border">·</span>
                           <span className="text-[11px] text-muted-foreground flex items-center gap-0.5">
                             <Clock className="size-2.5" />
                             {result.estimated_minutes}m
@@ -199,14 +231,44 @@ export default function DumpPage() {
                   )}
                 </button>
 
-                {isExpanded && result.research && (
-                  <div className="px-3 pb-3 pt-0 border-t border-border/30">
-                    <p className="text-[11px] font-medium uppercase text-muted-foreground mt-2 mb-1.5">
-                      AI Research & Tips
-                    </p>
-                    <div className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                      {result.research}
+                {isExpanded && (
+                  <div className="px-3 pb-3 pt-0 border-t border-border/30 space-y-3">
+                    {/* Workspace switcher + discard */}
+                    <div className="flex items-center justify-between mt-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-muted-foreground">Workspace:</span>
+                        <select
+                          value={result.workspace_id}
+                          onChange={(e) => handleChangeWorkspace(result.id, e.target.value)}
+                          className="text-xs bg-transparent border border-border rounded-md px-2 py-1 text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                        >
+                          {workspaces.map((ws) => (
+                            <option key={ws.id} value={ws.id}>
+                              {ws.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <button
+                        onClick={() => handleDiscard(result.id)}
+                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-red-400 transition-colors"
+                      >
+                        <Trash2 className="size-3" />
+                        Discard
+                      </button>
                     </div>
+
+                    {/* Research */}
+                    {result.research && (
+                      <>
+                        <p className="text-[11px] font-medium uppercase text-muted-foreground">
+                          AI Research & Tips
+                        </p>
+                        <div className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                          {result.research}
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
               </div>
@@ -217,13 +279,10 @@ export default function DumpPage() {
 
       {/* Empty state */}
       {allResults.length === 0 && !processing && (
-        <div className="text-center py-12">
-          <div className="inline-flex size-14 items-center justify-center rounded-2xl bg-muted/50 mb-4">
-            <Zap className="h-7 w-7 text-muted-foreground" />
-          </div>
-          <p className="text-sm font-medium text-pretty">No tasks dumped yet</p>
-          <p className="text-xs text-muted-foreground mt-1 text-pretty">
-            Type a task above and hit Enter. AI will sort it, prioritize it, and give you research tips.
+        <div className="text-center py-16">
+          <p className="text-sm text-muted-foreground">No tasks dumped yet</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Type a task above and hit Enter. AI will sort it, prioritize it, and give you tips.
           </p>
         </div>
       )}
@@ -231,7 +290,6 @@ export default function DumpPage() {
   );
 }
 
-// Extract the research section from a task description
 function extractResearch(description: string): string {
   const match = description.match(/\*\*AI Research & Tips:\*\*\n([\s\S]*)/);
   return match?.[1]?.trim() || "";
