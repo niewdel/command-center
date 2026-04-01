@@ -5,11 +5,8 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
-  Calendar,
   Layers,
   MoreHorizontal,
-  Target,
-  FileText,
   BookOpen,
   Bug,
   Settings,
@@ -23,14 +20,11 @@ import { Workspace } from "@/types/database";
 
 const mainTabs = [
   { name: "Today", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Calendar", href: "/calendar", icon: Calendar },
 ];
 
 const moreItems = [
   { name: "Dump", href: "/dump", icon: Zap },
   { name: "Upcoming", href: "/upcoming", icon: CalendarDays },
-  { name: "Goals", href: "/goals", icon: Target },
-  { name: "Notes", href: "/notes", icon: FileText },
   { name: "Digests", href: "/digests", icon: BookOpen },
   { name: "Issues", href: "/issues", icon: Bug },
   { name: "Settings", href: "/settings", icon: Settings },

@@ -77,21 +77,6 @@ export function CommandPalette() {
       href: "/dashboard",
     },
     {
-      id: "action-calendar",
-      type: "action",
-      title: "Calendar",
-      subtitle: "View your schedule",
-      icon: <Calendar className="size-4 text-blue-400" />,
-      href: "/calendar",
-    },
-    {
-      id: "action-goals",
-      type: "action",
-      title: "View Goals",
-      icon: <Target className="size-4 text-rose-400" />,
-      href: "/goals",
-    },
-    {
       id: "action-upcoming",
       type: "action",
       title: "Upcoming Week",
@@ -185,70 +170,6 @@ export function CommandPalette() {
       );
     }
 
-    // Search goals
-    const { data: goals } = await supabase
-      .from("goals")
-      .select("id, title, status")
-      .ilike("title", pattern)
-      .limit(3);
-
-    if (goals) {
-      goals.forEach((g) =>
-        searchResults.push({
-          id: g.id,
-          type: "goal",
-          title: g.title,
-          subtitle: g.status,
-          icon: <Target className="size-4 text-rose-400" />,
-          href: "/goals",
-        })
-      );
-    }
-
-    // Search notes
-    const { data: notes } = await supabase
-      .from("notes")
-      .select("id, title, workspace_id")
-      .ilike("title", pattern)
-      .limit(3);
-
-    if (notes) {
-      notes.forEach((n) =>
-        searchResults.push({
-          id: n.id,
-          type: "note",
-          title: n.title,
-          icon: <FileText className="size-4 text-amber-400" />,
-          href: "/notes",
-        })
-      );
-    }
-
-    // Search calendar events
-    const { data: events } = await supabase
-      .from("calendar_events")
-      .select("id, title, start_time, location")
-      .ilike("title", pattern)
-      .limit(3);
-
-    if (events) {
-      events.forEach((e) =>
-        searchResults.push({
-          id: e.id,
-          type: "action",
-          title: e.title,
-          subtitle: new Date(e.start_time).toLocaleDateString("en-US", {
-            weekday: "short",
-            month: "short",
-            day: "numeric",
-            hour: "numeric",
-            minute: "2-digit",
-          }),
-          icon: <Calendar className="size-4 text-blue-400" />,
-          href: "/calendar",
-        })
-      );
-    }
 
     setResults(searchResults);
     setSelectedIndex(0);
