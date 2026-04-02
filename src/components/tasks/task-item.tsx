@@ -39,19 +39,24 @@ export function TaskItem({
   const isDone = task.status === "done";
   const isOverdue = task.due_date && new Date(task.due_date) < new Date() && !isDone;
   const [completing, setCompleting] = useState(false);
+  const [hidden, setHidden] = useState(false);
 
   const handleToggle = (checked: boolean) => {
     if (checked && !isDone) {
       setCompleting(true);
-      // Let the animation play, then fire the actual toggle
+      // After animation plays, hide the row and fire the toggle
       setTimeout(() => {
+        setHidden(true);
         onToggle(task.id, true);
-        setCompleting(false);
-      }, 800);
+        // Don't reset completing — row stays hidden until unmounted by parent re-render
+      }, 750);
     } else {
       onToggle(task.id, checked);
     }
   };
+
+  // Hidden after completion animation — prevents flash-back on refetch
+  if (hidden) return null;
 
   return (
     <div
