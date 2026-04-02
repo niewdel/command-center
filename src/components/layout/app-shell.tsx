@@ -19,7 +19,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   if (isAuthPage) {
     return (
-      <main className="min-h-dvh">
+      <main className="min-h-dvh safe-area-top safe-area-bottom">
         <Background />
         <div className="relative z-10">{children}</div>
       </main>
@@ -31,7 +31,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <TooltipProvider>
         <Background />
         <Sidebar />
-        <main className="relative z-10 md:ml-[var(--sidebar-width)] min-h-dvh pb-20 md:pb-0">{children}</main>
+        <main className="relative z-10 md:ml-[var(--sidebar-width)] min-h-dvh pb-20 md:pb-0 safe-area-top">{children}</main>
         <BottomNav />
         <CommandPalette />
       </TooltipProvider>

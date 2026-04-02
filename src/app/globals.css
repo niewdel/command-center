@@ -152,6 +152,14 @@
     font-family: var(--font-heading);
   }
 
+  /* iOS safe areas for notch / home indicator */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
   .font-data {
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
