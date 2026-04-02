@@ -48,7 +48,8 @@ export default function ExpensesPage() {
 
   // Calculate monthly cost (yearly items ÷ 12)
   const monthlyTotal = filtered.reduce((sum, e) => {
-    return sum + (e.billing_cycle === "yearly" ? e.cost / 12 : e.cost);
+    const c = typeof e.cost === "string" ? parseFloat(e.cost) : e.cost;
+    return sum + (e.billing_cycle === "yearly" ? c / 12 : c);
   }, 0);
 
   const yearlyTotal = monthlyTotal * 12;
@@ -166,7 +167,8 @@ export default function ExpensesPage() {
         <div className="space-y-0">
           {filtered.map((expense) => {
             const ws = workspaceMap[expense.workspace_id];
-            const monthlyCost = expense.billing_cycle === "yearly" ? expense.cost / 12 : expense.cost;
+            const rawCost = typeof expense.cost === "string" ? parseFloat(expense.cost) : expense.cost;
+            const monthlyCost = expense.billing_cycle === "yearly" ? rawCost / 12 : rawCost;
             return (
               <div
                 key={expense.id}
@@ -194,7 +196,7 @@ export default function ExpensesPage() {
                   <span className="text-xs text-muted-foreground">/mo</span>
                   {expense.billing_cycle === "yearly" && (
                     <p className="text-[10px] text-muted-foreground font-mono tabular-nums">
-                      {formatCost(expense.cost)}/yr
+                      {formatCost(rawCost)}/yr
                     </p>
                   )}
                 </div>
