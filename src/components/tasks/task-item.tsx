@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Task, Workspace } from "@/types/database";
 import { cn } from "@/lib/utils";
 import { MoreHorizontal, Pencil, Trash2, Star, ArrowRight } from "lucide-react";
@@ -20,26 +20,10 @@ type TaskItemProps = {
   showWorkspace?: boolean;
 };
 
-// Hand-drawn checkmark SVG with stroke animation
-function AnimatedCheck({ animate }: { animate: boolean }) {
+function AnimatedCheck() {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      className="size-3.5"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={3}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path
-        d="M4 12.5L9.5 18L20 6"
-        className={animate ? "animate-check-draw" : ""}
-        style={{
-          strokeDasharray: 30,
-          strokeDashoffset: animate ? 0 : 30,
-        }}
-      />
+    <svg viewBox="0 0 24 24" className="size-3" fill="none" stroke="currentColor" strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 12.5L9.5 18L20 6" className="animate-check-draw" style={{ strokeDasharray: 30, strokeDashoffset: 30 }} />
     </svg>
   );
 }
@@ -53,66 +37,52 @@ export function TaskItem({
   showWorkspace = true,
 }: TaskItemProps) {
   const isDone = task.status === "done";
-  const isOverdue =
-    task.due_date && new Date(task.due_date) < new Date() && !isDone;
+  const isOverdue = task.due_date && new Date(task.due_date) < new Date() && !isDone;
   const [completing, setCompleting] = useState(false);
-  const [uncompleting, setUncompleting] = useState(false);
-  const rowRef = useRef<HTMLDivElement>(null);
 
   const handleToggle = (checked: boolean) => {
     if (checked && !isDone) {
-      // Animate completion
       setCompleting(true);
-
-      // Phase 1: checkmark draws (300ms)
-      // Phase 2: strikethrough sweeps + glow (300ms)
-      // Phase 3: row flies off screen (400ms)
+      // Let the animation play, then fire the actual toggle
       setTimeout(() => {
         onToggle(task.id, true);
         setCompleting(false);
-      }, 900);
-    } else if (!checked && isDone) {
-      // Animate uncomplete (slide back in)
-      setUncompleting(true);
-      onToggle(task.id, false);
-      setTimeout(() => setUncompleting(false), 400);
+      }, 800);
+    } else {
+      onToggle(task.id, checked);
     }
   };
 
   return (
     <div
-      ref={rowRef}
       className={cn(
-        "group flex items-center gap-3 border-b border-border/50 px-2 py-3.5 rounded overflow-hidden",
-        "hover:bg-primary/[0.05] hover:border-b-primary/30",
-        isDone && !uncompleting && "opacity-50",
+        "group flex items-center gap-3 border-b border-border/50 px-2 py-3.5 rounded",
+        !completing && "transition-colors hover:bg-primary/[0.05] hover:border-b-primary/30",
+        isDone && !completing && "opacity-50",
         task.is_focus && !isDone && !completing && "border-l-2 border-l-primary pl-3 bg-primary/[0.04]",
-        // Completion animation phases
-        completing && "animate-task-complete",
-        uncompleting && "animate-task-uncomplete",
+        completing && "task-completing",
       )}
-      style={{
-        transition: completing ? "none" : "all 0.2s ease",
-      }}
     >
-      {/* Custom checkbox */}
+      {/* Checkbox */}
       <button
         onClick={() => handleToggle(!isDone)}
+        disabled={completing}
         className={cn(
-          "relative shrink-0 size-5 rounded border-2 transition-all duration-200 flex items-center justify-center",
+          "relative shrink-0 size-[18px] rounded-[4px] border-2 flex items-center justify-center transition-colors duration-200",
           isDone || completing
-            ? "bg-primary border-primary text-primary-foreground scale-110"
-            : "border-muted-foreground/50 hover:border-primary/70 hover:scale-105"
+            ? "bg-primary border-primary text-primary-foreground"
+            : "border-muted-foreground/50 hover:border-primary/70"
         )}
-        style={completing ? {
-          boxShadow: "0 0 12px 2px oklch(0.78 0.15 195 / 0.4)",
-        } : undefined}
       >
-        {(isDone || completing) && (
-          <AnimatedCheck animate={completing} />
+        {isDone && !completing && (
+          <svg viewBox="0 0 24 24" className="size-3" fill="none" stroke="currentColor" strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 12.5L9.5 18L20 6" />
+          </svg>
         )}
+        {completing && <AnimatedCheck />}
       </button>
 
+      {/* Workspace dot */}
       {showWorkspace && workspace?.color && (
         <span
           className={cn("size-2 rounded-full shrink-0 ring-1 ring-white/10", !workspace.color.startsWith("#") && workspace.color)}
@@ -120,79 +90,62 @@ export function TaskItem({
         />
       )}
 
-      <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onEdit(task)}>
+      {/* Content */}
+      <div className="flex-1 min-w-0 cursor-pointer" onClick={() => !completing && onEdit(task)}>
         <div className="flex items-center justify-between gap-2">
           <span
             className={cn(
-              "text-sm font-medium truncate relative",
-              (isDone || completing) && "text-muted-foreground",
-              completing && "animate-strikethrough"
+              "text-sm font-medium truncate",
+              isDone && "line-through text-muted-foreground",
+              completing && "task-title-completing"
             )}
           >
             {task.title}
-            {/* Animated strikethrough line */}
-            {completing && (
-              <span className="absolute left-0 top-1/2 h-[1.5px] bg-primary/60 animate-strike-sweep" />
-            )}
           </span>
           {task.due_date && (
-            <span
-              className={cn(
-                "text-xs shrink-0 font-mono tabular-nums",
-                isOverdue ? "text-red-400 font-medium" : "text-muted-foreground"
-              )}
-            >
-              {new Date(task.due_date).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-              })}
+            <span className={cn("text-xs shrink-0 font-mono tabular-nums", isOverdue ? "text-red-400 font-medium" : "text-muted-foreground")}>
+              {new Date(task.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
             </span>
           )}
         </div>
         {showWorkspace && workspace && (
-          <span className="text-xs text-muted-foreground mt-0.5 block truncate">
-            {workspace.name}
-          </span>
+          <span className="text-xs text-muted-foreground mt-0.5 block truncate">{workspace.name}</span>
         )}
       </div>
 
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          className={cn(
-            "inline-flex items-center justify-center size-8 shrink-0 rounded text-muted-foreground hover:text-foreground hover:bg-primary/10 transition-colors",
-            "opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100",
-            "transition-opacity"
-          )}
-          aria-label="Task actions"
-        >
-          <MoreHorizontal className="size-4" />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-36">
-          <DropdownMenuItem onClick={() => onEdit(task)}>
-            <Pencil className="size-3.5 mr-2" />
-            Edit
-          </DropdownMenuItem>
-          {!isDone && (
-            <DropdownMenuItem onClick={() => handleToggle(true)}>
-              <ArrowRight className="size-3.5 mr-2" />
-              Complete
-            </DropdownMenuItem>
-          )}
-          {task.is_focus && (
-            <DropdownMenuItem onClick={() => onEdit(task)}>
-              <Star className="size-3.5 mr-2" />
-              Remove focus
-            </DropdownMenuItem>
-          )}
-          <DropdownMenuItem
-            onClick={() => onDelete(task.id)}
-            className="text-destructive focus:text-destructive"
+      {/* Actions */}
+      {!completing && (
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            className={cn(
+              "inline-flex items-center justify-center size-8 shrink-0 rounded text-muted-foreground hover:text-foreground hover:bg-primary/10 transition-colors",
+              "opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100",
+              "transition-opacity"
+            )}
+            aria-label="Task actions"
           >
-            <Trash2 className="size-3.5 mr-2" />
-            Delete
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+            <MoreHorizontal className="size-4" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-36">
+            <DropdownMenuItem onClick={() => onEdit(task)}>
+              <Pencil className="size-3.5 mr-2" />Edit
+            </DropdownMenuItem>
+            {!isDone && (
+              <DropdownMenuItem onClick={() => handleToggle(true)}>
+                <ArrowRight className="size-3.5 mr-2" />Complete
+              </DropdownMenuItem>
+            )}
+            {task.is_focus && (
+              <DropdownMenuItem onClick={() => onEdit(task)}>
+                <Star className="size-3.5 mr-2" />Remove focus
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem onClick={() => onDelete(task.id)} className="text-destructive focus:text-destructive">
+              <Trash2 className="size-3.5 mr-2" />Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
     </div>
   );
 }
