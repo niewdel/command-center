@@ -236,7 +236,7 @@
 
 .task-completing {
   pointer-events: none;
-  animation: task-fly-off 0.4s 0.3s cubic-bezier(0.55, 0, 1, 0.45) forwards;
+  animation: task-fly-off 0.6s 0.4s cubic-bezier(0.55, 0, 1, 0.45) forwards;
   will-change: transform, opacity;
 }
 

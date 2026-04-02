@@ -48,8 +48,7 @@ export function TaskItem({
       setTimeout(() => {
         setHidden(true);
         onToggle(task.id, true);
-        // Don't reset completing — row stays hidden until unmounted by parent re-render
-      }, 750);
+      }, 1000);
     } else {
       onToggle(task.id, checked);
     }
