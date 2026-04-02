@@ -31,7 +31,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <TooltipProvider>
         <Background />
         <Sidebar />
-        <main className="relative z-10 md:ml-[var(--sidebar-width)] min-h-dvh pb-20 md:pb-0 safe-area-top">{children}</main>
+        <main className="relative z-10 md:ml-[var(--sidebar-width)] min-h-dvh pb-20 md:pb-0 safe-area-top pwa-top-pad">{children}</main>
         <BottomNav />
         <CommandPalette />
       </TooltipProvider>

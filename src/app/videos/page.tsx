@@ -174,7 +174,7 @@ function VideosContent() {
         <div className="grid gap-3">{filtered.map((digest) => (
           <div key={digest.id} className={cn("group rounded border border-border bg-card/50 p-4 hover:bg-card transition-colors cursor-pointer hud-glow-hover", highlightId === digest.id && "ring-2 ring-primary/50")} onClick={() => digest.status === "completed" && setSelectedDigest(digest)}>
             <div className="flex items-start gap-4">
-              {digest.thumbnail_url ? (<div className="shrink-0 w-24 h-16 rounded overflow-hidden bg-muted"><img src={digest.thumbnail_url} alt="" className="w-full h-full object-cover" /></div>) : (<div className="shrink-0 w-24 h-16 rounded bg-muted/50 flex items-center justify-center">{sourceIcon(digest.source)}</div>)}
+              {digest.thumbnail_url ? (<div className="hidden sm:block shrink-0 w-24 h-16 rounded overflow-hidden bg-muted"><img src={digest.thumbnail_url} alt="" className="w-full h-full object-cover" /></div>) : (<div className="hidden sm:flex shrink-0 w-24 h-16 rounded bg-muted/50 items-center justify-center">{sourceIcon(digest.source)}</div>)}
               <div className="flex-1 min-w-0 space-y-1.5">
                 <div className="flex items-center gap-2">{statusIcon(digest.status)}{sourceIcon(digest.source)}<h3 className="text-sm font-semibold truncate flex-1">{digest.title || digest.url}</h3>{getVerdictBadge(digest.guide)}</div>
                 {digest.tags && digest.tags.length > 0 && (<div className="flex gap-1 flex-wrap">{digest.tags.slice(0, 5).map((tag) => (<Badge key={tag} variant="secondary" className="text-[10px] px-1.5 py-0 rounded bg-muted/50">{tag}</Badge>))}</div>)}
@@ -192,7 +192,7 @@ function VideosContent() {
       )}
 
       <Dialog open={!!selectedDigest} onOpenChange={() => setSelectedDigest(null)}>
-        <DialogContent className="sm:max-w-[750px] max-h-[85vh] overflow-y-auto bg-card border-border rounded shadow-md">
+        <DialogContent className="sm:max-w-[750px] max-h-[90dvh] h-[90dvh] sm:h-auto overflow-y-auto bg-card border-border rounded shadow-md mx-2 sm:mx-auto">
           {selectedDigest && (<><DialogHeader><div className="flex items-center gap-2 mb-1">{sourceIcon(selectedDigest.source)}<DialogTitle className="text-lg leading-snug">{selectedDigest.title}</DialogTitle></div><div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap"><a href={selectedDigest.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 flex items-center gap-1"><ExternalLink className="h-3 w-3" />Original video</a><span className="text-border">|</span><span className="font-mono">{new Date(selectedDigest.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>{getVerdictBadge(selectedDigest.guide)}</div>{selectedDigest.tags && selectedDigest.tags.length > 0 && (<div className="flex gap-1.5 flex-wrap pt-2">{selectedDigest.tags.map((tag) => (<Badge key={tag} variant="secondary" className="text-[11px] px-2 py-0.5 rounded">{tag}</Badge>))}</div>)}</DialogHeader><div className="pt-2"><MarkdownRenderer content={selectedDigest.guide || ""} /></div></>)}
         </DialogContent>
       </Dialog>

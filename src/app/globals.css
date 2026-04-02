@@ -160,6 +160,13 @@
     padding-top: env(safe-area-inset-top, 0px);
   }
 
+  /* PWA standalone mode: extra top padding for status bar */
+  @media all and (display-mode: standalone) {
+    .pwa-top-pad {
+      padding-top: max(env(safe-area-inset-top, 20px), 20px);
+    }
+  }
+
   .font-data {
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
