@@ -269,6 +269,16 @@ export type NewsStory = {
   created_at: string;
 };
 
+export type Expense = {
+  id: string;
+  workspace_id: string;
+  name: string;
+  cost: number;
+  billing_cycle: "monthly" | "yearly";
+  created_at: string;
+  updated_at: string;
+};
+
 export type EmailConnection = {
   id: string;
   user_id: string;

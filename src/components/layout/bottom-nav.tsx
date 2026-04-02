@@ -9,6 +9,7 @@ import {
   MoreHorizontal,
   Newspaper,
   Play,
+  DollarSign,
   Bug,
   Settings,
   CalendarDays,
@@ -26,6 +27,7 @@ const mainTabs = [
 
 const moreItems = [
   { name: "Dump", href: "/dump", icon: Zap },
+  { name: "Expenses", href: "/expenses", icon: DollarSign },
   { name: "Videos", href: "/videos", icon: Play },
   { name: "News", href: "/news", icon: Newspaper },
   { name: "Issues", href: "/issues", icon: Bug },
