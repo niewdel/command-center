@@ -41,7 +41,7 @@ export function PageLayout({
   }
 
   return (
-    <div className={cn("p-4 md:p-8 pb-24 md:pb-8 mx-auto space-y-5", maxWidthMap[maxWidth])}>
+    <div className={cn("p-3 md:p-8 pb-24 md:pb-8 mx-auto space-y-5", maxWidthMap[maxWidth])}>
       {breadcrumbs && breadcrumbs.length > 0 && (
         <Breadcrumb items={breadcrumbs} className="pt-1" />
       )}

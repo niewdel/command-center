@@ -172,7 +172,7 @@ export default function ExpensesPage() {
             return (
               <div
                 key={expense.id}
-                className="group flex items-center gap-3 border-b border-border/60 px-1 py-3 transition-all hover:bg-primary/[0.03]"
+                className="group flex items-center gap-3 border-b border-border/50 px-2 py-3.5 transition-all hover:bg-primary/[0.05] rounded"
               >
                 {/* Workspace dot */}
                 {ws && (

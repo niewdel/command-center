@@ -151,7 +151,7 @@ export default function UpcomingPage() {
             <h2
               className={cn(
                 "text-xs font-medium uppercase text-balance font-heading",
-                isToday ? "text-indigo-400" : "text-muted-foreground"
+                isToday ? "text-primary" : "text-muted-foreground"
               )}
             >
               {formatDayLabel(day)}

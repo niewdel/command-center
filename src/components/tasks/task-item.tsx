@@ -10,7 +10,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
 
 type TaskItemProps = {
   task: Task;
@@ -36,21 +35,21 @@ export function TaskItem({
   return (
     <div
       className={cn(
-        "group flex items-center gap-3 border-b border-border/60 px-1 py-2.5 transition-all",
-        "hover:bg-primary/[0.03] hover:border-b-primary/20",
+        "group flex items-center gap-3 border-b border-border/50 px-2 py-3.5 transition-all rounded",
+        "hover:bg-primary/[0.05] hover:border-b-primary/30",
         isDone && "opacity-50",
-        task.is_focus && !isDone && "border-l-2 border-l-primary pl-2.5 bg-primary/[0.02]"
+        task.is_focus && !isDone && "border-l-2 border-l-primary pl-3 bg-primary/[0.04]"
       )}
     >
       <Checkbox
         checked={isDone}
         onCheckedChange={(checked) => onToggle(task.id, !!checked)}
-        className="shrink-0 border-muted-foreground/30 data-[state=checked]:bg-primary data-[state=checked]:border-primary transition-colors"
+        className="shrink-0 border-muted-foreground/50 data-[state=checked]:bg-primary data-[state=checked]:border-primary transition-colors"
       />
 
       {showWorkspace && workspace?.color && (
         <span
-          className={cn("size-1.5 rounded-full shrink-0", !workspace.color.startsWith("#") && workspace.color)}
+          className={cn("size-2 rounded-full shrink-0 ring-1 ring-white/10", !workspace.color.startsWith("#") && workspace.color)}
           style={workspace.color.startsWith("#") ? { backgroundColor: workspace.color } : undefined}
         />
       )}
@@ -68,8 +67,8 @@ export function TaskItem({
           {task.due_date && (
             <span
               className={cn(
-                "text-xs text-muted-foreground shrink-0 font-mono tabular-nums",
-                isOverdue && "text-red-400"
+                "text-xs shrink-0 font-mono tabular-nums",
+                isOverdue ? "text-red-400 font-medium" : "text-muted-foreground"
               )}
             >
               {new Date(task.due_date).toLocaleDateString("en-US", {
@@ -89,7 +88,7 @@ export function TaskItem({
       <DropdownMenu>
         <DropdownMenuTrigger
           className={cn(
-            "inline-flex items-center justify-center size-7 shrink-0 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors",
+            "inline-flex items-center justify-center size-8 shrink-0 rounded text-muted-foreground hover:text-foreground hover:bg-primary/10 transition-colors",
             "opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100",
             "transition-opacity"
           )}
@@ -97,7 +96,7 @@ export function TaskItem({
         >
           <MoreHorizontal className="size-4" />
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-40">
+        <DropdownMenuContent align="end" className="w-36">
           <DropdownMenuItem onClick={() => onEdit(task)}>
             <Pencil className="size-3.5 mr-2" />
             Edit
@@ -116,7 +115,7 @@ export function TaskItem({
           )}
           <DropdownMenuItem
             onClick={() => onDelete(task.id)}
-            className="text-red-400 focus:text-red-400"
+            className="text-destructive focus:text-destructive"
           >
             <Trash2 className="size-3.5 mr-2" />
             Delete

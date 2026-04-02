@@ -135,9 +135,9 @@ function TopicPills({ activeTopic, onTopicChange }: { activeTopic: string; onTop
     <div className="space-y-3">
       <div className="flex items-center gap-1.5 flex-wrap">
         <span className="text-[11px] text-muted-foreground mr-1">Topics:</span>
-        <button onClick={() => onTopicChange("all")} className={cn("px-2.5 py-1 rounded text-xs font-medium transition-colors", activeTopic === "all" ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground")}>All</button>
+        <button onClick={() => onTopicChange("all")} className={cn("px-2.5 py-1 rounded text-xs font-medium transition-colors", activeTopic === "all" ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground")}>All</button>
         {topics.filter((t) => t.active).map((topic) => (
-          <button key={topic.id} onClick={() => onTopicChange(topic.name === activeTopic ? "all" : topic.name)} className={cn("px-2.5 py-1 rounded text-xs font-medium transition-colors", activeTopic === topic.name ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground")}>{topic.name}</button>
+          <button key={topic.id} onClick={() => onTopicChange(topic.name === activeTopic ? "all" : topic.name)} className={cn("px-2.5 py-1 rounded text-xs font-medium transition-colors", activeTopic === topic.name ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground")}>{topic.name}</button>
         ))}
         <button onClick={() => setShowManage(!showManage)} className="px-2 py-1 rounded text-xs text-muted-foreground hover:text-foreground transition-colors">{showManage ? "Done" : "Manage"}</button>
       </div>

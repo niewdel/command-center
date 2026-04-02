@@ -111,26 +111,32 @@ export function WelcomeFlow({ workspaces, onComplete }: WelcomeFlowProps) {
                   icon: Sunrise,
                   title: "Morning Planning",
                   desc: "Review overdue, pick your top 3, estimate time, check capacity. Know exactly what your day looks like before it starts.",
+                  color: "border-amber-500/40",
+                  iconColor: "text-amber-400",
                 },
                 {
                   icon: Star,
                   title: "Focused Execution",
                   desc: "Your Today view shows only what matters. Focus tasks highlighted, capacity bar keeps you honest.",
+                  color: "border-primary/40",
+                  iconColor: "text-primary",
                 },
                 {
                   icon: Moon,
                   title: "Evening Shutdown",
                   desc: "Celebrate wins, process what didn't get done, capture loose ends. Create a clean break between work and life.",
+                  color: "border-violet-500/40",
+                  iconColor: "text-violet-400",
                 },
               ].map((item, i) => (
                 <div
                   key={i}
-                  className="flex items-start gap-4 rounded-lg border border-border/50 bg-card/50 p-4"
+                  className="flex items-start gap-4 rounded border border-border/50 bg-card/50 p-4 hud-glow-hover"
                 >
                   <div
-                    className="size-10 rounded flex items-center justify-center border border-primary/40 shrink-0"
+                    className={cn("size-10 rounded flex items-center justify-center border shrink-0", item.color)}
                   >
-                    <item.icon className="size-5 text-primary" />
+                    <item.icon className={cn("size-5", item.iconColor)} />
                   </div>
                   <div>
                     <h3 className="text-sm font-semibold">{item.title}</h3>
@@ -141,7 +147,7 @@ export function WelcomeFlow({ workspaces, onComplete }: WelcomeFlowProps) {
             </div>
             <Button
               onClick={() => setStep(2)}
-              className="w-full gap-2 bg-foreground hover:bg-foreground/90 text-background border-0 rounded-lg shadow-sm"
+              className="w-full gap-2 bg-primary hover:bg-primary/90 text-primary-foreground border-0 rounded"
             >
               Continue
               <ArrowRight className="size-4" />
@@ -204,7 +210,7 @@ export function WelcomeFlow({ workspaces, onComplete }: WelcomeFlowProps) {
             <Button
               onClick={handleFinish}
               disabled={saving}
-              className="w-full gap-2 bg-foreground hover:bg-foreground/90 text-background border-0 rounded-lg shadow-sm"
+              className="w-full gap-2 bg-primary hover:bg-primary/90 text-primary-foreground border-0 rounded"
             >
               {saving ? (
                 "Setting up..."

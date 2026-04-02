@@ -181,7 +181,7 @@ function DashboardContent() {
   const allTodayTasks = [...overdueTasks.filter((t) => !plannedToday.includes(t)), ...plannedToday];
 
   return (
-    <div className="max-w-3xl mx-auto p-4 md:p-8 pb-24 md:pb-8 space-y-4">
+    <div className="max-w-3xl mx-auto p-3 md:p-8 pb-24 md:pb-8 space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between pt-1">
         <div>
@@ -203,7 +203,7 @@ function DashboardContent() {
             <Filter className="size-4" />
           </button>
           {!planningDone && (
-            <Button onClick={() => setShowRitual(true)} variant="outline" size="sm" className="gap-1.5 h-8">
+            <Button onClick={() => setShowRitual(true)} size="sm" className="gap-1.5 h-8 bg-primary hover:bg-primary/90 text-primary-foreground">
               <Sunrise className="size-3.5" />
               Plan
             </Button>
@@ -219,16 +219,16 @@ function DashboardContent() {
 
       {/* Filters (collapsible) */}
       {showFilters && (
-        <div className="flex items-center gap-1.5 flex-wrap text-xs">
+        <div className="flex items-center gap-1.5 flex-wrap text-xs py-1">
           {[{ id: "all", label: "All" }, ...workspaces.map((ws) => ({ id: ws.id, label: ws.name }))].map((item) => (
             <button
               key={item.id}
               onClick={() => setFilterWorkspace(item.id)}
               className={cn(
-                "px-2 py-1 rounded-md transition-colors",
+                "px-2.5 py-1.5 rounded transition-colors",
                 filterWorkspace === item.id
-                  ? "bg-accent text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-primary/15 text-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
               )}
             >
               {item.label}
@@ -240,10 +240,10 @@ function DashboardContent() {
               key={p}
               onClick={() => setFilterPriority(p)}
               className={cn(
-                "px-2 py-1 rounded-md transition-colors capitalize",
+                "px-2.5 py-1.5 rounded transition-colors capitalize",
                 filterPriority === p
-                  ? "bg-accent text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-primary/15 text-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
               )}
             >
               {p === "all" ? "Any" : p}
@@ -312,15 +312,21 @@ function DashboardContent() {
 
           {/* Empty state */}
           {allTodayTasks.length === 0 && (
-            <div className="text-center py-16">
-              <p className="text-sm text-muted-foreground">Nothing planned for today</p>
+            <div className="text-center py-20 space-y-3">
+              <div className="inline-flex size-12 items-center justify-center rounded border border-primary/30" style={{ boxShadow: '0 0 12px -3px var(--hud-glow)' }}>
+                <Sunrise className="size-5 text-primary" />
+              </div>
+              <p className="text-sm font-medium">Clear schedule today</p>
+              <p className="text-xs text-muted-foreground max-w-[240px] mx-auto">Start your morning ritual to plan your day, or add a task below.</p>
               {!planningDone && (
-                <button
+                <Button
                   onClick={() => setShowRitual(true)}
-                  className="text-sm text-primary hover:underline mt-2 inline-block"
+                  size="sm"
+                  className="gap-1.5 h-8 bg-primary hover:bg-primary/90 text-primary-foreground mt-2"
                 >
-                  Start planning
-                </button>
+                  <Sunrise className="size-3.5" />
+                  Plan My Day
+                </Button>
               )}
             </div>
           )}

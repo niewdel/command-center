@@ -63,7 +63,7 @@ export default function LoginPage() {
             className="bg-card border-border rounded h-12 text-center text-lg tracking-widest font-mono focus-visible:border-primary focus-visible:ring-primary/30"
           />
           {error && (
-            <p className="text-xs text-red-400 text-center">{error}</p>
+            <p className="text-xs text-destructive text-center">{error}</p>
           )}
           <Button
             type="submit"
