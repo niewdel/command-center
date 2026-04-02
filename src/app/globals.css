@@ -200,3 +200,74 @@
   0%, 100% { opacity: 0.6; }
   50% { opacity: 1; }
 }
+
+/* ── Task completion animations ── */
+
+/* Checkmark draws like a pen stroke */
+@keyframes check-draw {
+  0% { stroke-dashoffset: 30; }
+  100% { stroke-dashoffset: 0; }
+}
+.animate-check-draw {
+  animation: check-draw 0.3s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+/* Strikethrough line sweeps across task title */
+@keyframes strike-sweep {
+  0% { width: 0; }
+  100% { width: 100%; }
+}
+.animate-strike-sweep {
+  animation: strike-sweep 0.3s 0.25s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+  width: 0;
+}
+
+/* Whole row: glow → slide right → fade out */
+@keyframes task-complete {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+    background: transparent;
+  }
+  30% {
+    transform: translateX(0);
+    opacity: 1;
+    background: oklch(0.78 0.15 195 / 0.06);
+    box-shadow: 0 0 20px -4px oklch(0.78 0.15 195 / 0.15);
+  }
+  60% {
+    transform: translateX(0);
+    opacity: 1;
+    background: oklch(0.78 0.15 195 / 0.03);
+  }
+  100% {
+    transform: translateX(80px);
+    opacity: 0;
+    background: transparent;
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+    border-width: 0;
+  }
+}
+.animate-task-complete {
+  animation: task-complete 0.9s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+  pointer-events: none;
+}
+
+/* Uncomplete: slide back in from left */
+@keyframes task-uncomplete {
+  0% {
+    transform: translateX(-30px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+.animate-task-uncomplete {
+  animation: task-uncomplete 0.4s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+}
