@@ -7,12 +7,20 @@ import { getRoutineForDate } from "@/lib/routines";
 import { PageLayout } from "@/components/layout/page-layout";
 import { DayTimeline } from "@/components/calendar/day-timeline";
 import { WeekView } from "@/components/calendar/week-view";
+import { MonthView } from "@/components/calendar/month-view";
 import { EventDetail } from "@/components/calendar/event-detail";
+import { CreateEventDialog } from "@/components/calendar/create-event-dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { CalendarDays, ChevronLeft, ChevronRight, LayoutList, Grid3X3 } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, LayoutList, Grid3X3, CalendarRange, Plus } from "lucide-react";
 
-function formatDateHeading(date: Date): string {
+type ViewMode = "day" | "week" | "month";
+
+function formatDateHeading(date: Date, viewMode: ViewMode): string {
+  if (viewMode === "month") {
+    return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  }
+
   const today = new Date();
   const tomorrow = new Date();
   tomorrow.setDate(today.getDate() + 1);
@@ -37,7 +45,7 @@ function formatDateHeading(date: Date): string {
 
 export default function CalendarPage() {
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [viewMode, setViewMode] = useState<"day" | "week">("day");
+  const [viewMode, setViewMode] = useState<ViewMode>("day");
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [scheduledTasks, setScheduledTasks] = useState<Task[]>([]);
   const [connections, setConnections] = useState<CalendarConnection[]>([]);
@@ -45,33 +53,40 @@ export default function CalendarPage() {
   const [routineBlocks, setRoutineBlocks] = useState<RoutineBlock[]>([]);
   const [visibleConnectionIds, setVisibleConnectionIds] = useState<Set<string>>(new Set());
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // Compute date range based on view mode
   const weekStart = useMemo(() => {
     const d = new Date(selectedDate);
-    const day = d.getDay();
-    d.setDate(d.getDate() - day); // Sunday
+    d.setDate(d.getDate() - d.getDay());
     d.setHours(0, 0, 0, 0);
     return d;
   }, [selectedDate]);
 
-  const dateStr = useMemo(() => {
-    if (viewMode === "week") return weekStart.toISOString();
-    const d = new Date(selectedDate);
-    d.setHours(0, 0, 0, 0);
-    return d.toISOString();
-  }, [selectedDate, viewMode, weekStart]);
-
-  const nextDateStr = useMemo(() => {
-    if (viewMode === "week") {
-      const d = new Date(weekStart);
-      d.setDate(d.getDate() + 7);
-      return d.toISOString();
+  const dateRange = useMemo(() => {
+    if (viewMode === "month") {
+      // Fetch full month + padding
+      const first = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+      const last = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0);
+      // Pad to include full weeks
+      const start = new Date(first);
+      start.setDate(start.getDate() - start.getDay());
+      const end = new Date(last);
+      end.setDate(end.getDate() + (6 - end.getDay()) + 1);
+      return { start: start.toISOString(), end: end.toISOString() };
     }
-    const d = new Date(selectedDate);
-    d.setDate(d.getDate() + 1);
-    d.setHours(0, 0, 0, 0);
-    return d.toISOString();
+    if (viewMode === "week") {
+      const end = new Date(weekStart);
+      end.setDate(end.getDate() + 7);
+      return { start: weekStart.toISOString(), end: end.toISOString() };
+    }
+    const dayStart = new Date(selectedDate);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(selectedDate);
+    dayEnd.setDate(dayEnd.getDate() + 1);
+    dayEnd.setHours(0, 0, 0, 0);
+    return { start: dayStart.toISOString(), end: dayEnd.toISOString() };
   }, [selectedDate, viewMode, weekStart]);
 
   const fetchData = useCallback(async () => {
@@ -79,8 +94,8 @@ export default function CalendarPage() {
       supabase
         .from("calendar_events")
         .select("*")
-        .gte("end_time", dateStr)
-        .lt("start_time", nextDateStr)
+        .gte("end_time", dateRange.start)
+        .lt("start_time", dateRange.end)
         .neq("status", "cancelled")
         .order("start_time", { ascending: true }),
       supabase
@@ -92,8 +107,8 @@ export default function CalendarPage() {
         .from("tasks")
         .select("*")
         .not("scheduled_start", "is", null)
-        .gte("scheduled_end", dateStr)
-        .lt("scheduled_start", nextDateStr)
+        .gte("scheduled_end", dateRange.start)
+        .lt("scheduled_start", dateRange.end)
         .neq("status", "done"),
       supabase.from("routine_templates").select("*").eq("is_active", true).order("position"),
       supabase.from("routine_blocks").select("*").order("position"),
@@ -104,12 +119,11 @@ export default function CalendarPage() {
     setRoutineTemplates(rt || []);
     setRoutineBlocks(rb || []);
     setConnections(conns || []);
-    // Initialize all connections as visible on first load
     if (visibleConnectionIds.size === 0 && conns && conns.length > 0) {
       setVisibleConnectionIds(new Set(conns.map((c: CalendarConnection) => c.id)));
     }
     setLoading(false);
-  }, [dateStr, nextDateStr]);
+  }, [dateRange.start, dateRange.end]);
 
   useEffect(() => {
     setLoading(true);
@@ -117,72 +131,70 @@ export default function CalendarPage() {
 
     const channel = supabase
       .channel("calendar-events")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "calendar_events" },
-        () => fetchData()
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "calendar_events" }, () => fetchData())
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [fetchData]);
 
-  // Auto-sync calendars on mount and every 10 minutes
+  // Auto-sync
   useEffect(() => {
     const triggerSync = () => {
-      fetch("/api/integrations/calendar/sync-all", { method: "POST" }).catch(
-        () => {}
-      );
+      fetch("/api/integrations/calendar/sync-all", { method: "POST" }).catch(() => {});
     };
-    // Sync on mount (slight delay to not block initial render)
     const initialTimeout = setTimeout(triggerSync, 3000);
     const interval = setInterval(triggerSync, 10 * 60 * 1000);
-    return () => {
-      clearTimeout(initialTimeout);
-      clearInterval(interval);
-    };
+    return () => { clearTimeout(initialTimeout); clearInterval(interval); };
   }, []);
 
-  // Get routine blocks for selected date
+  // Routine blocks for selected date
   const activeRoutine = getRoutineForDate(selectedDate, routineTemplates);
   const activeRoutineBlocks = activeRoutine
     ? routineBlocks.filter((b) => b.template_id === activeRoutine.id)
     : [];
 
-  // Filter events by visible connections
+  // Filter events
   const filteredEvents = events.filter(
     (e) => !e.connection_id || visibleConnectionIds.has(e.connection_id)
   );
 
+  // Also include local events (no connection_id)
+  const allVisibleEvents = filteredEvents;
+
   const toggleConnection = (id: string) => {
     setVisibleConnectionIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
+      next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
   };
 
   const goToday = () => setSelectedDate(new Date());
-  const step = viewMode === "week" ? 7 : 1;
-  const goPrev = () => {
+
+  const navigate = (direction: 1 | -1) => {
     const d = new Date(selectedDate);
-    d.setDate(d.getDate() - step);
-    setSelectedDate(d);
-  };
-  const goNext = () => {
-    const d = new Date(selectedDate);
-    d.setDate(d.getDate() + step);
+    if (viewMode === "month") {
+      d.setMonth(d.getMonth() + direction);
+    } else if (viewMode === "week") {
+      d.setDate(d.getDate() + direction * 7);
+    } else {
+      d.setDate(d.getDate() + direction);
+    }
     setSelectedDate(d);
   };
 
-  const isToday =
-    selectedDate.toDateString() === new Date().toDateString();
+  const isToday = selectedDate.toDateString() === new Date().toDateString();
+
+  // Month view: clicking a date switches to day view for that date
+  const handleMonthDateClick = (date: Date) => {
+    setSelectedDate(date);
+    setViewMode("day");
+  };
+
+  // Heading text
+  const headingText = viewMode === "week"
+    ? `${weekStart.toLocaleDateString("en-US", { month: "long", day: "numeric" })} – ${new Date(weekStart.getTime() + 6 * 86400000).toLocaleDateString("en-US", { month: "long", day: "numeric" })}`
+    : formatDateHeading(selectedDate, viewMode);
 
   return (
     <PageLayout
@@ -192,77 +204,74 @@ export default function CalendarPage() {
       maxWidth="lg"
       actions={
         <div className="flex items-center gap-2">
+          {/* Add event */}
+          <Button
+            onClick={() => setShowCreateEvent(true)}
+            variant="outline"
+            size="sm"
+            className="gap-1.5 h-8 rounded-lg"
+          >
+            <Plus className="size-3.5" />
+            <span className="hidden sm:inline">Event</span>
+          </Button>
+
           {/* View toggle */}
           <div className="flex items-center rounded-lg border border-border/50 overflow-hidden">
             <button
               onClick={() => setViewMode("day")}
-              className={cn(
-                "p-1.5 transition-colors",
-                viewMode === "day"
-                  ? "bg-foreground text-background"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
+              className={cn("p-1.5 transition-colors", viewMode === "day" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground")}
               aria-label="Day view"
             >
               <LayoutList className="size-3.5" />
             </button>
             <button
               onClick={() => setViewMode("week")}
-              className={cn(
-                "p-1.5 transition-colors",
-                viewMode === "week"
-                  ? "bg-foreground text-background"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
+              className={cn("p-1.5 transition-colors", viewMode === "week" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground")}
               aria-label="Week view"
             >
               <Grid3X3 className="size-3.5" />
+            </button>
+            <button
+              onClick={() => setViewMode("month")}
+              className={cn("p-1.5 transition-colors", viewMode === "month" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground")}
+              aria-label="Month view"
+            >
+              <CalendarRange className="size-3.5" />
             </button>
           </div>
 
           {/* Navigation */}
           <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={goPrev}
-              className="rounded-lg"
-              aria-label={viewMode === "week" ? "Previous week" : "Previous day"}
-            >
+            <Button variant="ghost" size="icon-sm" onClick={() => navigate(-1)} className="rounded-lg" aria-label="Previous">
               <ChevronLeft className="size-4" />
             </Button>
             <Button
               variant={isToday ? "default" : "outline"}
               size="sm"
               onClick={goToday}
-              className={cn(
-                "rounded-lg text-xs h-8 px-3",
-                isToday && "bg-foreground text-background hover:bg-foreground/90 border-0"
-              )}
+              className={cn("rounded-lg text-xs h-8 px-3", isToday && "bg-foreground text-background hover:bg-foreground/90 border-0")}
             >
               Today
             </Button>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={goNext}
-              className="rounded-lg"
-              aria-label={viewMode === "week" ? "Next week" : "Next day"}
-            >
+            <Button variant="ghost" size="icon-sm" onClick={() => navigate(1)} className="rounded-lg" aria-label="Next">
               <ChevronRight className="size-4" />
             </Button>
           </div>
         </div>
       }
     >
-      {/* Date heading */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-balance">
-          {viewMode === "week"
-            ? `${weekStart.toLocaleDateString("en-US", { month: "long", day: "numeric" })} – ${new Date(weekStart.getTime() + 6 * 86400000).toLocaleDateString("en-US", { month: "long", day: "numeric" })}`
-            : formatDateHeading(selectedDate)}
-        </h2>
-        <div className="flex items-center gap-2">
+      {/* Date heading + calendar filters */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <h2 className="text-lg font-semibold text-balance">{headingText}</h2>
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Local events toggle */}
+          <button
+            onClick={() => {/* local events are always visible */}}
+            className="flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-md text-foreground bg-card/50"
+          >
+            <div className="size-2.5 rounded-full bg-blue-500" />
+            <span>Local</span>
+          </button>
           {connections.map((conn) => {
             const isVisible = visibleConnectionIds.has(conn.id);
             return (
@@ -271,15 +280,10 @@ export default function CalendarPage() {
                 onClick={() => toggleConnection(conn.id)}
                 className={cn(
                   "flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-md transition-colors",
-                  isVisible
-                    ? "text-foreground bg-card/50"
-                    : "text-muted-foreground/40 line-through"
+                  isVisible ? "text-foreground bg-card/50" : "text-muted-foreground/40 line-through"
                 )}
               >
-                <div
-                  className={cn("size-2.5 rounded-full transition-opacity", !isVisible && "opacity-30")}
-                  style={{ backgroundColor: conn.color }}
-                />
+                <div className={cn("size-2.5 rounded-full transition-opacity", !isVisible && "opacity-30")} style={{ backgroundColor: conn.color }} />
                 <span>{conn.display_name || conn.account_email}</span>
               </button>
             );
@@ -287,21 +291,18 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {/* Timeline */}
-      {connections.length === 0 && !loading ? (
-        <div className="text-center py-20">
-          <CalendarDays className="size-8 text-muted-foreground/40 mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground text-pretty">
-            No calendars connected yet
-          </p>
-          <p className="text-xs text-muted-foreground/60 mt-1 text-pretty">
-            Go to Settings → Calendar Feeds to add your ICS feed URLs
-          </p>
-        </div>
+      {/* Views */}
+      {viewMode === "month" ? (
+        <MonthView
+          events={allVisibleEvents}
+          selectedDate={selectedDate}
+          onDateClick={handleMonthDateClick}
+          onEventClick={setSelectedEvent}
+        />
       ) : viewMode === "week" ? (
-        <WeekView events={filteredEvents} scheduledTasks={scheduledTasks} weekStart={weekStart} onEventClick={setSelectedEvent} />
+        <WeekView events={allVisibleEvents} scheduledTasks={scheduledTasks} weekStart={weekStart} onEventClick={setSelectedEvent} />
       ) : (
-        <DayTimeline events={filteredEvents} scheduledTasks={scheduledTasks} routineBlocks={activeRoutineBlocks} date={selectedDate} onEventClick={setSelectedEvent} />
+        <DayTimeline events={allVisibleEvents} scheduledTasks={scheduledTasks} routineBlocks={activeRoutineBlocks} date={selectedDate} onEventClick={setSelectedEvent} />
       )}
 
       {/* Event detail dialog */}
@@ -309,6 +310,15 @@ export default function CalendarPage() {
         event={selectedEvent}
         open={!!selectedEvent}
         onClose={() => setSelectedEvent(null)}
+      />
+
+      {/* Create event dialog */}
+      <CreateEventDialog
+        open={showCreateEvent}
+        onClose={() => setShowCreateEvent(false)}
+        connections={connections}
+        defaultDate={selectedDate}
+        onCreated={fetchData}
       />
     </PageLayout>
   );

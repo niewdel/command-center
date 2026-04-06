@@ -331,7 +331,14 @@ function BlockForm({
         </div>
         <div className="space-y-1">
           <Label className="text-[10px] text-muted-foreground">Color</Label>
-          <div className="flex gap-1">
+          <div className="flex items-center gap-2">
+            <input
+              type="color"
+              value={form.color}
+              onChange={(e) => onChange({ ...form, color: e.target.value })}
+              className="size-8 rounded-lg border border-border/50 cursor-pointer bg-transparent p-0.5"
+            />
+            <div className="flex gap-1">
             {ROUTINE_COLORS.map((c) => (
               <button
                 key={c}
@@ -345,6 +352,7 @@ function BlockForm({
                 style={{ backgroundColor: c }}
               />
             ))}
+            </div>
           </div>
         </div>
       </div>
