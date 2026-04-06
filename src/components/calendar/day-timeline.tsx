@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CalendarEvent } from "@/types/database";
+import { CalendarEvent, Task } from "@/types/database";
 import { cn } from "@/lib/utils";
-import { MapPin, Video, Clock, Users } from "lucide-react";
+import { MapPin, Video, Clock, Users, CheckSquare } from "lucide-react";
 
 type DayTimelineProps = {
   events: CalendarEvent[];
+  scheduledTasks?: Task[];
   date: Date;
   startHour?: number;
   endHour?: number;
@@ -60,6 +61,7 @@ function formatDuration(start: string, end: string) {
 
 export function DayTimeline({
   events,
+  scheduledTasks = [],
   date,
   startHour = 6,
   endHour = 22,
@@ -99,9 +101,40 @@ export function DayTimeline({
   const showNowLine =
     isToday && now.getHours() >= startHour && now.getHours() < endHour;
 
+  // Convert scheduled tasks to timeline items
+  const taskEvents: CalendarEvent[] = scheduledTasks
+    .filter((t) => t.scheduled_start && t.scheduled_end)
+    .map((t) => ({
+      id: `task-${t.id}`,
+      user_id: "",
+      workspace_id: t.workspace_id,
+      connection_id: null,
+      external_id: null,
+      external_calendar_id: null,
+      title: t.title,
+      description: null,
+      location: null,
+      start_time: t.scheduled_start!,
+      end_time: t.scheduled_end!,
+      all_day: false,
+      timezone: "America/New_York",
+      status: "confirmed" as const,
+      recurrence_rule: null,
+      meeting_url: null,
+      meeting_provider: null,
+      attendees: [],
+      color: t.is_focus ? "#8b5cf6" : "#6b7280",
+      source: "local" as const,
+      is_read_only: false,
+      raw_data: null,
+      task_id: t.id,
+      created_at: "",
+      updated_at: "",
+    }));
+
   // Separate all-day events
   const allDayEvents = events.filter((e) => e.all_day);
-  const timedEvents = events.filter((e) => !e.all_day);
+  const timedEvents = [...events.filter((e) => !e.all_day), ...taskEvents];
 
   // Resolve overlapping events into columns
   const columns = resolveOverlaps(timedEvents, date, startHour);
@@ -173,21 +206,23 @@ export function DayTimeline({
               col.events.map((event) => {
                 const pos = getEventPosition(event, date, startHour);
                 const isCompact = pos.height < 48;
+                const isTask = event.task_id !== null;
 
                 return (
                   <div
                     key={event.id}
                     className={cn(
                       "absolute rounded-md overflow-hidden transition-colors cursor-default group",
-                      "hover:brightness-110"
+                      "hover:brightness-110",
+                      isTask && "border border-dashed border-current/20"
                     )}
                     style={{
                       top: pos.top,
                       height: pos.height,
                       left: `${col.leftPercent}%`,
                       width: `${col.widthPercent}%`,
-                      backgroundColor: `${event.color || "#3b82f6"}14`,
-                      borderLeft: `3px solid ${event.color || "#3b82f6"}`,
+                      backgroundColor: `${event.color || "#3b82f6"}${isTask ? "0a" : "14"}`,
+                      borderLeft: `3px ${isTask ? "dashed" : "solid"} ${event.color || "#3b82f6"}`,
                     }}
                   >
                     <div
@@ -197,6 +232,12 @@ export function DayTimeline({
                       )}
                     >
                       <div className="flex items-center gap-1.5 min-w-0">
+                        {isTask && (
+                          <CheckSquare
+                            className="size-3 shrink-0"
+                            style={{ color: event.color || "#6b7280" }}
+                          />
+                        )}
                         <span
                           className={cn(
                             "font-medium truncate",

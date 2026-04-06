@@ -2,12 +2,13 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
-import { CalendarEvent, CalendarConnection } from "@/types/database";
+import { CalendarEvent, CalendarConnection, Task } from "@/types/database";
 import { PageLayout } from "@/components/layout/page-layout";
 import { DayTimeline } from "@/components/calendar/day-timeline";
+import { WeekView } from "@/components/calendar/week-view";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, LayoutList, Grid3X3 } from "lucide-react";
 
 function formatDateHeading(date: Date): string {
   const today = new Date();
@@ -34,25 +35,41 @@ function formatDateHeading(date: Date): string {
 
 export default function CalendarPage() {
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [viewMode, setViewMode] = useState<"day" | "week">("day");
   const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [scheduledTasks, setScheduledTasks] = useState<Task[]>([]);
   const [connections, setConnections] = useState<CalendarConnection[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const weekStart = useMemo(() => {
+    const d = new Date(selectedDate);
+    const day = d.getDay();
+    d.setDate(d.getDate() - day); // Sunday
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, [selectedDate]);
+
   const dateStr = useMemo(() => {
+    if (viewMode === "week") return weekStart.toISOString();
     const d = new Date(selectedDate);
     d.setHours(0, 0, 0, 0);
     return d.toISOString();
-  }, [selectedDate]);
+  }, [selectedDate, viewMode, weekStart]);
 
   const nextDateStr = useMemo(() => {
+    if (viewMode === "week") {
+      const d = new Date(weekStart);
+      d.setDate(d.getDate() + 7);
+      return d.toISOString();
+    }
     const d = new Date(selectedDate);
     d.setDate(d.getDate() + 1);
     d.setHours(0, 0, 0, 0);
     return d.toISOString();
-  }, [selectedDate]);
+  }, [selectedDate, viewMode, weekStart]);
 
   const fetchData = useCallback(async () => {
-    const [{ data: evts }, { data: conns }] = await Promise.all([
+    const [{ data: evts }, { data: conns }, { data: tasks }] = await Promise.all([
       supabase
         .from("calendar_events")
         .select("*")
@@ -65,9 +82,17 @@ export default function CalendarPage() {
         .select("*")
         .eq("is_active", true)
         .order("created_at", { ascending: true }),
+      supabase
+        .from("tasks")
+        .select("*")
+        .not("scheduled_start", "is", null)
+        .gte("scheduled_end", dateStr)
+        .lt("scheduled_start", nextDateStr)
+        .neq("status", "done"),
     ]);
 
     setEvents(evts || []);
+    setScheduledTasks(tasks || []);
     setConnections(conns || []);
     setLoading(false);
   }, [dateStr, nextDateStr]);
@@ -91,14 +116,15 @@ export default function CalendarPage() {
   }, [fetchData]);
 
   const goToday = () => setSelectedDate(new Date());
+  const step = viewMode === "week" ? 7 : 1;
   const goPrev = () => {
     const d = new Date(selectedDate);
-    d.setDate(d.getDate() - 1);
+    d.setDate(d.getDate() - step);
     setSelectedDate(d);
   };
   const goNext = () => {
     const d = new Date(selectedDate);
-    d.setDate(d.getDate() + 1);
+    d.setDate(d.getDate() + step);
     setSelectedDate(d);
   };
 
@@ -112,43 +138,76 @@ export default function CalendarPage() {
       loading={loading}
       maxWidth="lg"
       actions={
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={goPrev}
-            className="rounded-lg"
-            aria-label="Previous day"
-          >
-            <ChevronLeft className="size-4" />
-          </Button>
-          <Button
-            variant={isToday ? "default" : "outline"}
-            size="sm"
-            onClick={goToday}
-            className={cn(
-              "rounded-lg text-xs h-8 px-3",
-              isToday && "bg-foreground text-background hover:bg-foreground/90 border-0"
-            )}
-          >
-            Today
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={goNext}
-            className="rounded-lg"
-            aria-label="Next day"
-          >
-            <ChevronRight className="size-4" />
-          </Button>
+        <div className="flex items-center gap-2">
+          {/* View toggle */}
+          <div className="flex items-center rounded-lg border border-border/50 overflow-hidden">
+            <button
+              onClick={() => setViewMode("day")}
+              className={cn(
+                "p-1.5 transition-colors",
+                viewMode === "day"
+                  ? "bg-foreground text-background"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+              aria-label="Day view"
+            >
+              <LayoutList className="size-3.5" />
+            </button>
+            <button
+              onClick={() => setViewMode("week")}
+              className={cn(
+                "p-1.5 transition-colors",
+                viewMode === "week"
+                  ? "bg-foreground text-background"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+              aria-label="Week view"
+            >
+              <Grid3X3 className="size-3.5" />
+            </button>
+          </div>
+
+          {/* Navigation */}
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={goPrev}
+              className="rounded-lg"
+              aria-label={viewMode === "week" ? "Previous week" : "Previous day"}
+            >
+              <ChevronLeft className="size-4" />
+            </Button>
+            <Button
+              variant={isToday ? "default" : "outline"}
+              size="sm"
+              onClick={goToday}
+              className={cn(
+                "rounded-lg text-xs h-8 px-3",
+                isToday && "bg-foreground text-background hover:bg-foreground/90 border-0"
+              )}
+            >
+              Today
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={goNext}
+              className="rounded-lg"
+              aria-label={viewMode === "week" ? "Next week" : "Next day"}
+            >
+              <ChevronRight className="size-4" />
+            </Button>
+          </div>
         </div>
       }
     >
       {/* Date heading */}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-balance">
-          {formatDateHeading(selectedDate)}
+          {viewMode === "week"
+            ? `${weekStart.toLocaleDateString("en-US", { month: "long", day: "numeric" })} – ${new Date(weekStart.getTime() + 6 * 86400000).toLocaleDateString("en-US", { month: "long", day: "numeric" })}`
+            : formatDateHeading(selectedDate)}
         </h2>
         <div className="flex items-center gap-3">
           {connections.map((conn) => (
@@ -177,8 +236,10 @@ export default function CalendarPage() {
             Go to Settings → Calendar Feeds to add your ICS feed URLs
           </p>
         </div>
+      ) : viewMode === "week" ? (
+        <WeekView events={events} scheduledTasks={scheduledTasks} weekStart={weekStart} />
       ) : (
-        <DayTimeline events={events} date={selectedDate} />
+        <DayTimeline events={events} scheduledTasks={scheduledTasks} date={selectedDate} />
       )}
     </PageLayout>
   );

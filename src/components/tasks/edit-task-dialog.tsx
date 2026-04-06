@@ -51,6 +51,8 @@ export function EditTaskDialog({
   const [plannedDate, setPlannedDate] = useState("");
   const [estimateMinutes, setEstimateMinutes] = useState<number | null>(null);
   const [projectId, setProjectId] = useState<string>("none");
+  const [scheduledStart, setScheduledStart] = useState("");
+  const [scheduledEnd, setScheduledEnd] = useState("");
   const [isRecurring, setIsRecurring] = useState(false);
   const [recFrequency, setRecFrequency] = useState<RecurrenceRule["frequency"]>("daily");
   const [recInterval, setRecInterval] = useState(1);
@@ -67,6 +69,19 @@ export function EditTaskDialog({
       setPlannedDate(task.planned_date || "");
       setEstimateMinutes(task.estimated_minutes);
       setProjectId(task.project_id || "none");
+      // Parse scheduled times into local time inputs
+      if (task.scheduled_start) {
+        const d = new Date(task.scheduled_start);
+        setScheduledStart(`${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`);
+      } else {
+        setScheduledStart("");
+      }
+      if (task.scheduled_end) {
+        const d = new Date(task.scheduled_end);
+        setScheduledEnd(`${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`);
+      } else {
+        setScheduledEnd("");
+      }
       setIsRecurring(task.is_recurring);
       const rule = parseRecurrenceRule(task.recurrence_rule);
       if (rule) {
@@ -93,6 +108,21 @@ export function EditTaskDialog({
         })
       : null;
 
+    // Build scheduled timestamps from date + time
+    let scheduled_start: string | null = null;
+    let scheduled_end: string | null = null;
+    if (scheduledStart && (plannedDate || dueDate)) {
+      const baseDate = plannedDate || dueDate;
+      scheduled_start = new Date(`${baseDate}T${scheduledStart}:00`).toISOString();
+      if (scheduledEnd) {
+        scheduled_end = new Date(`${baseDate}T${scheduledEnd}:00`).toISOString();
+      } else if (estimateMinutes) {
+        const endTime = new Date(`${baseDate}T${scheduledStart}:00`);
+        endTime.setMinutes(endTime.getMinutes() + estimateMinutes);
+        scheduled_end = endTime.toISOString();
+      }
+    }
+
     onSave(task.id, {
       title: title.trim(),
       description: description || null,
@@ -103,6 +133,8 @@ export function EditTaskDialog({
       due_date: dueDate || null,
       planned_date: plannedDate || null,
       estimated_minutes: estimateMinutes,
+      scheduled_start,
+      scheduled_end,
       is_recurring: isRecurring,
       recurrence_rule: recurrenceRule,
     });
@@ -238,6 +270,38 @@ export function EditTaskDialog({
               onChange={(e) => setPlannedDate(e.target.value)}
               className="bg-background/50 border-border/50 rounded-lg"
             />
+          </div>
+
+          {/* Schedule Time */}
+          <div className="space-y-2">
+            <Label className="text-xs font-medium text-muted-foreground uppercase">
+              Schedule Time
+            </Label>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-[10px] text-muted-foreground">Start</Label>
+                <Input
+                  type="time"
+                  value={scheduledStart}
+                  onChange={(e) => setScheduledStart(e.target.value)}
+                  className="bg-background/50 border-border/50 rounded-lg h-8 text-xs"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[10px] text-muted-foreground">End</Label>
+                <Input
+                  type="time"
+                  value={scheduledEnd}
+                  onChange={(e) => setScheduledEnd(e.target.value)}
+                  className="bg-background/50 border-border/50 rounded-lg h-8 text-xs"
+                />
+              </div>
+            </div>
+            {scheduledStart && !plannedDate && !dueDate && (
+              <p className="text-[10px] text-amber-400 text-pretty">
+                Set a planned date or due date to anchor the scheduled time.
+              </p>
+            )}
           </div>
 
           {/* Time estimate chips */}
