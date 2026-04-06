@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 type AddTaskFormProps = {
   workspaces: Workspace[];
   defaultWorkspaceId?: string;
+  planForToday?: boolean;
   onAdd: (task: {
     title: string;
     workspace_id: string;
@@ -31,6 +32,7 @@ type AddTaskFormProps = {
 export function AddTaskForm({
   workspaces,
   defaultWorkspaceId,
+  planForToday = false,
   onAdd,
 }: AddTaskFormProps) {
   const [title, setTitle] = useState("");
@@ -54,7 +56,7 @@ export function AddTaskForm({
       priority,
       due_date: dueDate || null,
       estimated_minutes: estimateMinutes,
-      planned_date: today,
+      planned_date: planForToday ? today : null,
     });
 
     setTitle("");

@@ -276,7 +276,7 @@ function DashboardContent() {
             onStatusChange={handleStatusChange}
             onEdit={setEditingTask}
           />
-          <AddTaskForm workspaces={workspaces} onAdd={handleAddTask} />
+          <AddTaskForm workspaces={workspaces} planForToday onAdd={handleAddTask} />
         </>
       ) : (
         <div className="space-y-1">
@@ -337,7 +337,7 @@ function DashboardContent() {
 
           {/* Add task */}
           <div className="pt-2">
-            <AddTaskForm workspaces={workspaces} onAdd={handleAddTask} />
+            <AddTaskForm workspaces={workspaces} planForToday onAdd={handleAddTask} />
           </div>
 
           {/* Completed today */}

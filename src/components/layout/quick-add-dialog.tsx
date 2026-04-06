@@ -73,7 +73,7 @@ export function QuickAddDialog({ open, onClose }: QuickAddDialogProps) {
       priority,
       due_date: dueDate || null,
       estimated_minutes: estimateMinutes,
-      planned_date: today,
+      planned_date: null,
       status: "todo",
       source: "manual",
     });
