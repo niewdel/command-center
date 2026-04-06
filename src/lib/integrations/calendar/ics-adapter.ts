@@ -24,6 +24,9 @@ type ParsedEvent = {
   isAllDay: boolean;
   status: string | null;
   attendees: { email: string; name?: string; status?: string }[];
+  rrule: string | null;
+  exdates: Date[];
+  recurrenceId: string | null;
 };
 
 function extractMeetingUrl(
@@ -102,6 +105,180 @@ function unescapeIcs(text: string): string {
     .replace(/\\\\/g, "\\");
 }
 
+// RRULE expansion: generate occurrences within a date window
+function expandRecurringEvents(
+  events: ParsedEvent[],
+  windowStart: Date,
+  windowEnd: Date
+): ParsedEvent[] {
+  const expanded: ParsedEvent[] = [];
+  // Collect recurrence overrides (RECURRENCE-ID events replace a specific instance)
+  const overrides = new Map<string, Set<string>>();
+  for (const event of events) {
+    if (event.recurrenceId) {
+      const key = event.uid;
+      if (!overrides.has(key)) overrides.set(key, new Set());
+      overrides.get(key)!.add(event.recurrenceId);
+    }
+  }
+
+  for (const event of events) {
+    // Events with RECURRENCE-ID are overrides — add them directly
+    if (event.recurrenceId) {
+      expanded.push(event);
+      continue;
+    }
+
+    // Non-recurring: add as-is
+    if (!event.rrule) {
+      expanded.push(event);
+      continue;
+    }
+
+    // Parse RRULE
+    const rule = parseRRule(event.rrule);
+    if (!rule) {
+      expanded.push(event); // Can't parse — add original
+      continue;
+    }
+
+    const duration = event.endDate.getTime() - event.startDate.getTime();
+    const exdateSet = new Set(event.exdates.map((d) => d.toISOString().split("T")[0]));
+    const overrideSet = overrides.get(event.uid);
+    const maxInstances = 365; // Safety limit
+    let count = 0;
+
+    let cursor = new Date(event.startDate);
+
+    while (cursor <= windowEnd && count < maxInstances) {
+      if (rule.until && cursor > rule.until) break;
+      if (rule.count !== null && count >= rule.count) break;
+
+      const instanceStart = new Date(cursor);
+      const instanceEnd = new Date(cursor.getTime() + duration);
+      const dateKey = instanceStart.toISOString().split("T")[0];
+
+      // Check if within window and not excluded
+      if (
+        instanceEnd > windowStart &&
+        instanceStart <= windowEnd &&
+        !exdateSet.has(dateKey)
+      ) {
+        // Check if this instance is overridden
+        const overrideKey = cursor.toISOString().replace(".000Z", "Z");
+        const isOverridden = overrideSet?.has(overrideKey);
+
+        if (!isOverridden) {
+          expanded.push({
+            ...event,
+            uid: `${event.uid}_${dateKey}`,
+            startDate: instanceStart,
+            endDate: instanceEnd,
+            rrule: null, // Mark expanded instances as non-recurring
+          });
+        }
+      }
+
+      // Advance cursor
+      cursor = advanceCursor(cursor, rule);
+      count++;
+    }
+  }
+
+  return expanded;
+}
+
+type RRule = {
+  freq: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
+  interval: number;
+  until: Date | null;
+  count: number | null;
+  byday: string[];
+  bymonthday: number[];
+};
+
+const DAY_MAP: Record<string, number> = {
+  SU: 0, MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6,
+};
+
+function parseRRule(rrule: string): RRule | null {
+  const parts = rrule.split(";");
+  const map: Record<string, string> = {};
+  for (const part of parts) {
+    const [key, val] = part.split("=");
+    if (key && val) map[key] = val;
+  }
+
+  const freq = map.FREQ as RRule["freq"];
+  if (!freq || !["DAILY", "WEEKLY", "MONTHLY", "YEARLY"].includes(freq)) return null;
+
+  return {
+    freq,
+    interval: map.INTERVAL ? parseInt(map.INTERVAL) : 1,
+    until: map.UNTIL ? parseIcsDate(map.UNTIL).date : null,
+    count: map.COUNT ? parseInt(map.COUNT) : null,
+    byday: map.BYDAY ? map.BYDAY.split(",") : [],
+    bymonthday: map.BYMONTHDAY ? map.BYMONTHDAY.split(",").map(Number) : [],
+  };
+}
+
+function advanceCursor(date: Date, rule: RRule): Date {
+  const next = new Date(date);
+
+  switch (rule.freq) {
+    case "DAILY":
+      next.setDate(next.getDate() + rule.interval);
+      break;
+
+    case "WEEKLY":
+      if (rule.byday.length > 0) {
+        // Find next matching day
+        const currentDay = next.getDay();
+        const targetDays = rule.byday.map((d) => DAY_MAP[d]).filter((d) => d !== undefined).sort((a, b) => a - b);
+
+        if (targetDays.length === 0) {
+          next.setDate(next.getDate() + 7 * rule.interval);
+          break;
+        }
+
+        // Find next day in the same week or next cycle
+        const nextInWeek = targetDays.find((d) => d > currentDay);
+        if (nextInWeek !== undefined) {
+          next.setDate(next.getDate() + (nextInWeek - currentDay));
+        } else {
+          // Jump to first day of next interval week
+          const daysUntilNextWeek = 7 * rule.interval - currentDay + targetDays[0];
+          next.setDate(next.getDate() + daysUntilNextWeek);
+        }
+      } else {
+        next.setDate(next.getDate() + 7 * rule.interval);
+      }
+      break;
+
+    case "MONTHLY":
+      if (rule.bymonthday.length > 0) {
+        // Try next month day in current month, else next month
+        const currentMonthDay = next.getDate();
+        const nextDay = rule.bymonthday.find((d) => d > currentMonthDay);
+        if (nextDay) {
+          next.setDate(nextDay);
+        } else {
+          next.setMonth(next.getMonth() + rule.interval);
+          next.setDate(rule.bymonthday[0]);
+        }
+      } else {
+        next.setMonth(next.getMonth() + rule.interval);
+      }
+      break;
+
+    case "YEARLY":
+      next.setFullYear(next.getFullYear() + rule.interval);
+      break;
+  }
+
+  return next;
+}
+
 function parseIcsFeed(icsText: string): ParsedEvent[] {
   const lines = unfoldLines(icsText);
   const events: ParsedEvent[] = [];
@@ -113,6 +290,9 @@ function parseIcsFeed(icsText: string): ParsedEvent[] {
     dtstartTzid?: string;
     dtendTzid?: string;
     dtstartIsDate?: boolean;
+    rawRrule?: string;
+    rawExdates?: string[];
+    rawRecurrenceId?: string;
   } = {};
   let attendeesList: { email: string; name?: string; status?: string }[] = [];
 
@@ -144,6 +324,8 @@ function parseIcsFeed(icsText: string): ParsedEvent[] {
           end = { date: endDate, isDate: start.isDate };
         }
 
+        const exdates = (currentEvent.rawExdates || []).map((d) => parseIcsDate(d).date);
+
         events.push({
           uid: currentEvent.uid,
           summary: currentEvent.summary || "Untitled Event",
@@ -154,6 +336,9 @@ function parseIcsFeed(icsText: string): ParsedEvent[] {
           isAllDay: start.isDate || currentEvent.dtstartIsDate || false,
           status: currentEvent.status || null,
           attendees: attendeesList,
+          rrule: currentEvent.rawRrule || null,
+          exdates,
+          recurrenceId: currentEvent.rawRecurrenceId || null,
         });
       }
       continue;
@@ -202,6 +387,19 @@ function parseIcsFeed(icsText: string): ParsedEvent[] {
         if (tzMatch) currentEvent.dtendTzid = tzMatch[1];
         break;
       }
+      case "RRULE":
+        currentEvent.rawRrule = value;
+        break;
+      case "EXDATE": {
+        // EXDATE can have multiple dates comma-separated
+        const dates = value.split(",").map((d) => d.trim()).filter(Boolean);
+        if (!currentEvent.rawExdates) currentEvent.rawExdates = [];
+        currentEvent.rawExdates.push(...dates);
+        break;
+      }
+      case "RECURRENCE-ID":
+        currentEvent.rawRecurrenceId = value;
+        break;
       case "ATTENDEE": {
         const email = value.replace("mailto:", "").trim();
         const cnMatch = params.match(/CN=([^;]+)/);
@@ -252,13 +450,16 @@ export async function syncIcsFeed(connectionId: string): Promise<SyncResult> {
   }
 
   // Parse events
-  const events = parseIcsFeed(icsText);
+  const rawEvents = parseIcsFeed(icsText);
 
   // Define sync window: 30 days back, 90 days forward
   const windowStart = new Date();
   windowStart.setDate(windowStart.getDate() - 30);
   const windowEnd = new Date();
   windowEnd.setDate(windowEnd.getDate() + 90);
+
+  // Expand recurring events into individual instances
+  const events = expandRecurringEvents(rawEvents, windowStart, windowEnd);
 
   const source = connection.provider as "google" | "microsoft" | "apple";
   const seenExternalIds = new Set<string>();
