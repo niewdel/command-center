@@ -183,7 +183,11 @@ export function CalendarConnections() {
             >
               <div
                 className="size-3 rounded-full shrink-0"
-                style={{ backgroundColor: conn.color }}
+                style={{
+                  backgroundColor: conn.workspace_id
+                    ? workspaces.find((w) => w.id === conn.workspace_id)?.color || conn.color
+                    : conn.color,
+                }}
               />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">

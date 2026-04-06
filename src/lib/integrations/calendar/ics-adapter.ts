@@ -477,6 +477,19 @@ export async function syncIcsFeed(connectionId: string): Promise<SyncResult> {
     return result;
   }
 
+  // Get workspace color if linked
+  let eventColor = connection.color;
+  if (connection.workspace_id) {
+    const { data: workspace } = await supabase
+      .from("workspaces")
+      .select("color")
+      .eq("id", connection.workspace_id)
+      .single();
+    if (workspace?.color) {
+      eventColor = workspace.color;
+    }
+  }
+
   // Fetch ICS feed
   let icsText: string;
   try {
@@ -533,7 +546,7 @@ export async function syncIcsFeed(connectionId: string): Promise<SyncResult> {
       meeting_url: meetingInfo?.url || null,
       meeting_provider: meetingInfo?.provider || null,
       attendees: event.attendees,
-      color: connection.color,
+      color: eventColor,
       source,
       is_read_only: true,
       updated_at: new Date().toISOString(),

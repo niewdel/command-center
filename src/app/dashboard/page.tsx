@@ -30,6 +30,41 @@ import { Button } from "@/components/ui/button";
 
 const today = () => new Date().toISOString().split("T")[0];
 
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 5) return "Good night";
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  if (hour < 21) return "Good evening";
+  return "Good night";
+}
+
+function weatherCodeToDescription(code: number): string {
+  if (code === 0) return "Clear";
+  if (code <= 3) return "Partly cloudy";
+  if (code <= 48) return "Foggy";
+  if (code <= 57) return "Drizzle";
+  if (code <= 65) return "Rain";
+  if (code <= 67) return "Freezing rain";
+  if (code <= 77) return "Snow";
+  if (code <= 82) return "Showers";
+  if (code <= 86) return "Snow showers";
+  if (code >= 95) return "Thunderstorm";
+  return "Cloudy";
+}
+
+function weatherCodeToIcon(code: number): string {
+  if (code === 0) return "☀️";
+  if (code <= 3) return "⛅";
+  if (code <= 48) return "🌫️";
+  if (code <= 57) return "🌧️";
+  if (code <= 67) return "🌧️";
+  if (code <= 77) return "❄️";
+  if (code <= 86) return "🌨️";
+  if (code >= 95) return "⛈️";
+  return "☁️";
+}
+
 export default function DashboardPage() {
   return (
     <Suspense fallback={<SkeletonPage />}>
@@ -55,7 +90,28 @@ function DashboardContent() {
   const [filterWorkspace, setFilterWorkspace] = useState<string>("all");
   const [filterPriority, setFilterPriority] = useState<string>("all");
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+  const [weather, setWeather] = useState<{ temp: number; description: string; icon: string } | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Fetch weather (Charlotte, NC — Open-Meteo, no API key needed)
+  useEffect(() => {
+    const fetchWeather = async () => {
+      try {
+        const res = await fetch(
+          "https://api.open-meteo.com/v1/forecast?latitude=35.2271&longitude=-80.8431&current=temperature_2m,weather_code&temperature_unit=fahrenheit&timezone=America%2FNew_York"
+        );
+        const data = await res.json();
+        const code = data.current?.weather_code ?? 0;
+        const temp = Math.round(data.current?.temperature_2m ?? 0);
+        const desc = weatherCodeToDescription(code);
+        const icon = weatherCodeToIcon(code);
+        setWeather({ temp, description: desc, icon });
+      } catch {
+        // Silently fail — weather is nice to have, not critical
+      }
+    };
+    fetchWeather();
+  }, []);
 
   const fetchData = useCallback(async () => {
     const todayStart = new Date();
@@ -216,9 +272,22 @@ function DashboardContent() {
       {/* Header */}
       <div className="flex items-center justify-between pt-1">
         <div>
-          <h1 className="text-lg font-semibold font-heading">{dateStr}</h1>
+          <h1 className="text-lg font-semibold font-heading">
+            {getGreeting()}, Justin
+          </h1>
+          <div className="flex items-center gap-2 mt-0.5">
+            <span className="text-sm text-muted-foreground">{dateStr}</span>
+            {weather && (
+              <>
+                <span className="text-border">·</span>
+                <span className="text-sm text-muted-foreground">
+                  {weather.icon} {weather.temp}°F {weather.description}
+                </span>
+              </>
+            )}
+          </div>
           {settings?.daily_intention && planningDone && (
-            <p className="text-sm text-muted-foreground italic mt-0.5">{settings.daily_intention}</p>
+            <p className="text-sm text-muted-foreground/70 italic mt-1">&ldquo;{settings.daily_intention}&rdquo;</p>
           )}
         </div>
         <div className="flex items-center gap-2">
