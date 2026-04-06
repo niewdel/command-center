@@ -267,6 +267,7 @@ export type UserSettings = {
   shutdown_completed_date: string | null;
   daily_intention: string | null;
   digest_context: string | null;
+  planning_streak: number;
   created_at: string;
   updated_at: string;
 };
@@ -303,6 +304,13 @@ export type Expense = {
   name: string;
   cost: number;
   billing_cycle: "monthly" | "yearly";
+  due_day: number | null;
+  next_payment_date: string | null;
+  remind_days_before: number;
+  is_paid: boolean;
+  last_paid_date: string | null;
+  category: string;
+  url: string | null;
   created_at: string;
   updated_at: string;
 };

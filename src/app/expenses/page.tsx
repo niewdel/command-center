@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { DollarSign, Plus, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { DollarSign, Plus, MoreHorizontal, Pencil, Trash2, Check, AlertCircle } from "lucide-react";
+import { isDueSoon, formatDaysUntil, computeNextPaymentDate } from "@/lib/expenses";
 
 export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -25,6 +26,7 @@ export default function ExpensesPage() {
   const [cost, setCost] = useState("");
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
   const [workspaceId, setWorkspaceId] = useState("");
+  const [dueDay, setDueDay] = useState("");
   const [saving, setSaving] = useState(false);
 
   const fetchData = useCallback(async () => {
@@ -60,6 +62,7 @@ export default function ExpensesPage() {
     setCost("");
     setBillingCycle("monthly");
     setWorkspaceId(workspaces[0]?.id || "");
+    setDueDay("");
     setShowDialog(true);
   };
 
@@ -69,6 +72,7 @@ export default function ExpensesPage() {
     setCost(String(expense.cost));
     setBillingCycle(expense.billing_cycle);
     setWorkspaceId(expense.workspace_id);
+    setDueDay(expense.due_day ? String(expense.due_day) : "");
     setShowDialog(true);
   };
 
@@ -76,11 +80,20 @@ export default function ExpensesPage() {
     if (!name.trim() || !cost || !workspaceId) return;
     setSaving(true);
 
+    const dueDayNum = dueDay ? parseInt(dueDay) : null;
+    const tempExpense = {
+      due_day: dueDayNum,
+      billing_cycle: billingCycle,
+    } as Expense;
+    const nextPayment = dueDayNum ? computeNextPaymentDate(tempExpense) : null;
+
     const data = {
       name: name.trim(),
       cost: parseFloat(cost),
       billing_cycle: billingCycle,
       workspace_id: workspaceId,
+      due_day: dueDayNum,
+      next_payment_date: nextPayment,
       updated_at: new Date().toISOString(),
     };
 
@@ -182,10 +195,49 @@ export default function ExpensesPage() {
                   />
                 )}
 
-                {/* Name + workspace */}
+                {/* Paid toggle */}
+                {expense.due_day && (
+                  <button
+                    onClick={async () => {
+                      await supabase.from("expenses").update({
+                        is_paid: !expense.is_paid,
+                        last_paid_date: !expense.is_paid ? new Date().toISOString().split("T")[0] : null,
+                      }).eq("id", expense.id);
+                      fetchData();
+                    }}
+                    className={cn(
+                      "size-5 rounded border flex items-center justify-center shrink-0 transition-colors",
+                      expense.is_paid
+                        ? "bg-emerald-500/20 border-emerald-500/40"
+                        : "border-border/60 hover:border-foreground/30"
+                    )}
+                    aria-label={expense.is_paid ? "Mark unpaid" : "Mark paid"}
+                  >
+                    {expense.is_paid && <Check className="size-3 text-emerald-400" />}
+                  </button>
+                )}
+
+                {/* Name + workspace + due date */}
                 <div className="flex-1 min-w-0 cursor-pointer" onClick={() => openEdit(expense)}>
                   <span className="text-sm font-medium truncate block">{expense.name}</span>
-                  {ws && <span className="text-xs text-muted-foreground">{ws.name}</span>}
+                  <div className="flex items-center gap-2">
+                    {ws && <span className="text-xs text-muted-foreground">{ws.name}</span>}
+                    {expense.next_payment_date && !expense.is_paid && (() => {
+                      const urgency = isDueSoon(expense);
+                      return urgency ? (
+                        <>
+                          <span className="text-border">·</span>
+                          <span className={cn(
+                            "text-[11px] font-medium flex items-center gap-0.5",
+                            urgency === "overdue" ? "text-red-400" : urgency === "due-soon" ? "text-amber-400" : "text-muted-foreground"
+                          )}>
+                            {urgency === "overdue" && <AlertCircle className="size-2.5" />}
+                            {formatDaysUntil(expense.next_payment_date)}
+                          </span>
+                        </>
+                      ) : null;
+                    })()}
+                  </div>
                 </div>
 
                 {/* Cost */}
@@ -262,6 +314,18 @@ export default function ExpensesPage() {
                   <button onClick={() => setBillingCycle("yearly")} className={cn("flex-1 px-3 py-2 rounded text-xs font-medium transition-colors", billingCycle === "yearly" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground")}>Yearly</button>
                 </div>
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Due Day of Month</Label>
+              <Input
+                type="number"
+                min={1}
+                max={31}
+                value={dueDay}
+                onChange={(e) => setDueDay(e.target.value)}
+                placeholder="e.g., 15 (leave blank if no fixed date)"
+                className="bg-card border-border rounded"
+              />
             </div>
             <div className="space-y-2">
               <Label>Workspace</Label>

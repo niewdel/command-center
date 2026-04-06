@@ -11,6 +11,7 @@ import {
   Play,
   DollarSign,
   Bug,
+  Target,
   Settings,
   CalendarDays,
   Calendar,
@@ -29,6 +30,7 @@ const mainTabs = [
 ];
 
 const moreItems = [
+  { name: "Goals", href: "/goals", icon: Target },
   { name: "Expenses", href: "/expenses", icon: DollarSign },
   { name: "Videos", href: "/videos", icon: Play },
   { name: "News", href: "/news", icon: Newspaper },

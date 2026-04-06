@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Task, Workspace, Project } from "@/types/database";
+import { Task, Workspace, Project, Goal } from "@/types/database";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,6 +29,7 @@ type EditTaskDialogProps = {
   task: Task | null;
   workspaces: Workspace[];
   projects?: Project[];
+  goals?: Goal[];
   open: boolean;
   onClose: () => void;
   onSave: (id: string, updates: Partial<Task>) => void;
@@ -38,6 +39,7 @@ export function EditTaskDialog({
   task,
   workspaces,
   projects,
+  goals,
   open,
   onClose,
   onSave,
@@ -51,6 +53,7 @@ export function EditTaskDialog({
   const [plannedDate, setPlannedDate] = useState("");
   const [estimateMinutes, setEstimateMinutes] = useState<number | null>(null);
   const [projectId, setProjectId] = useState<string>("none");
+  const [goalId, setGoalId] = useState<string>("none");
   const [scheduledStart, setScheduledStart] = useState("");
   const [scheduledEnd, setScheduledEnd] = useState("");
   const [isRecurring, setIsRecurring] = useState(false);
@@ -69,6 +72,7 @@ export function EditTaskDialog({
       setPlannedDate(task.planned_date || "");
       setEstimateMinutes(task.estimated_minutes);
       setProjectId(task.project_id || "none");
+      setGoalId(task.goal_id || "none");
       // Parse scheduled times into local time inputs
       if (task.scheduled_start) {
         const d = new Date(task.scheduled_start);
@@ -128,6 +132,7 @@ export function EditTaskDialog({
       description: description || null,
       workspace_id: workspaceId,
       project_id: projectId !== "none" ? projectId : null,
+      goal_id: goalId !== "none" ? goalId : null,
       priority: priority as Task["priority"],
       status: status as Task["status"],
       due_date: dueDate || null,
@@ -271,6 +276,33 @@ export function EditTaskDialog({
               className="bg-background/50 border-border/50 rounded-lg"
             />
           </div>
+
+          {/* Goal */}
+          {goals && goals.length > 0 && (
+            <div className="space-y-2">
+              <Label className="text-xs font-medium text-muted-foreground uppercase">
+                Goal
+              </Label>
+              <Select value={goalId} onValueChange={(v) => setGoalId(v || "none")}>
+                <SelectTrigger className="bg-background/50 border-border/50 rounded-lg">
+                  <SelectValue placeholder="No goal">
+                    {goalId === "none" ? "No goal" : goals.find((g) => g.id === goalId)?.title ?? "No goal"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-border rounded-lg">
+                  <SelectItem value="none" className="rounded-lg">No goal</SelectItem>
+                  {goals
+                    .filter((g) => g.workspace_id === workspaceId || g.id === goalId)
+                    .filter((g) => g.status === "active")
+                    .map((g) => (
+                      <SelectItem key={g.id} value={g.id} className="rounded-lg">
+                        {g.title}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Schedule Time */}
           <div className="space-y-2">

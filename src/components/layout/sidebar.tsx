@@ -9,6 +9,7 @@ import {
   Lock,
   CalendarDays,
   Calendar,
+  Target,
   Settings,
   Newspaper,
   Bug,
@@ -37,6 +38,7 @@ import {
 import { QuickAddDialog } from "@/components/layout/quick-add-dialog";
 
 const extraNav = [
+  { name: "Goals", href: "/goals", icon: Target },
   { name: "Expenses", href: "/expenses", icon: DollarSign },
   { name: "Videos", href: "/videos", icon: Play },
   { name: "News", href: "/news", icon: Newspaper },

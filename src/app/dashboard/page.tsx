@@ -3,7 +3,8 @@
 import { useEffect, useState, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { Task, Workspace, UserSettings, Project, CalendarEvent, RoutineTemplate, RoutineBlock } from "@/types/database";
+import { Task, Workspace, UserSettings, Project, CalendarEvent, RoutineTemplate, RoutineBlock, Expense, Goal } from "@/types/database";
+import { getUpcomingExpenses, formatDaysUntil } from "@/lib/expenses";
 import { getRoutineForDate, getNextRoutineBlock, formatRoutineTime } from "@/lib/routines";
 import { TaskItem } from "@/components/tasks/task-item";
 import { AddTaskForm } from "@/components/tasks/add-task-form";
@@ -26,6 +27,7 @@ import {
   Video,
   MapPin,
   Clock,
+  DollarSign,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -94,6 +96,8 @@ function DashboardContent() {
   const [weather, setWeather] = useState<{ temp: number; description: string; icon: string } | null>(null);
   const [routineTemplates, setRoutineTemplates] = useState<RoutineTemplate[]>([]);
   const [routineBlocks, setRoutineBlocks] = useState<RoutineBlock[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Fetch weather (Charlotte, NC — Open-Meteo, no API key needed)
@@ -122,7 +126,7 @@ function DashboardContent() {
     const todayEnd = new Date();
     todayEnd.setHours(23, 59, 59, 999);
 
-    const [{ data: ws }, { data: t }, { data: s }, { data: p }, { data: ce }, { data: rt }, { data: rb }] = await Promise.all([
+    const [{ data: ws }, { data: t }, { data: s }, { data: p }, { data: ce }, { data: rt }, { data: rb }, { data: exp }, { data: gl }] = await Promise.all([
       supabase.from("workspaces").select("*").order("name"),
       supabase.from("tasks").select("*").order("position", { ascending: true }),
       supabase.from("user_settings").select("*").limit(1).single(),
@@ -136,6 +140,8 @@ function DashboardContent() {
         .order("start_time", { ascending: true }),
       supabase.from("routine_templates").select("*").eq("is_active", true).order("position"),
       supabase.from("routine_blocks").select("*").order("position"),
+      supabase.from("expenses").select("*").not("next_payment_date", "is", null).eq("is_paid", false).order("next_payment_date"),
+      supabase.from("goals").select("*").eq("status", "active"),
     ]);
     setWorkspaces(ws || []);
     setTasks(t || []);
@@ -144,6 +150,8 @@ function DashboardContent() {
     setCalendarEvents(ce || []);
     setRoutineTemplates(rt || []);
     setRoutineBlocks(rb || []);
+    setExpenses(exp || []);
+    setGoals(gl || []);
     setLoading(false);
 
     // Auto-expand backlog if nothing is planned for today
@@ -438,6 +446,38 @@ function DashboardContent() {
         </div>
       )}
 
+      {/* Upcoming payments */}
+      {(() => {
+        const upcoming = getUpcomingExpenses(expenses, 7);
+        if (upcoming.length === 0) return null;
+        return (
+          <div className="space-y-2">
+            <h3 className="text-xs font-medium text-muted-foreground uppercase flex items-center gap-1.5">
+              <DollarSign className="size-3" />
+              Upcoming Payments
+            </h3>
+            <div className="space-y-1">
+              {upcoming.map((exp) => (
+                <div
+                  key={exp.id}
+                  className="flex items-center gap-3 rounded-lg border border-border/30 bg-card/30 px-3 py-2"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{exp.name}</p>
+                    <span className="text-[11px] text-amber-400">
+                      {exp.next_payment_date && formatDaysUntil(exp.next_payment_date)}
+                    </span>
+                  </div>
+                  <span className="text-sm font-mono tabular-nums font-medium shrink-0">
+                    ${typeof exp.cost === "string" ? parseFloat(exp.cost).toFixed(2) : exp.cost.toFixed(2)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Task list or Kanban */}
       {taskView === "kanban" ? (
         <>
@@ -564,6 +604,7 @@ function DashboardContent() {
         task={editingTask}
         workspaces={workspaces}
         projects={projects}
+        goals={goals}
         open={!!editingTask}
         onClose={() => setEditingTask(null)}
         onSave={handleEdit}
