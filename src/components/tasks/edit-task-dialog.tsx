@@ -183,7 +183,9 @@ export function EditTaskDialog({
               </Label>
               <Select value={projectId} onValueChange={(v) => setProjectId(v || "none")}>
                 <SelectTrigger className="bg-background/50 border-border/50 rounded-lg">
-                  <SelectValue placeholder="No project" />
+                  <SelectValue placeholder="No project">
+                    {projectId === "none" ? "No project" : projects.find((p) => p.id === projectId)?.name ?? "No project"}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent className="bg-popover border-border rounded-lg">
                   <SelectItem value="none" className="rounded-lg">No project</SelectItem>
