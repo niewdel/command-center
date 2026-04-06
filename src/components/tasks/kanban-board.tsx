@@ -113,7 +113,7 @@ function KanbanCard({
           <span
             className={cn(
               "text-[10px]",
-              new Date(task.due_date) < new Date(new Date().toISOString().split("T")[0])
+              task.due_date < new Date().toISOString().split("T")[0]
                 ? "text-red-400"
                 : "text-muted-foreground/60"
             )}

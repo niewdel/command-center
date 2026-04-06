@@ -222,7 +222,7 @@ function VideosContent() {
 
       <Dialog open={!!selectedDigest} onOpenChange={() => setSelectedDigest(null)}>
         <DialogContent className="sm:max-w-[750px] max-h-[90dvh] h-[90dvh] sm:h-auto overflow-y-auto bg-card border-border rounded shadow-md mx-2 sm:mx-auto">
-          {selectedDigest && (<><DialogHeader><div className="flex items-center gap-2 mb-1">
+          {selectedDigest && (<><DialogHeader><div className="flex items-center gap-2 mb-1 pr-8">
             {sourceIcon(selectedDigest.source)}
             {editingTitleId === selectedDigest.id ? (
               <input
@@ -239,7 +239,7 @@ function VideosContent() {
             {editingTitleId !== selectedDigest.id && (
               <button onClick={() => { setEditingTitleId(selectedDigest.id); setEditingTitleValue(selectedDigest.title || ""); }} className="shrink-0 p-1 rounded text-muted-foreground hover:text-foreground transition-colors" aria-label="Edit title"><Pencil className="size-3.5" /></button>
             )}
-          </div><div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap"><a href={selectedDigest.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 flex items-center gap-1"><ExternalLink className="h-3 w-3" />Original video</a><span className="text-border">|</span><span className="font-mono">{new Date(selectedDigest.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>{getVerdictBadge(selectedDigest.guide)}</div></DialogHeader><div className="pt-2"><MarkdownRenderer content={selectedDigest.guide || ""} /></div></>)}
+          </div><div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap"><a href={selectedDigest.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 flex items-center gap-1"><ExternalLink className="h-3 w-3" />Original video</a><span className="text-border">|</span><span className="font-mono">{new Date(selectedDigest.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>{getVerdictBadge(selectedDigest.guide)}<span className="text-border">|</span><button onClick={() => { handleDiscard(selectedDigest.id); }} className="text-red-400 hover:text-red-300 flex items-center gap-1"><Trash2 className="h-3 w-3" />Delete</button></div></DialogHeader><div className="pt-2"><MarkdownRenderer content={selectedDigest.guide || ""} /></div></>)}
         </DialogContent>
       </Dialog>
 

@@ -39,7 +39,8 @@ export function TaskItem({
   showWorkspace = true,
 }: TaskItemProps) {
   const isDone = task.status === "done";
-  const isOverdue = task.due_date && new Date(task.due_date) < new Date() && !isDone;
+  const todayStr = new Date().toISOString().split("T")[0];
+  const isOverdue = task.due_date && task.due_date < todayStr && !isDone;
   const [completing, setCompleting] = useState(false);
   const [hidden, setHidden] = useState(false);
 
@@ -110,7 +111,7 @@ export function TaskItem({
           </span>
           {task.due_date && (
             <span className={cn("text-xs shrink-0 font-mono tabular-nums", isOverdue ? "text-red-400 font-medium" : "text-muted-foreground")}>
-              {new Date(task.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+              {new Date(task.due_date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
             </span>
           )}
         </div>

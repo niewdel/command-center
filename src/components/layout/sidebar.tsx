@@ -391,6 +391,19 @@ function WorkspaceDialog({
         setSaving(false);
         return;
       }
+      // Propagate color change to calendar events linked via this workspace
+      if (color !== workspace.color) {
+        const { data: connections } = await supabase
+          .from("calendar_connections")
+          .select("id")
+          .eq("workspace_id", workspace.id);
+        if (connections && connections.length > 0) {
+          await supabase
+            .from("calendar_events")
+            .update({ color })
+            .in("connection_id", connections.map((c) => c.id));
+        }
+      }
     } else {
       data.slug = slug;
       data.type = "business";

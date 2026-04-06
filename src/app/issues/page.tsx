@@ -92,12 +92,14 @@ export default function IssuesPage() {
       // Pages
       { type: "page", id: "dashboard", label: "Today (Dashboard)" },
       { type: "page", id: "upcoming", label: "This Week" },
+      { type: "page", id: "calendar", label: "Calendar" },
       { type: "page", id: "dump", label: "Task Dump" },
+      { type: "page", id: "goals", label: "Goals" },
       { type: "page", id: "expenses", label: "Expenses" },
       { type: "page", id: "videos", label: "Videos" },
       { type: "page", id: "news", label: "News" },
-      { type: "page", id: "settings", label: "Settings" },
       { type: "page", id: "issues", label: "Issues" },
+      { type: "page", id: "settings", label: "Settings" },
       // Dynamic entities
       ...(workspaces || []).map((w) => ({ type: "workspace" as const, id: w.id, label: w.name })),
       ...(projects || []).map((p) => ({ type: "project" as const, id: p.id, label: p.name })),

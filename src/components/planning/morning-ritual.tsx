@@ -815,7 +815,7 @@ function TriageCard({
             )}
             {task.due_date && (
               <span className="text-[11px] text-red-400">
-                Due {new Date(task.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                Due {new Date(task.due_date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
               </span>
             )}
           </div>

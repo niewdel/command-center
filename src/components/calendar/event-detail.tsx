@@ -93,15 +93,15 @@ export function EventDetail({ event, open, onClose }: EventDetailProps) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[480px] max-h-[85dvh] overflow-y-auto bg-card border-border rounded-2xl shadow-md">
+      <DialogContent className="sm:max-w-[480px] max-w-[calc(100%-2rem)] max-h-[85dvh] overflow-y-auto bg-card border-border rounded-lg shadow-md">
         <DialogHeader>
-          <div className="flex items-start gap-3">
+          <div className="flex items-start gap-3 pr-8">
             <div
               className="w-1 h-8 rounded-full shrink-0 mt-0.5"
               style={{ backgroundColor: event.color || "#3b82f6" }}
             />
-            <div>
-              <DialogTitle className="text-lg leading-snug text-balance">
+            <div className="min-w-0">
+              <DialogTitle className="text-lg leading-snug text-balance break-words">
                 {event.title}
               </DialogTitle>
               {event.status === "tentative" && (
@@ -203,7 +203,7 @@ export function EventDetail({ event, open, onClose }: EventDetailProps) {
                 <p className="text-xs font-medium text-muted-foreground uppercase mb-1">
                   Details
                 </p>
-                <div className="text-sm text-muted-foreground whitespace-pre-wrap break-words rounded-lg border border-border/30 bg-background/30 p-3 max-h-[200px] overflow-y-auto">
+                <div className="text-sm text-muted-foreground whitespace-pre-wrap break-words rounded-lg border border-border/30 bg-background/30 p-3 overflow-hidden">
                   {event.description}
                 </div>
               </div>
