@@ -27,7 +27,24 @@ type BlockFormData = {
   color: string;
 };
 
-const ROUTINE_ICONS = ["🌅", "🚿", "🍳", "☕", "💼", "🍽️", "🏋️", "📖", "🌙", "😴", "🧘", "🚶"];
+const ROUTINE_ICONS = [
+  // Morning
+  "🌅", "☀️", "⏰",
+  // Personal care
+  "🚿", "🪥", "🧴",
+  // Food & drink
+  "🍳", "☕", "🥣", "🍽️", "🥗", "🍵",
+  // Health & fitness
+  "💊", "🏋️", "🏃", "🧘", "🚶", "🚴", "💧",
+  // Work & productivity
+  "💼", "💻", "📧", "📞", "📝", "📊",
+  // Learning & personal
+  "📖", "🎓", "🎵", "🎨",
+  // Home & errands
+  "🏠", "🧹", "🛒", "🐕",
+  // Wind down & sleep
+  "🌙", "😴", "📵",
+];
 const ROUTINE_COLORS = ["#4b5563", "#6366f1", "#8b5cf6", "#ec4899", "#f97316", "#22c55e", "#06b6d4", "#3b82f6"];
 
 export function RoutineEditor() {
@@ -386,10 +403,10 @@ function BlockForm({
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="space-y-3">
         <div className="space-y-1">
           <Label className="text-[10px] text-muted-foreground">Icon</Label>
-          <div className="flex gap-1 flex-wrap">
+          <div className="flex gap-1 flex-wrap max-w-[280px]">
             {ROUTINE_ICONS.map((icon) => (
               <button
                 key={icon}
