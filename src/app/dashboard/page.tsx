@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { Task, Workspace, UserSettings, Project } from "@/types/database";
+import { Task, Workspace, UserSettings, Project, CalendarEvent } from "@/types/database";
 import { TaskItem } from "@/components/tasks/task-item";
 import { AddTaskForm } from "@/components/tasks/add-task-form";
 import { EditTaskDialog } from "@/components/tasks/edit-task-dialog";
@@ -12,7 +12,7 @@ import { MorningRitual } from "@/components/planning/morning-ritual";
 import { ShutdownRitual } from "@/components/planning/shutdown-ritual";
 import { WelcomeFlow } from "@/components/onboarding/welcome-flow";
 import { SkeletonPage } from "@/components/ui/skeleton";
-import { calculateCapacity } from "@/lib/capacity";
+import { calculateCapacityWithEvents } from "@/lib/capacity";
 import { useTaskActions } from "@/lib/hooks/use-task-actions";
 import { KanbanBoard } from "@/components/tasks/kanban-board";
 import { ViewToggle } from "@/components/tasks/view-toggle";
@@ -22,6 +22,9 @@ import {
   Moon,
   ChevronRight,
   Filter,
+  Video,
+  MapPin,
+  Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -51,19 +54,33 @@ function DashboardContent() {
   const [taskView, setTaskView] = useState<"list" | "kanban">("list");
   const [filterWorkspace, setFilterWorkspace] = useState<string>("all");
   const [filterPriority, setFilterPriority] = useState<string>("all");
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
-    const [{ data: ws }, { data: t }, { data: s }, { data: p }] = await Promise.all([
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const [{ data: ws }, { data: t }, { data: s }, { data: p }, { data: ce }] = await Promise.all([
       supabase.from("workspaces").select("*").order("name"),
       supabase.from("tasks").select("*").order("position", { ascending: true }),
       supabase.from("user_settings").select("*").limit(1).single(),
       supabase.from("projects").select("*").order("name"),
+      supabase
+        .from("calendar_events")
+        .select("*")
+        .gte("end_time", todayStart.toISOString())
+        .lt("start_time", todayEnd.toISOString())
+        .neq("status", "cancelled")
+        .order("start_time", { ascending: true }),
     ]);
     setWorkspaces(ws || []);
     setTasks(t || []);
     setProjects(p || []);
     setSettings(s || null);
+    setCalendarEvents(ce || []);
     setLoading(false);
 
     // Auto-expand backlog if nothing is planned for today
@@ -136,7 +153,7 @@ function DashboardContent() {
     (t) => t.status !== "done" && t.planned_date !== todayStr && !(t.due_date && t.due_date < todayStr)
   );
 
-  const capacity = calculateCapacity(tasks, new Date(), settings);
+  const capacity = calculateCapacityWithEvents(tasks, calendarEvents, new Date(), settings);
   const planningDone = settings?.planning_completed_date === todayStr;
   const shutdownDone = settings?.shutdown_completed_date === todayStr;
 
@@ -159,6 +176,7 @@ function DashboardContent() {
     return (
       <MorningRitual
         tasks={tasks} workspaces={workspaces} settings={settings}
+        calendarEvents={calendarEvents}
         onComplete={() => { setShowRitual(false); fetchData(); }}
         onCancel={() => setShowRitual(false)}
       />
@@ -265,7 +283,60 @@ function DashboardContent() {
       )}
 
       {/* Capacity bar */}
-      {plannedToday.length > 0 && <CapacityBar capacity={capacity} />}
+      {(plannedToday.length > 0 || calendarEvents.length > 0) && <CapacityBar capacity={capacity} />}
+
+      {/* Upcoming events */}
+      {calendarEvents.filter((e) => !e.all_day && new Date(e.end_time) > new Date()).length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-xs font-medium text-muted-foreground uppercase">
+            Upcoming
+          </h3>
+          <div className="space-y-1.5">
+            {calendarEvents
+              .filter((e) => !e.all_day && new Date(e.end_time) > new Date())
+              .slice(0, 4)
+              .map((event) => (
+                <div
+                  key={event.id}
+                  className="flex items-center gap-3 rounded-lg border border-border/30 bg-card/30 px-3 py-2"
+                >
+                  <div
+                    className="w-0.5 h-8 rounded-full shrink-0"
+                    style={{ backgroundColor: event.color || "#3b82f6" }}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{event.title}</p>
+                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                      <span className="flex items-center gap-1 tabular-nums">
+                        <Clock className="size-2.5" />
+                        {new Date(event.start_time).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                        {" – "}
+                        {new Date(event.end_time).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                      </span>
+                      {event.location && (
+                        <span className="flex items-center gap-1 truncate max-w-[150px]">
+                          <MapPin className="size-2.5 shrink-0" />
+                          {event.location}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {event.meeting_url && (
+                    <a
+                      href={event.meeting_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="shrink-0 px-2.5 py-1 rounded text-xs font-medium bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors flex items-center gap-1"
+                    >
+                      <Video className="size-3" />
+                      Join
+                    </a>
+                  )}
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
 
       {/* Task list or Kanban */}
       {taskView === "kanban" ? (

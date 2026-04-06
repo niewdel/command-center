@@ -1,4 +1,4 @@
-import { Task, UserSettings } from "@/types/database";
+import { Task, UserSettings, CalendarEvent } from "@/types/database";
 
 export type CapacityLevel = "green" | "yellow" | "red";
 
@@ -79,6 +79,57 @@ export function formatMinutes(minutes: number): string {
   const mins = minutes % 60;
   if (mins === 0) return `${hours}h`;
   return `${hours}h ${mins}m`;
+}
+
+export type CapacityWithEventsInfo = CapacityInfo & {
+  meetingMinutes: number;
+  availableAfterMeetings: number;
+};
+
+export function calculateCapacityWithEvents(
+  tasks: Task[],
+  events: CalendarEvent[],
+  date: Date,
+  settings?: UserSettings | null
+): CapacityWithEventsInfo {
+  // Calculate meeting minutes from non-all-day calendar events
+  const meetingMinutes = events
+    .filter((e) => !e.all_day && e.status !== "cancelled")
+    .reduce((sum, e) => {
+      const dur =
+        (new Date(e.end_time).getTime() - new Date(e.start_time).getTime()) /
+        60000;
+      return sum + Math.max(0, dur);
+    }, 0);
+
+  const baseCapacity = calculateCapacity(tasks, date, settings);
+  const availableAfterMeetings = Math.max(
+    0,
+    baseCapacity.availableMinutes - meetingMinutes
+  );
+
+  const percentage =
+    availableAfterMeetings > 0
+      ? Math.round(
+          (baseCapacity.estimatedMinutes / availableAfterMeetings) * 100
+        )
+      : baseCapacity.estimatedMinutes > 0
+      ? 100
+      : 0;
+
+  let level: CapacityLevel = "green";
+  if (percentage >= 100) level = "red";
+  else if (percentage >= 80) level = "yellow";
+
+  return {
+    ...baseCapacity,
+    availableMinutes: baseCapacity.availableMinutes,
+    availableAfterMeetings,
+    meetingMinutes,
+    percentage,
+    level,
+    remainingMinutes: availableAfterMeetings - baseCapacity.estimatedMinutes,
+  };
 }
 
 export const ESTIMATE_PRESETS = [

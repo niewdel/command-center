@@ -2,8 +2,8 @@
 
 import { useState, useMemo } from "react";
 import { supabase, getUserId } from "@/lib/supabase";
-import { Task, Workspace, UserSettings } from "@/types/database";
-import { calculateCapacity, formatMinutes, ESTIMATE_PRESETS } from "@/lib/capacity";
+import { Task, Workspace, UserSettings, CalendarEvent } from "@/types/database";
+import { calculateCapacityWithEvents, formatMinutes, ESTIMATE_PRESETS } from "@/lib/capacity";
 import { CapacityBar } from "@/components/dashboard/capacity-bar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +26,7 @@ type MorningRitualProps = {
   tasks: Task[];
   workspaces: Workspace[];
   settings: UserSettings | null;
+  calendarEvents?: CalendarEvent[];
   onComplete: () => void;
   onCancel: () => void;
 };
@@ -43,6 +44,7 @@ type TriagedTask = {
 const STEPS = [
   "Review Overdue",
   "Carry Over",
+  "Review Calendar",
   "Pick Focus",
   "Estimate Time",
   "Capacity Check",
@@ -55,6 +57,7 @@ export function MorningRitual({
   tasks,
   workspaces,
   settings,
+  calendarEvents = [],
   onComplete,
   onCancel,
 }: MorningRitualProps) {
@@ -143,19 +146,42 @@ export function MorningRitual({
     return true;
   };
 
+  const todayEvents = useMemo(
+    () => calendarEvents.filter((e) => !e.all_day && e.status !== "cancelled"),
+    [calendarEvents]
+  );
+
+  const meetingMinutes = useMemo(
+    () =>
+      todayEvents.reduce(
+        (sum, e) =>
+          sum +
+          Math.max(
+            0,
+            (new Date(e.end_time).getTime() - new Date(e.start_time).getTime()) / 60000
+          ),
+        0
+      ),
+    [todayEvents]
+  );
+
+  const shouldSkipStep = (idx: number) => {
+    if (idx === 0 && overdueTasks.length === 0) return true;
+    if (idx === 1 && yesterdayCarryover.length === 0) return true;
+    if (idx === 2 && todayEvents.length === 0) return true;
+    return false;
+  };
+
   const nextStep = () => {
-    // Skip steps that don't apply
     let next = currentStep + 1;
-    if (next === 0 && overdueTasks.length === 0) next++;
-    if (next === 1 && yesterdayCarryover.length === 0) next++;
+    while (next < STEPS.length && shouldSkipStep(next)) next++;
     if (next >= STEPS.length) return;
     setCurrentStep(next);
   };
 
   const prevStep = () => {
     let prev = currentStep - 1;
-    if (prev === 1 && yesterdayCarryover.length === 0) prev--;
-    if (prev === 0 && overdueTasks.length === 0) prev--;
+    while (prev >= 0 && shouldSkipStep(prev)) prev--;
     if (prev < 0) return;
     setCurrentStep(prev);
   };
@@ -163,8 +189,7 @@ export function MorningRitual({
   // Figure out starting step
   useMemo(() => {
     let start = 0;
-    if (overdueTasks.length === 0) start = 1;
-    if (start === 1 && yesterdayCarryover.length === 0) start = 2;
+    while (start < STEPS.length && shouldSkipStep(start)) start++;
     setCurrentStep(start);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -290,8 +315,8 @@ export function MorningRitual({
     }));
     // Include all other tasks too
     const otherTasks = tasks.filter((t) => !todayTasks.find((tt) => tt.id === t.id));
-    return calculateCapacity([...mergedTasks, ...otherTasks], new Date(), settings);
-  }, [todayTasks, estimates, tasks, td, settings]);
+    return calculateCapacityWithEvents([...mergedTasks, ...otherTasks], calendarEvents, new Date(), settings);
+  }, [todayTasks, estimates, tasks, td, settings, calendarEvents]);
 
   return (
     <div className="min-h-dvh flex flex-col">
@@ -385,6 +410,71 @@ export function MorningRitual({
                   />
                 );
               })}
+            </div>
+          </div>
+        )}
+
+        {/* Step: Review Calendar */}
+        {step === "Review Calendar" && (
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-blue-400">
+                <CalendarClock className="size-5" />
+                <h2 className="text-lg font-semibold text-balance">Today&apos;s Calendar</h2>
+              </div>
+              <p className="text-sm text-muted-foreground text-pretty">
+                You have{" "}
+                <span className="text-blue-400 font-medium">
+                  {formatMinutes(meetingMinutes)}
+                </span>{" "}
+                of meetings today, leaving{" "}
+                <span className="text-foreground font-medium">
+                  {formatMinutes(
+                    Math.max(
+                      0,
+                      (settings
+                        ? (new Date().getDay() === 0 || new Date().getDay() === 6
+                            ? settings.available_hours_weekend
+                            : settings.available_hours_weekday) * 60
+                        : 480) - meetingMinutes
+                    )
+                  )}
+                </span>{" "}
+                for deep work.
+              </p>
+            </div>
+            <div className="space-y-2">
+              {todayEvents
+                .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+                .map((event) => {
+                  const start = new Date(event.start_time);
+                  const end = new Date(event.end_time);
+                  const durMin = (end.getTime() - start.getTime()) / 60000;
+                  return (
+                    <div
+                      key={event.id}
+                      className="flex items-center gap-3 rounded-lg border border-border/30 bg-card/30 px-4 py-3"
+                    >
+                      <div
+                        className="w-0.5 h-8 rounded-full shrink-0"
+                        style={{ backgroundColor: event.color || "#3b82f6" }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm font-medium">{event.title}</span>
+                        <div className="flex items-center gap-2 mt-0.5 text-[11px] text-muted-foreground">
+                          <span className="tabular-nums">
+                            {start.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                            {" – "}
+                            {end.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                          </span>
+                          <span className="text-muted-foreground/50">
+                            {formatMinutes(durMin)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
             </div>
           </div>
         )}
@@ -647,8 +737,7 @@ export function MorningRitual({
             onClick={prevStep}
             disabled={(() => {
               let prev = currentStep - 1;
-              if (prev === 1 && yesterdayCarryover.length === 0) prev--;
-              if (prev === 0 && overdueTasks.length === 0) prev--;
+              while (prev >= 0 && shouldSkipStep(prev)) prev--;
               return prev < 0;
             })()}
             className="gap-2"

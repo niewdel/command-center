@@ -12,6 +12,7 @@ import {
   requestNotificationPermission,
   getNotificationStatus,
 } from "@/lib/hooks/use-notifications";
+import { CalendarConnections } from "@/components/settings/calendar-connections";
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<Partial<UserSettings>>({
@@ -179,6 +180,9 @@ export default function SettingsPage() {
           )}
         </div>
       </div>
+
+      {/* Calendar Connections */}
+      <CalendarConnections />
 
       {/* Digest Profile */}
       <div className="space-y-4">

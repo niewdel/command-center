@@ -94,13 +94,17 @@ export type CalendarConnection = {
   user_id: string;
   provider: "google" | "microsoft" | "apple";
   account_email: string;
-  access_token: string;
+  access_token: string | null;
   refresh_token: string | null;
   token_expires_at: string | null;
   calendar_ids: string[];
   sync_cursor: string | null;
   last_synced_at: string | null;
   is_active: boolean;
+  feed_url: string | null;
+  is_ics_feed: boolean;
+  display_name: string | null;
+  color: string;
   created_at: string;
   updated_at: string;
 };

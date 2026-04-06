@@ -13,6 +13,7 @@ import {
   Bug,
   Settings,
   CalendarDays,
+  Calendar,
   Zap,
   X,
 } from "lucide-react";
@@ -23,6 +24,7 @@ import { Workspace } from "@/types/database";
 const mainTabs = [
   { name: "Today", href: "/dashboard", icon: LayoutDashboard },
   { name: "This Week", href: "/upcoming", icon: CalendarDays },
+  { name: "Calendar", href: "/calendar", icon: Calendar },
   { name: "Task Dump", href: "/dump", icon: Zap },
 ];
 

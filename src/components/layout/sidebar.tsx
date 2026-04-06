@@ -8,6 +8,7 @@ import {
   Plus,
   Lock,
   CalendarDays,
+  Calendar,
   Settings,
   Newspaper,
   Bug,
@@ -132,6 +133,20 @@ export function Sidebar() {
           >
             <CalendarDays className="size-4 shrink-0" />
             <span>This Week</span>
+          </Link>
+
+          {/* Calendar */}
+          <Link
+            href="/calendar"
+            className={cn(
+              "flex items-center gap-2.5 rounded px-2.5 py-2 text-sm font-medium transition-colors",
+              pathname === "/calendar"
+                ? "border-l-2 border-l-primary bg-primary/5 text-foreground"
+                : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+            )}
+          >
+            <Calendar className="size-4 shrink-0" />
+            <span>Calendar</span>
           </Link>
 
           {/* Task Dump */}
