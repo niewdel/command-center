@@ -80,7 +80,7 @@ export function BottomNav() {
         <div className="fixed bottom-16 left-0 right-0 z-30 md:hidden bg-card border-t border-border rounded-t-2xl p-4 pb-2 safe-area-bottom">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-semibold font-heading">Workspaces</h3>
-            <button aria-label="Close" onClick={() => setShowWorkspaces(false)} className="p-1 rounded-lg hover:bg-accent">
+            <button aria-label="Close" onClick={() => setShowWorkspaces(false)} className="p-2.5 rounded-lg hover:bg-accent">
               <X className="size-4 text-muted-foreground" />
             </button>
           </div>
@@ -113,7 +113,7 @@ export function BottomNav() {
         <div className="fixed bottom-16 left-0 right-0 z-30 md:hidden bg-card border-t border-border rounded-t-2xl p-4 pb-2 safe-area-bottom">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-semibold font-heading">More</h3>
-            <button aria-label="Close" onClick={() => setShowMore(false)} className="p-1 rounded-lg hover:bg-accent">
+            <button aria-label="Close" onClick={() => setShowMore(false)} className="p-2.5 rounded-lg hover:bg-accent">
               <X className="size-4 text-muted-foreground" />
             </button>
           </div>

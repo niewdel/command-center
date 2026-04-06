@@ -58,7 +58,7 @@ export function WeekView({ events, scheduledTasks = [], weekStart, onEventClick 
   today.setHours(0, 0, 0, 0);
 
   return (
-    <div className="grid grid-cols-7 gap-px bg-border/20 rounded-lg border border-border/40 overflow-hidden">
+    <div className="grid grid-cols-7 gap-px bg-border/20 rounded-lg border border-border/40 overflow-x-auto" style={{ minWidth: "min(100%, 560px)" }}>
       {days.map((day) => {
         const isToday = day.toDateString() === today.toDateString();
         const dayEvents = getDayEvents(events, day);

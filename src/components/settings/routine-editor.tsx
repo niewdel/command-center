@@ -275,7 +275,7 @@ function BlockForm({
 }) {
   return (
     <div className="p-3 space-y-3 bg-background/30">
-      <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-2">
         <div className="flex-1 space-y-1">
           <Label className="text-[10px] text-muted-foreground">Label</Label>
           <Input
@@ -287,23 +287,25 @@ function BlockForm({
             className="h-8 text-xs bg-background/50 border-border/50 rounded-lg"
           />
         </div>
-        <div className="w-[90px] space-y-1">
-          <Label className="text-[10px] text-muted-foreground">Start</Label>
-          <Input
-            type="time"
-            value={form.start_time}
-            onChange={(e) => onChange({ ...form, start_time: e.target.value })}
-            className="h-8 text-xs bg-background/50 border-border/50 rounded-lg"
-          />
-        </div>
-        <div className="w-[90px] space-y-1">
-          <Label className="text-[10px] text-muted-foreground">End</Label>
-          <Input
-            type="time"
-            value={form.end_time}
-            onChange={(e) => onChange({ ...form, end_time: e.target.value })}
-            className="h-8 text-xs bg-background/50 border-border/50 rounded-lg"
-          />
+        <div className="flex gap-2">
+          <div className="flex-1 sm:w-[90px] space-y-1">
+            <Label className="text-[10px] text-muted-foreground">Start</Label>
+            <Input
+              type="time"
+              value={form.start_time}
+              onChange={(e) => onChange({ ...form, start_time: e.target.value })}
+              className="h-8 text-xs bg-background/50 border-border/50 rounded-lg"
+            />
+          </div>
+          <div className="flex-1 sm:w-[90px] space-y-1">
+            <Label className="text-[10px] text-muted-foreground">End</Label>
+            <Input
+              type="time"
+              value={form.end_time}
+              onChange={(e) => onChange({ ...form, end_time: e.target.value })}
+              className="h-8 text-xs bg-background/50 border-border/50 rounded-lg"
+            />
+          </div>
         </div>
       </div>
 

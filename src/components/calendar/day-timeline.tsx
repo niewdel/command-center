@@ -200,7 +200,7 @@ export function DayTimeline({
           {hours.map((_, i) => (
             <div
               key={`half-${i}`}
-              className="absolute left-16 right-0 border-t border-border/8"
+              className="absolute left-12 md:left-16 right-0 border-t border-border/8"
               style={{ top: i * HOUR_HEIGHT + HOUR_HEIGHT / 2 }}
             />
           ))}
@@ -217,7 +217,7 @@ export function DayTimeline({
             return (
               <div
                 key={block.id}
-                className="absolute left-16 right-3 rounded-md pointer-events-none"
+                className="absolute left-12 md:left-16 right-2 md:right-3 rounded-md pointer-events-none"
                 style={{
                   top,
                   height,
@@ -236,7 +236,7 @@ export function DayTimeline({
           })}
 
           {/* Event blocks */}
-          <div className="absolute left-16 right-3 top-0 bottom-0">
+          <div className="absolute left-12 md:left-16 right-2 md:right-3 top-0 bottom-0">
             {columns.map((col) =>
               col.events.map((event) => {
                 const pos = getEventPosition(event, date, startHour);
