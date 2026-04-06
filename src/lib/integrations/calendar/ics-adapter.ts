@@ -567,6 +567,22 @@ export async function syncIcsFeed(connectionId: string): Promise<SyncResult> {
         .eq("id", existing.id);
       result.updated++;
     } else {
+      // Check for a matching local event (same title + start time) to avoid duplicates
+      // This handles the case where user created an event locally and added the .ics to their calendar
+      const { data: localDupe } = await supabase
+        .from("calendar_events")
+        .select("id")
+        .eq("title", event.summary)
+        .eq("start_time", event.startDate.toISOString())
+        .is("connection_id", null)
+        .limit(1)
+        .single();
+
+      if (localDupe) {
+        // Replace the local event with the synced version
+        await supabase.from("calendar_events").delete().eq("id", localDupe.id);
+      }
+
       await supabase.from("calendar_events").insert(eventData);
       result.added++;
     }
