@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { Task, Workspace, UserSettings } from "@/types/database";
+import { Task, Workspace, UserSettings, Project } from "@/types/database";
 import { TaskItem } from "@/components/tasks/task-item";
 import { AddTaskForm } from "@/components/tasks/add-task-form";
 import { EditTaskDialog } from "@/components/tasks/edit-task-dialog";
@@ -41,8 +41,9 @@ function DashboardContent() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [settings, setSettings] = useState<UserSettings | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [showBacklog, setShowBacklog] = useState(false);
+  const [showBacklog, setShowBacklog] = useState(true);
   const [showCompleted, setShowCompleted] = useState(false);
   const [showRitual, setShowRitual] = useState(false);
   const [showShutdown, setShowShutdown] = useState(false);
@@ -53,13 +54,15 @@ function DashboardContent() {
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
-    const [{ data: ws }, { data: t }, { data: s }] = await Promise.all([
+    const [{ data: ws }, { data: t }, { data: s }, { data: p }] = await Promise.all([
       supabase.from("workspaces").select("*").order("name"),
       supabase.from("tasks").select("*").order("position", { ascending: true }),
       supabase.from("user_settings").select("*").limit(1).single(),
+      supabase.from("projects").select("*").order("name"),
     ]);
     setWorkspaces(ws || []);
     setTasks(t || []);
+    setProjects(p || []);
     setSettings(s || null);
     setLoading(false);
 
@@ -97,6 +100,7 @@ function DashboardContent() {
   }, [searchParams, tasks, router]);
 
   const workspaceMap = Object.fromEntries(workspaces.map((w) => [w.id, w]));
+  const projectMap = Object.fromEntries(projects.map((p) => [p.id, p]));
   const todayStr = today();
   const hasActiveFilters = filterWorkspace !== "all" || filterPriority !== "all";
 
@@ -282,7 +286,7 @@ function DashboardContent() {
               <p className="text-[11px] font-medium uppercase text-muted-foreground pt-2 pb-1">Focus</p>
               {focusTasks.map((task) => (
                 <TaskItem
-                  key={task.id} task={task} workspace={workspaceMap[task.workspace_id]}
+                  key={task.id} task={task} workspace={workspaceMap[task.workspace_id]} project={task.project_id ? projectMap[task.project_id] : undefined}
                   onToggle={handleToggle} onDelete={handleDelete} onEdit={setEditingTask}
                 />
               ))}
@@ -297,13 +301,13 @@ function DashboardContent() {
               </p>
               {overdueTasks.filter((t) => !focusTasks.includes(t) && !nonFocusPlanned.includes(t)).map((task) => (
                 <TaskItem
-                  key={task.id} task={task} workspace={workspaceMap[task.workspace_id]}
+                  key={task.id} task={task} workspace={workspaceMap[task.workspace_id]} project={task.project_id ? projectMap[task.project_id] : undefined}
                   onToggle={handleToggle} onDelete={handleDelete} onEdit={setEditingTask}
                 />
               ))}
               {nonFocusPlanned.map((task) => (
                 <TaskItem
-                  key={task.id} task={task} workspace={workspaceMap[task.workspace_id]}
+                  key={task.id} task={task} workspace={workspaceMap[task.workspace_id]} project={task.project_id ? projectMap[task.project_id] : undefined}
                   onToggle={handleToggle} onDelete={handleDelete} onEdit={setEditingTask}
                 />
               ))}
@@ -350,7 +354,7 @@ function DashboardContent() {
                 <div className="mt-1">
                   {completedToday.map((task) => (
                     <TaskItem
-                      key={task.id} task={task} workspace={workspaceMap[task.workspace_id]}
+                      key={task.id} task={task} workspace={workspaceMap[task.workspace_id]} project={task.project_id ? projectMap[task.project_id] : undefined}
                       onToggle={handleToggle} onDelete={handleDelete} onEdit={setEditingTask}
                     />
                   ))}
@@ -373,7 +377,7 @@ function DashboardContent() {
                 <div className="mt-1">
                   {backlog.map((task) => (
                     <TaskItem
-                      key={task.id} task={task} workspace={workspaceMap[task.workspace_id]}
+                      key={task.id} task={task} workspace={workspaceMap[task.workspace_id]} project={task.project_id ? projectMap[task.project_id] : undefined}
                       onToggle={handleToggle} onDelete={handleDelete} onEdit={setEditingTask}
                     />
                   ))}
@@ -388,6 +392,7 @@ function DashboardContent() {
       <EditTaskDialog
         task={editingTask}
         workspaces={workspaces}
+        projects={projects}
         open={!!editingTask}
         onClose={() => setEditingTask(null)}
         onSave={handleEdit}

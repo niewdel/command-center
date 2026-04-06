@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Task, Workspace } from "@/types/database";
+import { Task, Workspace, Project } from "@/types/database";
 import { cn } from "@/lib/utils";
-import { MoreHorizontal, Pencil, Trash2, Star, ArrowRight } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2, Star, ArrowRight, FolderKanban } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +14,7 @@ import {
 type TaskItemProps = {
   task: Task;
   workspace?: Workspace;
+  project?: Project;
   onToggle: (id: string, done: boolean) => void;
   onDelete: (id: string) => void;
   onEdit: (task: Task) => void;
@@ -31,6 +32,7 @@ function AnimatedCheck() {
 export function TaskItem({
   task,
   workspace,
+  project,
   onToggle,
   onDelete,
   onEdit,
@@ -112,8 +114,18 @@ export function TaskItem({
             </span>
           )}
         </div>
-        {showWorkspace && workspace && (
-          <span className="text-xs text-muted-foreground mt-0.5 block truncate">{workspace.name}</span>
+        {(showWorkspace || project) && (
+          <div className="flex items-center gap-2 mt-0.5">
+            {showWorkspace && workspace && (
+              <span className="text-xs text-muted-foreground truncate">{workspace.name}</span>
+            )}
+            {project && (
+              <span className="inline-flex items-center gap-1 text-[11px] text-primary/70 bg-primary/8 px-1.5 py-0.5 rounded">
+                <FolderKanban className="size-2.5" />
+                {project.name}
+              </span>
+            )}
+          </div>
         )}
       </div>
 

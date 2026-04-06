@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Task, Workspace } from "@/types/database";
+import { Task, Workspace, Project } from "@/types/database";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 type EditTaskDialogProps = {
   task: Task | null;
   workspaces: Workspace[];
+  projects?: Project[];
   open: boolean;
   onClose: () => void;
   onSave: (id: string, updates: Partial<Task>) => void;
@@ -36,6 +37,7 @@ type EditTaskDialogProps = {
 export function EditTaskDialog({
   task,
   workspaces,
+  projects,
   open,
   onClose,
   onSave,
@@ -48,6 +50,7 @@ export function EditTaskDialog({
   const [dueDate, setDueDate] = useState("");
   const [plannedDate, setPlannedDate] = useState("");
   const [estimateMinutes, setEstimateMinutes] = useState<number | null>(null);
+  const [projectId, setProjectId] = useState<string>("none");
   const [isRecurring, setIsRecurring] = useState(false);
   const [recFrequency, setRecFrequency] = useState<RecurrenceRule["frequency"]>("daily");
   const [recInterval, setRecInterval] = useState(1);
@@ -63,6 +66,7 @@ export function EditTaskDialog({
       setDueDate(task.due_date || "");
       setPlannedDate(task.planned_date || "");
       setEstimateMinutes(task.estimated_minutes);
+      setProjectId(task.project_id || "none");
       setIsRecurring(task.is_recurring);
       const rule = parseRecurrenceRule(task.recurrence_rule);
       if (rule) {
@@ -93,6 +97,7 @@ export function EditTaskDialog({
       title: title.trim(),
       description: description || null,
       workspace_id: workspaceId,
+      project_id: projectId !== "none" ? projectId : null,
       priority: priority as Task["priority"],
       status: status as Task["status"],
       due_date: dueDate || null,
@@ -169,6 +174,28 @@ export function EditTaskDialog({
               </Select>
             </div>
           </div>
+          {projects && projects.length > 0 && (
+            <div className="space-y-2">
+              <Label className="text-xs font-medium text-muted-foreground uppercase">
+                Project
+              </Label>
+              <Select value={projectId} onValueChange={(v) => setProjectId(v || "none")}>
+                <SelectTrigger className="bg-background/50 border-border/50 rounded-lg">
+                  <SelectValue placeholder="No project" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-border rounded-lg">
+                  <SelectItem value="none" className="rounded-lg">No project</SelectItem>
+                  {projects
+                    .filter((p) => p.workspace_id === workspaceId || p.id === projectId)
+                    .map((p) => (
+                      <SelectItem key={p.id} value={p.id} className="rounded-lg">
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label className="text-xs font-medium text-muted-foreground uppercase">

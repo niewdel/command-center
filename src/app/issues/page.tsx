@@ -90,12 +90,12 @@ export default function IssuesPage() {
 
     const entities: LinkableEntity[] = [
       // Pages
-      { type: "page", id: "dashboard", label: "Dashboard" },
-      { type: "page", id: "inbox", label: "Inbox" },
-      { type: "page", id: "calendar", label: "Calendar" },
-      { type: "page", id: "goals", label: "Goals" },
-      { type: "page", id: "notes", label: "Notes" },
-      { type: "page", id: "digests", label: "Digests" },
+      { type: "page", id: "dashboard", label: "Today (Dashboard)" },
+      { type: "page", id: "upcoming", label: "This Week" },
+      { type: "page", id: "dump", label: "Task Dump" },
+      { type: "page", id: "expenses", label: "Expenses" },
+      { type: "page", id: "videos", label: "Videos" },
+      { type: "page", id: "news", label: "News" },
       { type: "page", id: "settings", label: "Settings" },
       { type: "page", id: "issues", label: "Issues" },
       // Dynamic entities

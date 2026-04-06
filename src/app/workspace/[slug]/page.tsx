@@ -124,6 +124,8 @@ export default function WorkspacePage() {
     });
   const doneTasks = tasks.filter((t) => t.status === "done");
 
+  const projectMap = Object.fromEntries(projects.map((p) => [p.id, p]));
+
   const tabs: { id: Tab; label: string; icon: React.ReactNode; count: number }[] = [
     { id: "tasks", label: "Tasks", icon: <ListTodo className="size-3.5" />, count: activeTasks.length },
     { id: "projects", label: "Projects", icon: <FolderKanban className="size-3.5" />, count: projects.length },
@@ -253,6 +255,7 @@ export default function WorkspacePage() {
                       <TaskItem
                         key={task.id}
                         task={task}
+                        project={task.project_id ? projectMap[task.project_id] : undefined}
                         onToggle={handleToggle}
                         onDelete={handleDelete}
                         onEdit={setEditingTask}
@@ -309,6 +312,7 @@ export default function WorkspacePage() {
       <EditTaskDialog
         task={editingTask}
         workspaces={allWorkspaces}
+        projects={projects}
         open={!!editingTask}
         onClose={() => setEditingTask(null)}
         onSave={handleEdit}

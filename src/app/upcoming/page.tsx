@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
-import { Task, Workspace } from "@/types/database";
+import { Task, Workspace, Project } from "@/types/database";
 import { TaskItem } from "@/components/tasks/task-item";
 import { EditTaskDialog } from "@/components/tasks/edit-task-dialog";
 import { cn } from "@/lib/utils";
@@ -30,20 +30,23 @@ function formatDayLabel(dateStr: string) {
 export default function UpcomingPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
-    const [{ data: t }, { data: w }] = await Promise.all([
+    const [{ data: t }, { data: w }, { data: p }] = await Promise.all([
       supabase
         .from("tasks")
         .select("*")
         .neq("status", "done")
         .order("position", { ascending: true }),
       supabase.from("workspaces").select("*").order("name"),
+      supabase.from("projects").select("*").order("name"),
     ]);
     setTasks(t || []);
     setWorkspaces(w || []);
+    setProjects(p || []);
     setLoading(false);
   }, []);
 
@@ -61,6 +64,7 @@ export default function UpcomingPage() {
   }, [fetchData]);
 
   const workspaceMap = Object.fromEntries(workspaces.map((w) => [w.id, w]));
+  const projectMap = Object.fromEntries(projects.map((p) => [p.id, p]));
 
   // Build 7-day view
   const days = Array.from({ length: 7 }, (_, i) => getDateStr(i));
@@ -133,6 +137,7 @@ export default function UpcomingPage() {
                 key={task.id}
                 task={task}
                 workspace={workspaceMap[task.workspace_id]}
+                project={task.project_id ? projectMap[task.project_id] : undefined}
                 onToggle={handleToggle}
                 onDelete={handleDelete}
                 onEdit={setEditingTask}
@@ -186,6 +191,7 @@ export default function UpcomingPage() {
       <EditTaskDialog
         task={editingTask}
         workspaces={workspaces}
+        projects={projects}
         open={!!editingTask}
         onClose={() => setEditingTask(null)}
         onSave={handleEdit}

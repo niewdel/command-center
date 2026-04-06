@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { PageLayout } from "@/components/layout/page-layout";
 import { SkeletonPage } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { Play, Plus, Search, ExternalLink, Clock, CheckCircle2, XCircle, Loader2, Camera, RefreshCw, Copy, Check } from "lucide-react";
+import { Play, Plus, Search, ExternalLink, Clock, CheckCircle2, XCircle, Loader2, Camera, RefreshCw, Copy, Check, Trash2 } from "lucide-react";
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
@@ -165,7 +165,6 @@ function VideosContent() {
       <div className="space-y-3">
         <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" /><Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search guides, tags, URLs..." className="pl-10 bg-card border-border rounded h-10" /></div>
         <div className="flex gap-2 flex-wrap">{["all", "completed", "processing", "queued", "failed"].map((s) => (<button key={s} onClick={() => setFilterStatus(s)} className={cn("px-3 py-1.5 rounded text-xs font-medium transition-colors", filterStatus === s ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground")}>{s.charAt(0).toUpperCase() + s.slice(1)}</button>))}</div>
-        {allTags.length > 0 && (<div className="flex gap-1.5 flex-wrap"><button onClick={() => setFilterTag("all")} className={cn("px-2 py-1 rounded text-[11px] font-medium transition-colors", filterTag === "all" ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground")}>All tags</button>{allTags.map((tag) => (<button key={tag} onClick={() => setFilterTag(tag)} className={cn("px-2 py-1 rounded text-[11px] font-medium transition-colors", filterTag === tag ? "bg-primary/20 text-primary" : "bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground")}>{tag}</button>))}</div>)}
       </div>
 
       {filtered.length === 0 ? (
@@ -177,12 +176,12 @@ function VideosContent() {
               {digest.thumbnail_url ? (<div className="hidden sm:block shrink-0 w-24 h-16 rounded overflow-hidden bg-muted"><img src={digest.thumbnail_url} alt="" className="w-full h-full object-cover" /></div>) : (<div className="hidden sm:flex shrink-0 w-24 h-16 rounded bg-muted/50 items-center justify-center">{sourceIcon(digest.source)}</div>)}
               <div className="flex-1 min-w-0 space-y-1.5">
                 <div className="flex items-center gap-2">{statusIcon(digest.status)}{sourceIcon(digest.source)}<h3 className="text-sm font-semibold truncate flex-1">{digest.title || digest.url}</h3>{getVerdictBadge(digest.guide)}</div>
-                {digest.tags && digest.tags.length > 0 && (<div className="flex gap-1 flex-wrap">{digest.tags.slice(0, 5).map((tag) => (<Badge key={tag} variant="secondary" className="text-[10px] px-1.5 py-0 rounded bg-muted/50">{tag}</Badge>))}</div>)}
                 <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
                   <span className="font-mono">{new Date(digest.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</span>
                   {digest.status === "failed" && digest.error_message && (<><span className="text-border">|</span><span className="text-red-400 truncate max-w-[200px]">{digest.error_message}</span><button onClick={(e) => { e.stopPropagation(); handleRetry(digest.id); }} className="ml-1 text-primary hover:text-primary/80 flex items-center gap-1"><RefreshCw className="h-3 w-3" />Retry</button><button onClick={(e) => { e.stopPropagation(); handleDiscard(digest.id); }} className="ml-1 text-red-400 hover:text-red-300 flex items-center gap-1"><XCircle className="h-3 w-3" />Discard</button></>)}
                   {digest.status === "processing" && (<><span className="text-border">|</span><span className="text-primary">Processing...</span></>)}
                   {digest.status === "queued" && (<><span className="text-border">|</span><span className="text-yellow-400">In queue</span><button onClick={(e) => { e.stopPropagation(); handleDiscard(digest.id); }} className="ml-1 text-red-400 hover:text-red-300 flex items-center gap-1"><XCircle className="h-3 w-3" />Discard</button></>)}
+                  {(digest.status === "completed" || digest.status === "queued") && (<><span className="text-border">|</span><button onClick={(e) => { e.stopPropagation(); handleDiscard(digest.id); }} className="text-red-400 hover:text-red-300 flex items-center gap-1"><Trash2 className="h-3 w-3" />Delete</button></>)}
                 </div>
               </div>
               <a href={digest.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="shrink-0 p-2 rounded text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors opacity-0 group-hover:opacity-100"><ExternalLink className="size-4" /></a>
@@ -193,7 +192,7 @@ function VideosContent() {
 
       <Dialog open={!!selectedDigest} onOpenChange={() => setSelectedDigest(null)}>
         <DialogContent className="sm:max-w-[750px] max-h-[90dvh] h-[90dvh] sm:h-auto overflow-y-auto bg-card border-border rounded shadow-md mx-2 sm:mx-auto">
-          {selectedDigest && (<><DialogHeader><div className="flex items-center gap-2 mb-1">{sourceIcon(selectedDigest.source)}<DialogTitle className="text-lg leading-snug">{selectedDigest.title}</DialogTitle></div><div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap"><a href={selectedDigest.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 flex items-center gap-1"><ExternalLink className="h-3 w-3" />Original video</a><span className="text-border">|</span><span className="font-mono">{new Date(selectedDigest.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>{getVerdictBadge(selectedDigest.guide)}</div>{selectedDigest.tags && selectedDigest.tags.length > 0 && (<div className="flex gap-1.5 flex-wrap pt-2">{selectedDigest.tags.map((tag) => (<Badge key={tag} variant="secondary" className="text-[11px] px-2 py-0.5 rounded">{tag}</Badge>))}</div>)}</DialogHeader><div className="pt-2"><MarkdownRenderer content={selectedDigest.guide || ""} /></div></>)}
+          {selectedDigest && (<><DialogHeader><div className="flex items-center gap-2 mb-1">{sourceIcon(selectedDigest.source)}<DialogTitle className="text-lg leading-snug">{selectedDigest.title}</DialogTitle></div><div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap"><a href={selectedDigest.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 flex items-center gap-1"><ExternalLink className="h-3 w-3" />Original video</a><span className="text-border">|</span><span className="font-mono">{new Date(selectedDigest.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>{getVerdictBadge(selectedDigest.guide)}</div></DialogHeader><div className="pt-2"><MarkdownRenderer content={selectedDigest.guide || ""} /></div></>)}
         </DialogContent>
       </Dialog>
 

@@ -294,6 +294,7 @@ export default function ProjectDetailPage() {
       <EditTaskDialog
         task={editingTask}
         workspaces={allWorkspaces}
+        projects={[project].filter(Boolean) as Project[]}
         open={!!editingTask}
         onClose={() => setEditingTask(null)}
         onSave={handleEdit}

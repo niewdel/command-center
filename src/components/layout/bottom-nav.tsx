@@ -23,10 +23,10 @@ import { Workspace } from "@/types/database";
 const mainTabs = [
   { name: "Today", href: "/dashboard", icon: LayoutDashboard },
   { name: "This Week", href: "/upcoming", icon: CalendarDays },
+  { name: "Task Dump", href: "/dump", icon: Zap },
 ];
 
 const moreItems = [
-  { name: "Dump", href: "/dump", icon: Zap },
   { name: "Expenses", href: "/expenses", icon: DollarSign },
   { name: "Videos", href: "/videos", icon: Play },
   { name: "News", href: "/news", icon: Newspaper },
