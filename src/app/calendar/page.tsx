@@ -142,14 +142,29 @@ export default function CalendarPage() {
     return () => { supabase.removeChannel(channel); };
   }, [fetchData]);
 
-  // Auto-sync
+  // Auto-sync on load (deferred) + on tab focus
   useEffect(() => {
     const triggerSync = () => {
       fetch("/api/integrations/calendar/sync-all", { method: "POST" }).catch(() => {});
     };
-    const initialTimeout = setTimeout(triggerSync, 3000);
-    const interval = setInterval(triggerSync, 10 * 60 * 1000);
-    return () => { clearTimeout(initialTimeout); clearInterval(interval); };
+    // Defer initial sync to avoid blocking render
+    let idleId: number | undefined;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    if ("requestIdleCallback" in window) {
+      idleId = requestIdleCallback(() => triggerSync());
+    } else {
+      timeout = setTimeout(triggerSync, 1000);
+    }
+    // Re-sync when user returns to tab instead of polling
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") triggerSync();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      if (idleId !== undefined) cancelIdleCallback(idleId);
+      if (timeout) clearTimeout(timeout);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
   }, []);
 
   // Routine blocks for selected date

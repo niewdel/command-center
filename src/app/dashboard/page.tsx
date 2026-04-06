@@ -100,8 +100,17 @@ function DashboardContent() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch weather (Charlotte, NC — Open-Meteo, no API key needed)
+  // Fetch weather (Charlotte, NC — Open-Meteo, no API key needed) — cached 1 hour
   useEffect(() => {
+    const CACHE_KEY = "cc-weather";
+    const CACHE_TTL = 60 * 60 * 1000; // 1 hour
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (cached) {
+      try {
+        const { data: w, ts } = JSON.parse(cached);
+        if (Date.now() - ts < CACHE_TTL) { setWeather(w); return; }
+      } catch { /* ignore bad cache */ }
+    }
     const fetchWeather = async () => {
       try {
         const res = await fetch(
@@ -112,7 +121,9 @@ function DashboardContent() {
         const temp = Math.round(data.current?.temperature_2m ?? 0);
         const desc = weatherCodeToDescription(code);
         const icon = weatherCodeToIcon(code);
-        setWeather({ temp, description: desc, icon });
+        const w = { temp, description: desc, icon };
+        setWeather(w);
+        localStorage.setItem(CACHE_KEY, JSON.stringify({ data: w, ts: Date.now() }));
       } catch {
         // Silently fail — weather is nice to have, not critical
       }
@@ -160,11 +171,17 @@ function DashboardContent() {
     if (!hasPlanned) setShowBacklog(true);
   }, []);
 
+  // Lightweight task-only refetch for realtime updates
+  const refetchTasks = useCallback(async () => {
+    const { data: t } = await supabase.from("tasks").select("*").order("position", { ascending: true });
+    setTasks(t || []);
+  }, []);
+
   useEffect(() => {
     fetchData();
     const channel = supabase
       .channel("tasks-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, () => fetchData())
+      .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, () => refetchTasks())
       .subscribe();
     const handleVisibility = () => {
       if (document.visibilityState === "visible") fetchData();
@@ -174,15 +191,20 @@ function DashboardContent() {
       supabase.removeChannel(channel);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [fetchData]);
+  }, [fetchData, refetchTasks]);
 
-  // Auto-sync calendars on dashboard load
+  // Auto-sync calendars on dashboard load (deferred to avoid blocking)
   useEffect(() => {
     const triggerSync = () => {
       fetch("/api/integrations/calendar/sync-all", { method: "POST" }).catch(() => {});
     };
-    const timeout = setTimeout(triggerSync, 2000);
-    return () => clearTimeout(timeout);
+    if ("requestIdleCallback" in window) {
+      const id = requestIdleCallback(() => triggerSync());
+      return () => cancelIdleCallback(id);
+    } else {
+      const timeout = setTimeout(triggerSync, 1000);
+      return () => clearTimeout(timeout);
+    }
   }, []);
 
   useEffect(() => {

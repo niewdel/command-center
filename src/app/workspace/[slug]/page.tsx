@@ -48,28 +48,18 @@ function WorkspaceContent() {
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
-    // Fetch workspace by slug and all workspaces in parallel
-    const [{ data: ws }, { data: allWs }] = await Promise.all([
+    // Fetch everything in a single parallel batch
+    const [{ data: ws }, { data: allWs }, { data: allTasks }, { data: allProjects }] = await Promise.all([
       supabase.from("workspaces").select("*").eq("slug", slug).single(),
       supabase.from("workspaces").select("*").order("name"),
+      supabase.from("tasks").select("*").order("created_at", { ascending: false }),
+      supabase.from("projects").select("*").order("created_at", { ascending: false }),
     ]);
 
     if (ws) {
       setWorkspace(ws);
-      const [{ data: t }, { data: p }] = await Promise.all([
-        supabase
-          .from("tasks")
-          .select("*")
-          .eq("workspace_id", ws.id)
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("projects")
-          .select("*")
-          .eq("workspace_id", ws.id)
-          .order("created_at", { ascending: false }),
-      ]);
-      setTasks(t || []);
-      setProjects(p || []);
+      setTasks((allTasks || []).filter((t) => t.workspace_id === ws.id));
+      setProjects((allProjects || []).filter((p) => p.workspace_id === ws.id));
     }
     setAllWorkspaces(allWs || []);
     setLoading(false);

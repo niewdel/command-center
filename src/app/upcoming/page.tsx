@@ -96,8 +96,17 @@ export default function UpcomingPage() {
     setLoading(false);
   }, []);
 
-  // Fetch 7-day weather forecast
+  // Fetch 7-day weather forecast — cached 1 hour
   useEffect(() => {
+    const CACHE_KEY = "cc-forecast-7d";
+    const CACHE_TTL = 60 * 60 * 1000;
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (cached) {
+      try {
+        const { data: f, ts } = JSON.parse(cached);
+        if (Date.now() - ts < CACHE_TTL) { setForecast(f); return; }
+      } catch { /* ignore */ }
+    }
     const fetchForecast = async () => {
       try {
         const res = await fetch(
@@ -114,6 +123,7 @@ export default function UpcomingPage() {
             })
           );
           setForecast(days);
+          localStorage.setItem(CACHE_KEY, JSON.stringify({ data: days, ts: Date.now() }));
         }
       } catch {
         // Weather is nice-to-have
