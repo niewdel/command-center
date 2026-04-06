@@ -91,7 +91,7 @@ export function QuickAddDialog({ open, onClose }: QuickAddDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[420px] bg-card border-border rounded-2xl shadow-md">
+      <DialogContent className="sm:max-w-[420px] max-h-[85dvh] overflow-y-auto bg-card border-border rounded-2xl shadow-md">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold">Quick Add Task</DialogTitle>
         </DialogHeader>
@@ -112,7 +112,9 @@ export function QuickAddDialog({ open, onClose }: QuickAddDialogProps) {
               </Label>
               <Select value={workspaceId} onValueChange={(v) => v && setWorkspaceId(v)}>
                 <SelectTrigger className="bg-background/50 border-border/50 rounded-lg">
-                  <SelectValue placeholder="Workspace" />
+                  <SelectValue placeholder="Workspace">
+                    {workspaces.find((ws) => ws.id === workspaceId)?.name ?? "Workspace"}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent className="bg-popover border-border rounded-lg">
                   {workspaces.map((ws) => (

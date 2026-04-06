@@ -94,7 +94,9 @@ export function AddTaskForm({
         {!defaultWorkspaceId && (
           <Select value={workspaceId} onValueChange={(v) => v && setWorkspaceId(v)}>
             <SelectTrigger className="w-[140px] bg-background/50 border-border/50 rounded-lg h-9 text-xs">
-              <SelectValue placeholder="Workspace" />
+              <SelectValue placeholder="Workspace">
+                {workspaces.find((ws) => ws.id === workspaceId)?.name ?? "Workspace"}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent className="bg-popover border-border rounded-lg">
               {workspaces.map((ws) => (

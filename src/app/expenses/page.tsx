@@ -238,7 +238,7 @@ export default function ExpensesPage() {
 
       {/* Add/Edit Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="sm:max-w-[400px] bg-card border-border rounded shadow-md">
+        <DialogContent className="sm:max-w-[400px] max-h-[85dvh] overflow-y-auto bg-card border-border rounded shadow-md">
           <DialogHeader>
             <DialogTitle>{editingExpense ? "Edit Expense" : "Add Expense"}</DialogTitle>
           </DialogHeader>

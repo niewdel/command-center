@@ -111,7 +111,7 @@ export function EditTaskDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[460px] bg-card border-border rounded-2xl shadow-md">
+      <DialogContent className="sm:max-w-[460px] max-h-[85dvh] overflow-y-auto bg-card border-border rounded-2xl shadow-md">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold">Edit Task</DialogTitle>
         </DialogHeader>
@@ -146,7 +146,9 @@ export function EditTaskDialog({
               </Label>
               <Select value={workspaceId} onValueChange={(v) => v && setWorkspaceId(v)}>
                 <SelectTrigger className="bg-background/50 border-border/50 rounded-lg">
-                  <SelectValue />
+                  <SelectValue placeholder="Select workspace">
+                    {workspaces.find((ws) => ws.id === workspaceId)?.name ?? "Select workspace"}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent className="bg-popover border-border rounded-lg">
                   {workspaces.map((ws) => (

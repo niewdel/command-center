@@ -471,7 +471,7 @@ function IssueDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] bg-card border-border rounded-lg shadow-md">
+      <DialogContent className="sm:max-w-[500px] max-h-[85dvh] overflow-y-auto bg-card border-border rounded-lg shadow-md">
         <DialogHeader>
           <DialogTitle>{issue ? "Edit Issue" : "New Issue"}</DialogTitle>
         </DialogHeader>

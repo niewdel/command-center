@@ -98,7 +98,7 @@ export async function analyzeTranscript(
   videoUrl: string,
   anthropicApiKey: string,
   userContext?: string | null
-): Promise<{ guide: string; tags: string[] }> {
+): Promise<{ guide: string; tags: string[]; generatedTitle: string | null }> {
   const client = new Anthropic({ apiKey: anthropicApiKey });
 
   const message = await client.messages.create({
@@ -122,6 +122,10 @@ ${transcript}`,
   const guide =
     message.content[0].type === "text" ? message.content[0].text : "";
 
+  // Extract the AI-generated title from the first # heading in the guide
+  const titleMatch = guide.match(/^# (.+)$/m);
+  const generatedTitle = titleMatch ? titleMatch[1].trim().replace(/^—\s*/, "") : null;
+
   // Extract tags from the guide — look for the Tags section
   const tagsMatch = guide.match(/## Tags\n+(.+)/);
   const tags = tagsMatch
@@ -131,5 +135,5 @@ ${transcript}`,
         .filter(Boolean)
     : [];
 
-  return { guide, tags };
+  return { guide, tags, generatedTitle };
 }

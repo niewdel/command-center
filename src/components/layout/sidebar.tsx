@@ -400,7 +400,7 @@ function WorkspaceDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[440px] bg-card border-border rounded-lg shadow-md">
+      <DialogContent className="sm:max-w-[440px] max-h-[85dvh] overflow-y-auto bg-card border-border rounded-lg shadow-md">
         <DialogHeader>
           <DialogTitle>{workspace ? "Edit Workspace" : "New Workspace"}</DialogTitle>
         </DialogHeader>

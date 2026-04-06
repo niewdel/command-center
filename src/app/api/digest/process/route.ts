@@ -125,12 +125,18 @@ export async function POST(request: NextRequest) {
         userContext
       );
 
+      // Use AI-generated title for generic titles (e.g. "Instagram Reel")
+      const finalTitle =
+        analysis.generatedTitle && (!title || title === "Instagram Reel")
+          ? analysis.generatedTitle
+          : title;
+
       // Update the digest with results
       await supabase
         .from("content_digests")
         .update({
           status: "completed",
-          title,
+          title: finalTitle,
           thumbnail_url,
           transcript,
           guide: analysis.guide,
@@ -148,7 +154,7 @@ export async function POST(request: NextRequest) {
         await sendTelegramReply(
           digest.telegram_chat_id,
           digest.telegram_message_id,
-          `*${title}*\n${shortVerdict}\n\n[Full guide](${appUrl}/videos?id=${digestId})`
+          `*${finalTitle}*\n${shortVerdict}\n\n[Full guide](${appUrl}/videos?id=${digestId})`
         );
       }
 

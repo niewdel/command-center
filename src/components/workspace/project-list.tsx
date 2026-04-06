@@ -228,7 +228,7 @@ function ProjectDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[460px] bg-card border-border rounded-2xl shadow-md">
+      <DialogContent className="sm:max-w-[460px] max-h-[85dvh] overflow-y-auto bg-card border-border rounded-2xl shadow-md">
         <DialogHeader>
           <DialogTitle>{project ? "Edit Project" : "New Project"}</DialogTitle>
         </DialogHeader>
