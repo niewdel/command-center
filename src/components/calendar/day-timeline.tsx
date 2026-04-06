@@ -11,6 +11,7 @@ type DayTimelineProps = {
   date: Date;
   startHour?: number;
   endHour?: number;
+  onEventClick?: (event: CalendarEvent) => void;
 };
 
 const HOUR_HEIGHT = 64; // px per hour
@@ -65,6 +66,7 @@ export function DayTimeline({
   date,
   startHour = 6,
   endHour = 22,
+  onEventClick,
 }: DayTimelineProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const nowRef = useRef<HTMLDivElement>(null);
@@ -151,7 +153,8 @@ export function DayTimeline({
             {allDayEvents.map((event) => (
               <div
                 key={event.id}
-                className="flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium"
+                onClick={() => onEventClick?.(event)}
+                className="flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium cursor-pointer hover:brightness-125"
                 style={{
                   backgroundColor: `${event.color || "#3b82f6"}18`,
                   color: event.color || "#3b82f6",
@@ -211,9 +214,10 @@ export function DayTimeline({
                 return (
                   <div
                     key={event.id}
+                    onClick={() => !isTask && onEventClick?.(event)}
                     className={cn(
-                      "absolute rounded-md overflow-hidden transition-colors cursor-default group",
-                      "hover:brightness-110",
+                      "absolute rounded-md overflow-hidden transition-colors group",
+                      onEventClick && !isTask ? "cursor-pointer hover:brightness-125" : "cursor-default hover:brightness-110",
                       isTask && "border border-dashed border-current/20"
                     )}
                     style={{

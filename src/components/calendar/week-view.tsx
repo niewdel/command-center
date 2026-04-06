@@ -8,6 +8,7 @@ type WeekViewProps = {
   events: CalendarEvent[];
   scheduledTasks?: Task[];
   weekStart: Date;
+  onEventClick?: (event: CalendarEvent) => void;
 };
 
 function getDayEvents(events: CalendarEvent[], date: Date) {
@@ -46,7 +47,7 @@ function formatTime(iso: string) {
   });
 }
 
-export function WeekView({ events, scheduledTasks = [], weekStart }: WeekViewProps) {
+export function WeekView({ events, scheduledTasks = [], weekStart, onEventClick }: WeekViewProps) {
   const days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(weekStart);
     d.setDate(d.getDate() + i);
@@ -108,7 +109,8 @@ export function WeekView({ events, scheduledTasks = [], weekStart }: WeekViewPro
               {allDayEvents.map((event) => (
                 <div
                   key={event.id}
-                  className="text-[10px] font-medium px-1.5 py-0.5 rounded truncate"
+                  onClick={() => onEventClick?.(event)}
+                  className="text-[10px] font-medium px-1.5 py-0.5 rounded truncate cursor-pointer hover:brightness-125"
                   style={{
                     backgroundColor: `${event.color || "#3b82f6"}18`,
                     color: event.color || "#3b82f6",
@@ -123,7 +125,8 @@ export function WeekView({ events, scheduledTasks = [], weekStart }: WeekViewPro
               {timedEvents.map((event) => (
                 <div
                   key={event.id}
-                  className="rounded px-1.5 py-1 group"
+                  onClick={() => onEventClick?.(event)}
+                  className="rounded px-1.5 py-1 group cursor-pointer hover:brightness-125"
                   style={{
                     backgroundColor: `${event.color || "#3b82f6"}10`,
                     borderLeft: `2px solid ${event.color || "#3b82f6"}`,

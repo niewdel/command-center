@@ -105,6 +105,15 @@ function DashboardContent() {
     };
   }, [fetchData]);
 
+  // Auto-sync calendars on dashboard load
+  useEffect(() => {
+    const triggerSync = () => {
+      fetch("/api/integrations/calendar/sync-all", { method: "POST" }).catch(() => {});
+    };
+    const timeout = setTimeout(triggerSync, 2000);
+    return () => clearTimeout(timeout);
+  }, []);
+
   useEffect(() => {
     const taskId = searchParams.get("task");
     if (taskId && tasks.length > 0) {

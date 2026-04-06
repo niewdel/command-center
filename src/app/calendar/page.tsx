@@ -6,6 +6,7 @@ import { CalendarEvent, CalendarConnection, Task } from "@/types/database";
 import { PageLayout } from "@/components/layout/page-layout";
 import { DayTimeline } from "@/components/calendar/day-timeline";
 import { WeekView } from "@/components/calendar/week-view";
+import { EventDetail } from "@/components/calendar/event-detail";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { CalendarDays, ChevronLeft, ChevronRight, LayoutList, Grid3X3 } from "lucide-react";
@@ -40,6 +41,7 @@ export default function CalendarPage() {
   const [scheduledTasks, setScheduledTasks] = useState<Task[]>([]);
   const [connections, setConnections] = useState<CalendarConnection[]>([]);
   const [visibleConnectionIds, setVisibleConnectionIds] = useState<Set<string>>(new Set());
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [loading, setLoading] = useState(true);
 
   const weekStart = useMemo(() => {
@@ -119,6 +121,22 @@ export default function CalendarPage() {
       supabase.removeChannel(channel);
     };
   }, [fetchData]);
+
+  // Auto-sync calendars on mount and every 10 minutes
+  useEffect(() => {
+    const triggerSync = () => {
+      fetch("/api/integrations/calendar/sync-all", { method: "POST" }).catch(
+        () => {}
+      );
+    };
+    // Sync on mount (slight delay to not block initial render)
+    const initialTimeout = setTimeout(triggerSync, 3000);
+    const interval = setInterval(triggerSync, 10 * 60 * 1000);
+    return () => {
+      clearTimeout(initialTimeout);
+      clearInterval(interval);
+    };
+  }, []);
 
   // Filter events by visible connections
   const filteredEvents = events.filter(
@@ -268,10 +286,17 @@ export default function CalendarPage() {
           </p>
         </div>
       ) : viewMode === "week" ? (
-        <WeekView events={filteredEvents} scheduledTasks={scheduledTasks} weekStart={weekStart} />
+        <WeekView events={filteredEvents} scheduledTasks={scheduledTasks} weekStart={weekStart} onEventClick={setSelectedEvent} />
       ) : (
-        <DayTimeline events={filteredEvents} scheduledTasks={scheduledTasks} date={selectedDate} />
+        <DayTimeline events={filteredEvents} scheduledTasks={scheduledTasks} date={selectedDate} onEventClick={setSelectedEvent} />
       )}
+
+      {/* Event detail dialog */}
+      <EventDetail
+        event={selectedEvent}
+        open={!!selectedEvent}
+        onClose={() => setSelectedEvent(null)}
+      />
     </PageLayout>
   );
 }
