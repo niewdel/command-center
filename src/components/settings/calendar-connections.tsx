@@ -191,12 +191,29 @@ export function CalendarConnections() {
                 </p>
                 <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
                   <span className="capitalize">{conn.provider}</span>
-                  {conn.workspace_id && (
-                    <>
-                      <span className="text-border">|</span>
-                      <span>{workspaces.find((w) => w.id === conn.workspace_id)?.name}</span>
-                    </>
-                  )}
+                  <span className="text-border">|</span>
+                  <select
+                    value={conn.workspace_id || "none"}
+                    onChange={async (e) => {
+                      const wsId = e.target.value === "none" ? null : e.target.value;
+                      await supabase
+                        .from("calendar_connections")
+                        .update({ workspace_id: wsId })
+                        .eq("id", conn.id);
+                      // Also update events for this connection
+                      await supabase
+                        .from("calendar_events")
+                        .update({ workspace_id: wsId })
+                        .eq("connection_id", conn.id);
+                      fetchConnections();
+                    }}
+                    className="bg-transparent border-none text-[11px] text-muted-foreground cursor-pointer hover:text-foreground outline-none py-0 pr-4 -mr-2"
+                  >
+                    <option value="none">No workspace</option>
+                    {workspaces.map((ws) => (
+                      <option key={ws.id} value={ws.id}>{ws.name}</option>
+                    ))}
+                  </select>
                   <span className="text-border">|</span>
                   {conn.last_synced_at ? (
                     <span className="flex items-center gap-1">

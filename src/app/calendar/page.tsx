@@ -39,6 +39,7 @@ export default function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [scheduledTasks, setScheduledTasks] = useState<Task[]>([]);
   const [connections, setConnections] = useState<CalendarConnection[]>([]);
+  const [visibleConnectionIds, setVisibleConnectionIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
   const weekStart = useMemo(() => {
@@ -94,6 +95,10 @@ export default function CalendarPage() {
     setEvents(evts || []);
     setScheduledTasks(tasks || []);
     setConnections(conns || []);
+    // Initialize all connections as visible on first load
+    if (visibleConnectionIds.size === 0 && conns && conns.length > 0) {
+      setVisibleConnectionIds(new Set(conns.map((c: CalendarConnection) => c.id)));
+    }
     setLoading(false);
   }, [dateStr, nextDateStr]);
 
@@ -114,6 +119,23 @@ export default function CalendarPage() {
       supabase.removeChannel(channel);
     };
   }, [fetchData]);
+
+  // Filter events by visible connections
+  const filteredEvents = events.filter(
+    (e) => !e.connection_id || visibleConnectionIds.has(e.connection_id)
+  );
+
+  const toggleConnection = (id: string) => {
+    setVisibleConnectionIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
 
   const goToday = () => setSelectedDate(new Date());
   const step = viewMode === "week" ? 7 : 1;
@@ -209,19 +231,28 @@ export default function CalendarPage() {
             ? `${weekStart.toLocaleDateString("en-US", { month: "long", day: "numeric" })} – ${new Date(weekStart.getTime() + 6 * 86400000).toLocaleDateString("en-US", { month: "long", day: "numeric" })}`
             : formatDateHeading(selectedDate)}
         </h2>
-        <div className="flex items-center gap-3">
-          {connections.map((conn) => (
-            <div
-              key={conn.id}
-              className="flex items-center gap-1.5 text-[11px] text-muted-foreground"
-            >
-              <div
-                className="size-2.5 rounded-full"
-                style={{ backgroundColor: conn.color }}
-              />
-              <span>{conn.display_name || conn.account_email}</span>
-            </div>
-          ))}
+        <div className="flex items-center gap-2">
+          {connections.map((conn) => {
+            const isVisible = visibleConnectionIds.has(conn.id);
+            return (
+              <button
+                key={conn.id}
+                onClick={() => toggleConnection(conn.id)}
+                className={cn(
+                  "flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-md transition-colors",
+                  isVisible
+                    ? "text-foreground bg-card/50"
+                    : "text-muted-foreground/40 line-through"
+                )}
+              >
+                <div
+                  className={cn("size-2.5 rounded-full transition-opacity", !isVisible && "opacity-30")}
+                  style={{ backgroundColor: conn.color }}
+                />
+                <span>{conn.display_name || conn.account_email}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -237,9 +268,9 @@ export default function CalendarPage() {
           </p>
         </div>
       ) : viewMode === "week" ? (
-        <WeekView events={events} scheduledTasks={scheduledTasks} weekStart={weekStart} />
+        <WeekView events={filteredEvents} scheduledTasks={scheduledTasks} weekStart={weekStart} />
       ) : (
-        <DayTimeline events={events} scheduledTasks={scheduledTasks} date={selectedDate} />
+        <DayTimeline events={filteredEvents} scheduledTasks={scheduledTasks} date={selectedDate} />
       )}
     </PageLayout>
   );

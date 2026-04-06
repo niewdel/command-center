@@ -47,6 +47,38 @@ function unfoldLines(text: string): string[] {
   return text.replace(/\r\n[ \t]/g, "").replace(/\r/g, "").split("\n");
 }
 
+// Map common TZID values to UTC offset in minutes
+// Outlook uses Windows timezone names, Google uses IANA
+function getTimezoneOffsetMinutes(tzid: string, date: Date): number | null {
+  const month = date.getMonth(); // 0-11
+  // Rough DST: March-November for US timezones
+  const isDST = month >= 2 && month <= 10;
+
+  const tz = tzid.toLowerCase().replace(/\s+/g, " ");
+
+  // Eastern
+  if (tz.includes("eastern") || tz.includes("america/new_york") || tz.includes("us/eastern") || tz.includes("est")) {
+    return isDST ? -240 : -300; // EDT: -4h, EST: -5h
+  }
+  // Central
+  if (tz.includes("central") || tz.includes("america/chicago") || tz.includes("us/central") || tz.includes("cst")) {
+    return isDST ? -300 : -360;
+  }
+  // Mountain
+  if (tz.includes("mountain") || tz.includes("america/denver") || tz.includes("us/mountain") || tz.includes("mst")) {
+    return isDST ? -360 : -420;
+  }
+  // Pacific
+  if (tz.includes("pacific") || tz.includes("america/los_angeles") || tz.includes("us/pacific") || tz.includes("pst")) {
+    return isDST ? -420 : -480;
+  }
+  // UTC/GMT
+  if (tz === "utc" || tz === "gmt" || tz.includes("utc")) {
+    return 0;
+  }
+  return null;
+}
+
 // Parse ICS date formats: 20260406T140000Z or 20260406T140000 or 20260406
 function parseIcsDate(value: string, tzid?: string): { date: Date; isDate: boolean } {
   const clean = value.trim();
@@ -63,31 +95,41 @@ function parseIcsDate(value: string, tzid?: string): { date: Date; isDate: boole
   const match = clean.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(Z?)$/);
   if (match) {
     const [, yr, mo, dy, hr, mn, sc, z] = match;
+    const year = parseInt(yr);
+    const month = parseInt(mo) - 1;
+    const day = parseInt(dy);
+    const hour = parseInt(hr);
+    const minute = parseInt(mn);
+    const second = parseInt(sc);
+
     if (z === "Z") {
+      // Explicit UTC
       return {
-        date: new Date(
-          Date.UTC(
-            parseInt(yr),
-            parseInt(mo) - 1,
-            parseInt(dy),
-            parseInt(hr),
-            parseInt(mn),
-            parseInt(sc)
-          )
-        ),
+        date: new Date(Date.UTC(year, month, day, hour, minute, second)),
         isDate: false,
       };
     }
-    // No Z — treat as local time (or use tzid if provided, but for simplicity use local)
+
+    // Has timezone — convert to UTC using offset
+    if (tzid) {
+      const tempDate = new Date(year, month, day); // just for DST check
+      const offsetMinutes = getTimezoneOffsetMinutes(tzid, tempDate);
+      if (offsetMinutes !== null) {
+        // Create UTC date by subtracting the timezone offset
+        // If event is at 2pm Eastern (UTC-5), that's 7pm UTC = 14:00 - (-300min) = 14:00 + 300min in UTC
+        return {
+          date: new Date(Date.UTC(year, month, day, hour, minute - offsetMinutes, second)),
+          isDate: false,
+        };
+      }
+    }
+
+    // No timezone info — assume America/New_York (Justin's timezone)
+    const localDate = new Date(year, month, day);
+    const isDST = localDate.getMonth() >= 2 && localDate.getMonth() <= 10;
+    const estOffset = isDST ? -240 : -300;
     return {
-      date: new Date(
-        parseInt(yr),
-        parseInt(mo) - 1,
-        parseInt(dy),
-        parseInt(hr),
-        parseInt(mn),
-        parseInt(sc)
-      ),
+      date: new Date(Date.UTC(year, month, day, hour, minute - estOffset, second)),
       isDate: false,
     };
   }
