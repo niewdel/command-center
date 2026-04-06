@@ -22,6 +22,7 @@ import {
   CheckCircle2,
   XCircle,
   Loader2,
+  Pencil,
 } from "lucide-react";
 
 const CALENDAR_COLORS = [
@@ -41,6 +42,8 @@ export function CalendarConnections() {
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [syncing, setSyncing] = useState<string | null>(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
 
   // Form state
   const [displayName, setDisplayName] = useState("");
@@ -145,6 +148,17 @@ export function CalendarConnections() {
     setSyncing(null);
   };
 
+  const handleRename = async (connectionId: string) => {
+    const trimmed = renameValue.trim();
+    if (!trimmed) return;
+    await supabase
+      .from("calendar_connections")
+      .update({ display_name: trimmed })
+      .eq("id", connectionId);
+    setRenamingId(null);
+    fetchConnections();
+  };
+
   const handleRemove = async (connectionId: string) => {
     // Delete events first, then connection (cascade should handle but be safe)
     await supabase
@@ -190,9 +204,37 @@ export function CalendarConnections() {
                 }}
               />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">
-                  {conn.display_name || conn.account_email}
-                </p>
+                <div className="flex items-center gap-1.5 group/name">
+                  {renamingId === conn.id ? (
+                    <input
+                      autoFocus
+                      value={renameValue}
+                      onChange={(e) => setRenameValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleRename(conn.id);
+                        if (e.key === "Escape") setRenamingId(null);
+                      }}
+                      onBlur={() => handleRename(conn.id)}
+                      className="text-sm font-medium bg-background/50 border border-border rounded px-1.5 py-0.5 outline-none focus:ring-1 focus:ring-primary w-full"
+                    />
+                  ) : (
+                    <>
+                      <p className="text-sm font-medium truncate">
+                        {conn.display_name || conn.account_email}
+                      </p>
+                      <button
+                        onClick={() => {
+                          setRenamingId(conn.id);
+                          setRenameValue(conn.display_name || conn.account_email);
+                        }}
+                        className="shrink-0 p-0.5 rounded text-muted-foreground hover:text-foreground opacity-0 group-hover/name:opacity-100 transition-opacity"
+                        aria-label="Rename calendar"
+                      >
+                        <Pencil className="size-2.5" />
+                      </button>
+                    </>
+                  )}
+                </div>
                 <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
                   <span className="capitalize">{conn.provider}</span>
                   <span className="text-border">|</span>
