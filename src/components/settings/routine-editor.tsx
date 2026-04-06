@@ -9,14 +9,14 @@ import { Label } from "@/components/ui/label";
 import { formatRoutineTime } from "@/lib/routines";
 import { cn } from "@/lib/utils";
 import {
+  ChevronUp,
+  ChevronDown,
   Clock,
   Plus,
   Trash2,
   Pencil,
   Check,
   X,
-  Sun,
-  Moon,
 } from "lucide-react";
 
 type BlockFormData = {
@@ -50,18 +50,54 @@ export function RoutineEditor() {
       .order("position", { ascending: true });
 
     if (tmpl && tmpl.length > 0) {
+      // Consolidate to a single daily template if multiple exist (legacy weekday/weekend split)
+      const primary = tmpl[0];
+      const extras = tmpl.slice(1);
+
+      if (extras.length > 0) {
+        // Move blocks from extra templates into the primary
+        const { data: extraBlocks } = await supabase
+          .from("routine_blocks")
+          .select("*")
+          .in("template_id", extras.map((t) => t.id));
+
+        if (extraBlocks && extraBlocks.length > 0) {
+          const { data: primaryBlocks } = await supabase
+            .from("routine_blocks")
+            .select("position")
+            .eq("template_id", primary.id)
+            .order("position", { ascending: false })
+            .limit(1);
+
+          let nextPos = (primaryBlocks?.[0]?.position ?? -1) + 1;
+          for (const block of extraBlocks) {
+            await supabase.from("routine_blocks").update({
+              template_id: primary.id,
+              position: nextPos++,
+            }).eq("id", block.id);
+          }
+        }
+
+        // Delete extra templates and update primary to "Daily"
+        await supabase.from("routine_templates").delete().in("id", extras.map((t) => t.id));
+        if (primary.name !== "Daily") {
+          await supabase.from("routine_templates").update({ name: "Daily", day_types: ["daily"] }).eq("id", primary.id);
+        }
+
+        // Re-fetch after consolidation
+        return fetchData();
+      }
+
       const { data: blocks } = await supabase
         .from("routine_blocks")
         .select("*")
-        .in("template_id", tmpl.map((t) => t.id))
+        .eq("template_id", primary.id)
         .order("position", { ascending: true });
 
-      setTemplates(
-        tmpl.map((t) => ({
-          ...t,
-          blocks: (blocks || []).filter((b) => b.template_id === t.id),
-        }))
-      );
+      setTemplates([{
+        ...primary,
+        blocks: blocks || [],
+      }]);
     } else {
       setTemplates([]);
     }
@@ -84,8 +120,7 @@ export function RoutineEditor() {
     if (!settings?.user_id) return;
 
     await supabase.from("routine_templates").insert([
-      { user_id: settings.user_id, name: "Weekday", day_types: ["weekday"], position: 0 },
-      { user_id: settings.user_id, name: "Weekend", day_types: ["weekend"], position: 1 },
+      { user_id: settings.user_id, name: "Daily", day_types: ["daily"], position: 0 },
     ]);
     await fetchData();
   };
@@ -131,6 +166,36 @@ export function RoutineEditor() {
     fetchData();
   };
 
+  const handleMoveBlock = async (templateId: string, blockId: string, direction: "up" | "down") => {
+    const template = templates.find((t) => t.id === templateId);
+    if (!template) return;
+
+    const blocks = template.blocks;
+    const idx = blocks.findIndex((b) => b.id === blockId);
+    const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= blocks.length) return;
+
+    const current = blocks[idx];
+    const swap = blocks[swapIdx];
+
+    // Optimistic update
+    setTemplates((prev) =>
+      prev.map((t) => {
+        if (t.id !== templateId) return t;
+        const updated = [...t.blocks];
+        updated[idx] = { ...current, position: swap.position };
+        updated[swapIdx] = { ...swap, position: current.position };
+        updated.sort((a, b) => a.position - b.position);
+        return { ...t, blocks: updated };
+      })
+    );
+
+    await Promise.all([
+      supabase.from("routine_blocks").update({ position: swap.position }).eq("id", current.id),
+      supabase.from("routine_blocks").update({ position: current.position }).eq("id", swap.id),
+    ]);
+  };
+
   if (loading) return null;
 
   return (
@@ -141,7 +206,7 @@ export function RoutineEditor() {
           Daily Routines
         </h2>
         <p className="text-xs text-muted-foreground mt-1 text-pretty">
-          Define your daily structure. Routine blocks show in your calendar and factor into capacity planning.
+          Define your daily routine. Blocks show in your calendar and factor into capacity planning.
         </p>
       </div>
 
@@ -164,11 +229,7 @@ export function RoutineEditor() {
             >
               {/* Template header */}
               <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border/30 bg-card/20">
-                {template.day_types.includes("weekday") ? (
-                  <Sun className="size-3.5 text-amber-400" />
-                ) : (
-                  <Moon className="size-3.5 text-indigo-400" />
-                )}
+                <Clock className="size-3.5 text-muted-foreground" />
                 <span className="text-sm font-medium">{template.name}</span>
                 <span className="text-[11px] text-muted-foreground">
                   {template.blocks.length} block{template.blocks.length !== 1 ? "s" : ""}
@@ -199,6 +260,22 @@ export function RoutineEditor() {
                           {formatRoutineTime(block.start_time)} – {formatRoutineTime(block.end_time)}
                         </span>
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => handleMoveBlock(template.id, block.id, "up")}
+                            disabled={template.blocks.indexOf(block) === 0}
+                            className="p-1 rounded text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:pointer-events-none"
+                            aria-label="Move block up"
+                          >
+                            <ChevronUp className="size-3" />
+                          </button>
+                          <button
+                            onClick={() => handleMoveBlock(template.id, block.id, "down")}
+                            disabled={template.blocks.indexOf(block) === template.blocks.length - 1}
+                            className="p-1 rounded text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:pointer-events-none"
+                            aria-label="Move block down"
+                          >
+                            <ChevronDown className="size-3" />
+                          </button>
                           <button
                             onClick={() => {
                               setEditingBlock(block.id);

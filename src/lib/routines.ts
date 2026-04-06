@@ -1,28 +1,11 @@
 import { RoutineTemplate, RoutineBlock, CalendarEvent } from "@/types/database";
 
-const DAY_NAMES = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-
 export function getRoutineForDate(
-  date: Date,
+  _date: Date,
   templates: RoutineTemplate[]
 ): RoutineTemplate | null {
-  const dayOfWeek = date.getDay();
-  const dayName = DAY_NAMES[dayOfWeek];
-  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-
-  // First try to match specific day name
-  const specificMatch = templates.find(
-    (t) => t.is_active && t.day_types.includes(dayName)
-  );
-  if (specificMatch) return specificMatch;
-
-  // Then try weekday/weekend
-  const typeMatch = templates.find(
-    (t) =>
-      t.is_active &&
-      (isWeekend ? t.day_types.includes("weekend") : t.day_types.includes("weekday"))
-  );
-  return typeMatch || null;
+  // Single daily routine — return the first active template
+  return templates.find((t) => t.is_active) || null;
 }
 
 export function routineBlocksToEvents(
