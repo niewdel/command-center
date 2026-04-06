@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CalendarEvent, Task } from "@/types/database";
+import { CalendarEvent, Task, RoutineBlock } from "@/types/database";
 import { cn } from "@/lib/utils";
 import { MapPin, Video, Clock, Users, CheckSquare } from "lucide-react";
 
 type DayTimelineProps = {
   events: CalendarEvent[];
   scheduledTasks?: Task[];
+  routineBlocks?: RoutineBlock[];
   date: Date;
   startHour?: number;
   endHour?: number;
@@ -63,6 +64,7 @@ function formatDuration(start: string, end: string) {
 export function DayTimeline({
   events,
   scheduledTasks = [],
+  routineBlocks = [],
   date,
   startHour = 6,
   endHour = 22,
@@ -202,6 +204,36 @@ export function DayTimeline({
               style={{ top: i * HOUR_HEIGHT + HOUR_HEIGHT / 2 }}
             />
           ))}
+
+          {/* Routine blocks (background bands) */}
+          {routineBlocks.map((block) => {
+            const [startH, startM] = block.start_time.split(":").map(Number);
+            const [endH, endM] = block.end_time.split(":").map(Number);
+            const blockStartMin = (startH - startHour) * 60 + startM;
+            const blockEndMin = (endH - startHour) * 60 + endM;
+            if (blockEndMin <= 0 || blockStartMin >= (endHour - startHour) * 60) return null;
+            const top = Math.max(0, (blockStartMin / 60) * HOUR_HEIGHT);
+            const height = ((Math.min(blockEndMin, (endHour - startHour) * 60) - Math.max(blockStartMin, 0)) / 60) * HOUR_HEIGHT;
+            return (
+              <div
+                key={block.id}
+                className="absolute left-16 right-3 rounded-md pointer-events-none"
+                style={{
+                  top,
+                  height,
+                  backgroundColor: `${block.color}08`,
+                  borderLeft: `2px dashed ${block.color}30`,
+                }}
+              >
+                <span
+                  className="absolute top-1 left-2 text-[10px] font-medium select-none"
+                  style={{ color: `${block.color}50` }}
+                >
+                  {block.icon} {block.label}
+                </span>
+              </div>
+            );
+          })}
 
           {/* Event blocks */}
           <div className="absolute left-16 right-3 top-0 bottom-0">

@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
-import { CalendarEvent, CalendarConnection, Task } from "@/types/database";
+import { CalendarEvent, CalendarConnection, Task, RoutineTemplate, RoutineBlock } from "@/types/database";
+import { getRoutineForDate } from "@/lib/routines";
 import { PageLayout } from "@/components/layout/page-layout";
 import { DayTimeline } from "@/components/calendar/day-timeline";
 import { WeekView } from "@/components/calendar/week-view";
@@ -40,6 +41,8 @@ export default function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [scheduledTasks, setScheduledTasks] = useState<Task[]>([]);
   const [connections, setConnections] = useState<CalendarConnection[]>([]);
+  const [routineTemplates, setRoutineTemplates] = useState<RoutineTemplate[]>([]);
+  const [routineBlocks, setRoutineBlocks] = useState<RoutineBlock[]>([]);
   const [visibleConnectionIds, setVisibleConnectionIds] = useState<Set<string>>(new Set());
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [loading, setLoading] = useState(true);
@@ -72,7 +75,7 @@ export default function CalendarPage() {
   }, [selectedDate, viewMode, weekStart]);
 
   const fetchData = useCallback(async () => {
-    const [{ data: evts }, { data: conns }, { data: tasks }] = await Promise.all([
+    const [{ data: evts }, { data: conns }, { data: tasks }, { data: rt }, { data: rb }] = await Promise.all([
       supabase
         .from("calendar_events")
         .select("*")
@@ -92,10 +95,14 @@ export default function CalendarPage() {
         .gte("scheduled_end", dateStr)
         .lt("scheduled_start", nextDateStr)
         .neq("status", "done"),
+      supabase.from("routine_templates").select("*").eq("is_active", true).order("position"),
+      supabase.from("routine_blocks").select("*").order("position"),
     ]);
 
     setEvents(evts || []);
     setScheduledTasks(tasks || []);
+    setRoutineTemplates(rt || []);
+    setRoutineBlocks(rb || []);
     setConnections(conns || []);
     // Initialize all connections as visible on first load
     if (visibleConnectionIds.size === 0 && conns && conns.length > 0) {
@@ -137,6 +144,12 @@ export default function CalendarPage() {
       clearInterval(interval);
     };
   }, []);
+
+  // Get routine blocks for selected date
+  const activeRoutine = getRoutineForDate(selectedDate, routineTemplates);
+  const activeRoutineBlocks = activeRoutine
+    ? routineBlocks.filter((b) => b.template_id === activeRoutine.id)
+    : [];
 
   // Filter events by visible connections
   const filteredEvents = events.filter(
@@ -288,7 +301,7 @@ export default function CalendarPage() {
       ) : viewMode === "week" ? (
         <WeekView events={filteredEvents} scheduledTasks={scheduledTasks} weekStart={weekStart} onEventClick={setSelectedEvent} />
       ) : (
-        <DayTimeline events={filteredEvents} scheduledTasks={scheduledTasks} date={selectedDate} onEventClick={setSelectedEvent} />
+        <DayTimeline events={filteredEvents} scheduledTasks={scheduledTasks} routineBlocks={activeRoutineBlocks} date={selectedDate} onEventClick={setSelectedEvent} />
       )}
 
       {/* Event detail dialog */}

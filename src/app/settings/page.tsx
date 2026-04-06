@@ -13,6 +13,7 @@ import {
   getNotificationStatus,
 } from "@/lib/hooks/use-notifications";
 import { CalendarConnections } from "@/components/settings/calendar-connections";
+import { RoutineEditor } from "@/components/settings/routine-editor";
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<Partial<UserSettings>>({
@@ -180,6 +181,9 @@ export default function SettingsPage() {
           )}
         </div>
       </div>
+
+      {/* Daily Routines */}
+      <RoutineEditor />
 
       {/* Calendar Connections */}
       <CalendarConnections />

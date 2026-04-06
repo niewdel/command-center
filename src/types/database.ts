@@ -214,6 +214,29 @@ export type AiParseResult = {
   display_text: string;
 };
 
+export type RoutineTemplate = {
+  id: string;
+  user_id: string;
+  name: string;
+  day_types: string[];
+  is_active: boolean;
+  position: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type RoutineBlock = {
+  id: string;
+  template_id: string;
+  label: string;
+  start_time: string;
+  end_time: string;
+  icon: string | null;
+  color: string;
+  position: number;
+  created_at: string;
+};
+
 export type ContentDigest = {
   id: string;
   user_id: string;

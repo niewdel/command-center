@@ -3,7 +3,8 @@
 import { useEffect, useState, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { Task, Workspace, UserSettings, Project, CalendarEvent } from "@/types/database";
+import { Task, Workspace, UserSettings, Project, CalendarEvent, RoutineTemplate, RoutineBlock } from "@/types/database";
+import { getRoutineForDate, getNextRoutineBlock, formatRoutineTime } from "@/lib/routines";
 import { TaskItem } from "@/components/tasks/task-item";
 import { AddTaskForm } from "@/components/tasks/add-task-form";
 import { EditTaskDialog } from "@/components/tasks/edit-task-dialog";
@@ -91,6 +92,8 @@ function DashboardContent() {
   const [filterPriority, setFilterPriority] = useState<string>("all");
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [weather, setWeather] = useState<{ temp: number; description: string; icon: string } | null>(null);
+  const [routineTemplates, setRoutineTemplates] = useState<RoutineTemplate[]>([]);
+  const [routineBlocks, setRoutineBlocks] = useState<RoutineBlock[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Fetch weather (Charlotte, NC — Open-Meteo, no API key needed)
@@ -119,7 +122,7 @@ function DashboardContent() {
     const todayEnd = new Date();
     todayEnd.setHours(23, 59, 59, 999);
 
-    const [{ data: ws }, { data: t }, { data: s }, { data: p }, { data: ce }] = await Promise.all([
+    const [{ data: ws }, { data: t }, { data: s }, { data: p }, { data: ce }, { data: rt }, { data: rb }] = await Promise.all([
       supabase.from("workspaces").select("*").order("name"),
       supabase.from("tasks").select("*").order("position", { ascending: true }),
       supabase.from("user_settings").select("*").limit(1).single(),
@@ -131,12 +134,16 @@ function DashboardContent() {
         .lt("start_time", todayEnd.toISOString())
         .neq("status", "cancelled")
         .order("start_time", { ascending: true }),
+      supabase.from("routine_templates").select("*").eq("is_active", true).order("position"),
+      supabase.from("routine_blocks").select("*").order("position"),
     ]);
     setWorkspaces(ws || []);
     setTasks(t || []);
     setProjects(p || []);
     setSettings(s || null);
     setCalendarEvents(ce || []);
+    setRoutineTemplates(rt || []);
+    setRoutineBlocks(rb || []);
     setLoading(false);
 
     // Auto-expand backlog if nothing is planned for today
@@ -218,6 +225,13 @@ function DashboardContent() {
     (t) => t.status !== "done" && t.planned_date !== todayStr && !(t.due_date && t.due_date < todayStr)
   );
 
+  // Compute routine info
+  const todayRoutine = getRoutineForDate(new Date(), routineTemplates);
+  const todayRoutineBlocks = todayRoutine
+    ? routineBlocks.filter((b) => b.template_id === todayRoutine.id)
+    : [];
+  const nextBlock = getNextRoutineBlock(todayRoutineBlocks);
+
   const capacity = calculateCapacityWithEvents(tasks, calendarEvents, new Date(), settings);
   const planningDone = settings?.planning_completed_date === todayStr;
   const shutdownDone = settings?.shutdown_completed_date === todayStr;
@@ -282,6 +296,14 @@ function DashboardContent() {
                 <span className="text-border">·</span>
                 <span className="text-sm text-muted-foreground">
                   {weather.icon} {weather.temp}°F {weather.description}
+                </span>
+              </>
+            )}
+            {nextBlock && (
+              <>
+                <span className="text-border">·</span>
+                <span className="text-sm text-muted-foreground">
+                  {nextBlock.icon} {nextBlock.label} at {formatRoutineTime(nextBlock.start_time)}
                 </span>
               </>
             )}
