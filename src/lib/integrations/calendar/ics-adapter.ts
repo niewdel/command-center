@@ -518,17 +518,18 @@ export async function syncIcsFeed(connectionId: string): Promise<SyncResult> {
 
   const source = connection.provider as "google" | "microsoft" | "apple";
   const seenExternalIds = new Set<string>();
+  const now = new Date().toISOString();
 
+  // Build all event data in memory first (no DB queries in loop)
+  const upsertRows: Record<string, unknown>[] = [];
   for (const event of events) {
-    // Skip events outside sync window
     if (event.endDate < windowStart || event.startDate > windowEnd) continue;
-
     seenExternalIds.add(event.uid);
 
     const meetingInfo =
       extractMeetingUrl(event.description) || extractMeetingUrl(event.location);
 
-    const eventData = {
+    upsertRows.push({
       user_id: connection.user_id,
       workspace_id: connection.workspace_id || null,
       connection_id: connectionId,
@@ -549,46 +550,47 @@ export async function syncIcsFeed(connectionId: string): Promise<SyncResult> {
       color: eventColor,
       source,
       is_read_only: true,
-      updated_at: new Date().toISOString(),
-    };
+      updated_at: now,
+    });
+  }
 
-    // Upsert: use connection_id + external_id unique constraint
-    const { data: existing } = await supabase
+  // Batch dedup: find local events that match incoming synced events by title + start_time
+  if (upsertRows.length > 0) {
+    const titles = [...new Set(upsertRows.map((r) => r.title))];
+    const startTimes = [...new Set(upsertRows.map((r) => r.start_time))];
+    const { data: localDupes } = await supabase
       .from("calendar_events")
-      .select("id")
-      .eq("connection_id", connectionId)
-      .eq("external_id", event.uid)
-      .single();
+      .select("id, title, start_time")
+      .is("connection_id", null)
+      .in("title", titles)
+      .in("start_time", startTimes);
 
-    if (existing) {
-      await supabase
-        .from("calendar_events")
-        .update(eventData)
-        .eq("id", existing.id);
-      result.updated++;
-    } else {
-      // Check for a matching local event (same title + start time) to avoid duplicates
-      // This handles the case where user created an event locally and added the .ics to their calendar
-      const { data: localDupe } = await supabase
-        .from("calendar_events")
-        .select("id")
-        .eq("title", event.summary)
-        .eq("start_time", event.startDate.toISOString())
-        .is("connection_id", null)
-        .limit(1)
-        .single();
-
-      if (localDupe) {
-        // Replace the local event with the synced version
-        await supabase.from("calendar_events").delete().eq("id", localDupe.id);
+    if (localDupes && localDupes.length > 0) {
+      const dupeIds = localDupes
+        .filter((d) => upsertRows.some((r) => r.title === d.title && r.start_time === d.start_time))
+        .map((d) => d.id);
+      if (dupeIds.length > 0) {
+        await supabase.from("calendar_events").delete().in("id", dupeIds);
       }
-
-      await supabase.from("calendar_events").insert(eventData);
-      result.added++;
     }
   }
 
-  // Delete events no longer in feed (within sync window)
+  // Batch upsert using the unique constraint on (connection_id, external_id)
+  const BATCH_SIZE = 200;
+  for (let i = 0; i < upsertRows.length; i += BATCH_SIZE) {
+    const batch = upsertRows.slice(i, i + BATCH_SIZE);
+    const { data: upserted } = await supabase
+      .from("calendar_events")
+      .upsert(batch, { onConflict: "connection_id,external_id" })
+      .select("id");
+    if (upserted) {
+      result.added += upserted.length;
+    }
+  }
+  // upsert doesn't distinguish added vs updated, so count is approximate
+  result.updated = 0;
+
+  // Batch delete events no longer in feed (within sync window)
   const { data: localEvents } = await supabase
     .from("calendar_events")
     .select("id, external_id")
@@ -597,11 +599,12 @@ export async function syncIcsFeed(connectionId: string): Promise<SyncResult> {
     .lte("start_time", windowEnd.toISOString());
 
   if (localEvents) {
-    for (const local of localEvents) {
-      if (local.external_id && !seenExternalIds.has(local.external_id)) {
-        await supabase.from("calendar_events").delete().eq("id", local.id);
-        result.deleted++;
-      }
+    const staleIds = localEvents
+      .filter((e) => e.external_id && !seenExternalIds.has(e.external_id))
+      .map((e) => e.id);
+    if (staleIds.length > 0) {
+      await supabase.from("calendar_events").delete().in("id", staleIds);
+      result.deleted = staleIds.length;
     }
   }
 

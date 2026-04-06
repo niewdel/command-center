@@ -48,16 +48,11 @@ function WorkspaceContent() {
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
-    const { data: ws } = await supabase
-      .from("workspaces")
-      .select("*")
-      .eq("slug", slug)
-      .single();
-
-    const { data: allWs } = await supabase
-      .from("workspaces")
-      .select("*")
-      .order("name");
+    // Fetch workspace by slug and all workspaces in parallel
+    const [{ data: ws }, { data: allWs }] = await Promise.all([
+      supabase.from("workspaces").select("*").eq("slug", slug).single(),
+      supabase.from("workspaces").select("*").order("name"),
+    ]);
 
     if (ws) {
       setWorkspace(ws);

@@ -34,11 +34,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "No ICS feeds to sync", synced: 0 });
     }
 
-    const results = [];
-    for (const conn of connections) {
-      const result = await syncIcsFeed(conn.id);
-      results.push({ connection: conn.display_name || conn.id, ...result });
-    }
+    const results = await Promise.all(
+      connections.map(async (conn) => {
+        const result = await syncIcsFeed(conn.id);
+        return { connection: conn.display_name || conn.id, ...result };
+      })
+    );
 
     return NextResponse.json({ synced: connections.length, results });
   } catch (error) {

@@ -113,7 +113,7 @@ function VideosContent() {
   const [editingTitleValue, setEditingTitleValue] = useState("");
 
   const fetchDigests = useCallback(async () => {
-    const { data } = await supabase.from("content_digests").select("*").order("created_at", { ascending: false });
+    const { data } = await supabase.from("content_digests").select("*").order("created_at", { ascending: false }).limit(100);
     setDigests(data || []);
     setLoading(false);
     if (highlightId && data) { const found = data.find((d) => d.id === highlightId); if (found) setSelectedDigest(found); }

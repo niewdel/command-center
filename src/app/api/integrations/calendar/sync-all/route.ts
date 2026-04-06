@@ -33,14 +33,12 @@ export async function POST() {
       return NextResponse.json({ message: "All feeds are fresh", synced: 0 });
     }
 
-    const results = [];
-    for (const conn of stale) {
-      const result = await syncIcsFeed(conn.id);
-      results.push({
-        connection: conn.display_name || conn.id,
-        ...result,
-      });
-    }
+    const results = await Promise.all(
+      stale.map(async (conn) => {
+        const result = await syncIcsFeed(conn.id);
+        return { connection: conn.display_name || conn.id, ...result };
+      })
+    );
 
     return NextResponse.json({ synced: stale.length, results });
   } catch (error) {
