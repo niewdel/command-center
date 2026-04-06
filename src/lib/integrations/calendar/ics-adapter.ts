@@ -274,6 +274,7 @@ export async function syncIcsFeed(connectionId: string): Promise<SyncResult> {
 
     const eventData = {
       user_id: connection.user_id,
+      workspace_id: connection.workspace_id || null,
       connection_id: connectionId,
       external_id: event.uid,
       title: event.summary,

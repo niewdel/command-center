@@ -105,6 +105,7 @@ export type CalendarConnection = {
   is_ics_feed: boolean;
   display_name: string | null;
   color: string;
+  workspace_id: string | null;
   created_at: string;
   updated_at: string;
 };

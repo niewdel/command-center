@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
-import { CalendarConnection } from "@/types/database";
+import { CalendarConnection, Workspace } from "@/types/database";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,6 +37,7 @@ const CALENDAR_COLORS = [
 
 export function CalendarConnections() {
   const [connections, setConnections] = useState<CalendarConnection[]>([]);
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [syncing, setSyncing] = useState<string | null>(null);
@@ -47,15 +48,20 @@ export function CalendarConnections() {
   const [provider, setProvider] = useState<"google" | "microsoft">("google");
   const [color, setColor] = useState(CALENDAR_COLORS[0]);
   const [accountEmail, setAccountEmail] = useState("");
+  const [workspaceId, setWorkspaceId] = useState<string>("none");
   const [addError, setAddError] = useState("");
   const [adding, setAdding] = useState(false);
 
   const fetchConnections = useCallback(async () => {
-    const { data } = await supabase
-      .from("calendar_connections")
-      .select("*")
-      .order("created_at", { ascending: true });
+    const [{ data }, { data: ws }] = await Promise.all([
+      supabase
+        .from("calendar_connections")
+        .select("*")
+        .order("created_at", { ascending: true }),
+      supabase.from("workspaces").select("*").order("name"),
+    ]);
     setConnections(data || []);
+    setWorkspaces(ws || []);
     setLoading(false);
   }, []);
 
@@ -103,6 +109,7 @@ export function CalendarConnections() {
       feed_url: feedUrl.trim(),
       is_ics_feed: true,
       color,
+      workspace_id: workspaceId !== "none" ? workspaceId : null,
       is_active: true,
     });
 
@@ -116,6 +123,7 @@ export function CalendarConnections() {
     setFeedUrl("");
     setAccountEmail("");
     setProvider("google");
+    setWorkspaceId("none");
     setColor(CALENDAR_COLORS[connections.length % CALENDAR_COLORS.length]);
     setShowAddForm(false);
     setAdding(false);
@@ -183,6 +191,12 @@ export function CalendarConnections() {
                 </p>
                 <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
                   <span className="capitalize">{conn.provider}</span>
+                  {conn.workspace_id && (
+                    <>
+                      <span className="text-border">|</span>
+                      <span>{workspaces.find((w) => w.id === conn.workspace_id)?.name}</span>
+                    </>
+                  )}
                   <span className="text-border">|</span>
                   {conn.last_synced_at ? (
                     <span className="flex items-center gap-1">
@@ -320,6 +334,34 @@ export function CalendarConnections() {
                 ))}
               </div>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs font-medium text-muted-foreground uppercase">
+              Workspace
+            </Label>
+            <Select
+              value={workspaceId}
+              onValueChange={(v) => v && setWorkspaceId(v)}
+            >
+              <SelectTrigger className="bg-background/50 border-border/50 rounded-lg">
+                <SelectValue>
+                  {workspaceId === "none"
+                    ? "No workspace"
+                    : workspaces.find((w) => w.id === workspaceId)?.name ?? "No workspace"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent className="bg-popover border-border rounded-lg">
+                <SelectItem value="none" className="rounded-lg">
+                  No workspace
+                </SelectItem>
+                {workspaces.map((ws) => (
+                  <SelectItem key={ws.id} value={ws.id} className="rounded-lg">
+                    {ws.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {addError && (
