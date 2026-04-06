@@ -65,6 +65,8 @@ export function MorningRitual({
   const [estimates, setEstimates] = useState<Map<string, number>>(new Map());
   const [intention, setIntention] = useState("");
   const [saving, setSaving] = useState(false);
+  const [addedBacklogIds, setAddedBacklogIds] = useState<Set<string>>(new Set());
+  const [showBacklog, setShowBacklog] = useState(false);
 
   const td = todayStr();
   const workspaceMap = Object.fromEntries(workspaces.map((w) => [w.id, w]));
@@ -83,6 +85,18 @@ export function MorningRitual({
           t.planned_date &&
           t.planned_date < td &&
           !(t.due_date && t.due_date < td) // not already in overdue
+      ),
+    [tasks, td]
+  );
+
+  // Backlog tasks (no planned_date, not overdue, not done)
+  const backlogTasks = useMemo(
+    () =>
+      tasks.filter(
+        (t) =>
+          t.status !== "done" &&
+          !t.planned_date &&
+          !(t.due_date && t.due_date < td)
       ),
     [tasks, td]
   );
@@ -110,8 +124,16 @@ export function MorningRitual({
       }
     });
 
+    // Added from backlog
+    addedBacklogIds.forEach((id) => {
+      const task = tasks.find((t) => t.id === id);
+      if (task && !plannable.find((p) => p.id === id)) {
+        plannable.push(task);
+      }
+    });
+
     return plannable;
-  }, [tasks, td, triagedOverdue, triagedCarryover]);
+  }, [tasks, td, triagedOverdue, triagedCarryover, addedBacklogIds]);
 
   const step = STEPS[currentStep];
 
@@ -425,6 +447,46 @@ export function MorningRitual({
             <p className="text-xs text-muted-foreground text-center text-pretty">
               {focusIds.size}/3 selected
             </p>
+
+            {/* Add from backlog */}
+            {backlogTasks.filter((t) => !addedBacklogIds.has(t.id)).length > 0 && (
+              <div className="pt-4 border-t border-border/30 space-y-3">
+                <button
+                  onClick={() => setShowBacklog(!showBacklog)}
+                  className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <ArrowRight className={cn("size-3 transition-transform", showBacklog && "rotate-90")} />
+                  Pull from backlog ({backlogTasks.filter((t) => !addedBacklogIds.has(t.id)).length} tasks)
+                </button>
+                {showBacklog && (
+                  <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                    {backlogTasks
+                      .filter((t) => !addedBacklogIds.has(t.id))
+                      .map((task) => (
+                        <button
+                          key={task.id}
+                          onClick={() => {
+                            setAddedBacklogIds((prev) => new Set([...prev, task.id]));
+                          }}
+                          className="w-full flex items-center gap-3 rounded-lg border border-border/50 bg-card/30 p-3 text-left hover:bg-card hover:border-border transition-colors"
+                        >
+                          <div className="size-5 rounded border border-dashed border-muted-foreground/30 flex items-center justify-center">
+                            <ArrowRight className="size-3 text-muted-foreground/50" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm">{task.title}</span>
+                            {workspaceMap[task.workspace_id] && (
+                              <span className="ml-2 text-xs text-muted-foreground">
+                                {workspaceMap[task.workspace_id].name}
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -583,7 +645,12 @@ export function MorningRitual({
             variant="ghost"
             size="sm"
             onClick={prevStep}
-            disabled={currentStep === 0 || (currentStep === 1 && overdueTasks.length === 0)}
+            disabled={(() => {
+              let prev = currentStep - 1;
+              if (prev === 1 && yesterdayCarryover.length === 0) prev--;
+              if (prev === 0 && overdueTasks.length === 0) prev--;
+              return prev < 0;
+            })()}
             className="gap-2"
           >
             <ArrowLeft className="size-4" />

@@ -82,7 +82,7 @@ export default function SettingsPage() {
               onChange={(e) =>
                 setSettings((s) => ({
                   ...s,
-                  available_hours_weekday: parseFloat(e.target.value) || 8,
+                  available_hours_weekday: e.target.value === "" ? 0 : parseFloat(e.target.value),
                 }))
               }
               className="bg-background/50 border-border/50 rounded-lg"
@@ -101,7 +101,7 @@ export default function SettingsPage() {
               onChange={(e) =>
                 setSettings((s) => ({
                   ...s,
-                  available_hours_weekend: parseFloat(e.target.value) || 4,
+                  available_hours_weekend: e.target.value === "" ? 0 : parseFloat(e.target.value),
                 }))
               }
               className="bg-background/50 border-border/50 rounded-lg"
