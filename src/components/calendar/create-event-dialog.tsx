@@ -163,8 +163,8 @@ export function CreateEventDialog({
 
     await supabase.from("calendar_events").insert(eventData);
 
-    // If this is for an Outlook/read-only calendar, also offer ICS download
-    if (conn?.is_ics_feed && conn.provider === "microsoft") {
+    // Auto-download ICS for any connected calendar (until OAuth is set up)
+    if (conn?.is_ics_feed) {
       const icsContent = generateIcsFile({
         title: title.trim(),
         description: description.trim(),
@@ -340,9 +340,7 @@ export function CreateEventDialog({
                         style={{ backgroundColor: conn.color }}
                       />
                       {conn.display_name || conn.account_email}
-                      {conn.is_ics_feed &&
-                        conn.provider === "microsoft" &&
-                        " (will download .ics)"}
+                      {conn.is_ics_feed && " (will download .ics)"}
                     </div>
                   </SelectItem>
                 ))}
