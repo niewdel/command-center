@@ -398,10 +398,11 @@ function WorkspaceDialog({
           .select("id")
           .eq("workspace_id", workspace.id);
         if (connections && connections.length > 0) {
-          await supabase
-            .from("calendar_events")
-            .update({ color })
-            .in("connection_id", connections.map((c) => c.id));
+          const connIds = connections.map((c) => c.id);
+          await Promise.all([
+            supabase.from("calendar_events").update({ color }).in("connection_id", connIds),
+            supabase.from("calendar_connections").update({ color }).in("id", connIds),
+          ]);
         }
       }
     } else {

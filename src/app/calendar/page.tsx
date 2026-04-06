@@ -100,7 +100,7 @@ export default function CalendarPage() {
         .order("start_time", { ascending: true }),
       supabase
         .from("calendar_connections")
-        .select("*")
+        .select("*, workspaces:workspace_id(color)")
         .eq("is_active", true)
         .order("created_at", { ascending: true }),
       supabase
@@ -118,7 +118,12 @@ export default function CalendarPage() {
     setScheduledTasks(tasks || []);
     setRoutineTemplates(rt || []);
     setRoutineBlocks(rb || []);
-    setConnections(conns || []);
+    // Prefer workspace color over connection color for legend display
+    const resolvedConns = (conns || []).map((c: CalendarConnection & { workspaces?: { color: string } | null }) => ({
+      ...c,
+      color: c.workspaces?.color || c.color,
+    }));
+    setConnections(resolvedConns);
     if (visibleConnectionIds.size === 0 && conns && conns.length > 0) {
       setVisibleConnectionIds(new Set(conns.map((c: CalendarConnection) => c.id)));
     }
