@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { useParams } from "next/navigation";
+import { useEffect, useState, useCallback, Suspense } from "react";
+import { useParams, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Task, Workspace, Project } from "@/types/database";
 import { TaskItem } from "@/components/tasks/task-item";
@@ -25,15 +25,25 @@ const priorityOrder: Record<string, number> = {
 };
 
 export default function WorkspacePage() {
+  return (
+    <Suspense fallback={<SkeletonPage />}>
+      <WorkspaceContent />
+    </Suspense>
+  );
+}
+
+function WorkspaceContent() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const slug = params.slug as string;
+  const initialTab = (searchParams.get("tab") === "projects" ? "projects" : "tasks") as Tab;
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [allWorkspaces, setAllWorkspaces] = useState<Workspace[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [showDone, setShowDone] = useState(false);
-  const [activeTab, setActiveTab] = useState<Tab>("tasks");
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab);
   const [taskView, setTaskView] = useState<"list" | "kanban">("list");
   const [loading, setLoading] = useState(true);
 

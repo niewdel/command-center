@@ -124,7 +124,7 @@ export default function ProjectDetailPage() {
       title={project?.name || ""}
       breadcrumbs={[
         { label: workspace?.name || "", href: `/workspace/${slug}` },
-        { label: "Projects" },
+        { label: "Projects", href: `/workspace/${slug}?tab=projects` },
         { label: project?.name || "" },
       ]}
       loading={loading}
