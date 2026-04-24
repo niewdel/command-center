@@ -1,3 +1,7 @@
+---
+tags: [niewdel, command-center, decisions]
+---
+
 # Decisions — Command Center
 
 ## Decision Log
@@ -13,4 +17,5 @@
 | 7 | 2026-03-25 | Fathom integration via Zapier (not direct API) | Direct API, HubSpot relay, manual paste | No public Fathom API exists; Zapier has official integration with meeting triggers |
 | 8 | 2026-03-25 | HubSpot Private App + polling (not webhooks) | OAuth app with webhooks | Private app is simpler; polling every 5 min is fine for personal dashboard; webhooks require OAuth app |
 | 9 | 2026-03-25 | grammY for Telegram bot (not Telegraf) | Telegraf, node-telegram-bot-api | TypeScript-first, active development, built-in Next.js webhook adapter |
+| 10 | 2026-04-24 | PIN login ALSO signs into Supabase Auth; restore hardened RLS after | Keep permissive RLS forever; route everything through service role | 2026-04-22 "harden_rls" migration (applied via MCP) broke PIN-only app because policies require `auth.uid()`. Migration 015 restored permissive RLS as a stopgap. Migration 016 re-hardens RLS once PIN route calls `signInWithPassword` server-side, giving every device a real Supabase session and a valid `auth.uid()`. |
 

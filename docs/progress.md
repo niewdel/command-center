@@ -1,3 +1,7 @@
+---
+tags: [niewdel, command-center, progress]
+---
+
 # Progress — Command Center
 
 ## Progress Tracking Instructions
@@ -120,6 +124,17 @@
 
 ## Blockers
 *(None currently)*
+
+#### RLS recovery + Supabase Auth (2026-04-24) — `PARTIALLY COMPLETE`
+- [x] Diagnose blank-data issue — `COMPLETE` — 2026-04-22 `harden_rls_across_public_schema` migration replaced permissive PIN-auth policies with `{authenticated}` + `auth.uid()` policies; app has no Supabase Auth session so every query returned `[]`
+- [x] Migration 015 restore-pin-auth-rls — `COMPLETE` — Applied 2026-04-24; permissive `USING(true) WITH CHECK(true)` policies restored on all 23 public tables; data visible again
+- [x] PIN route Supabase sign-in — `COMPLETE` — `/api/auth/pin` now calls `signInWithPassword` using `SUPABASE_USER_EMAIL`/`SUPABASE_USER_PASSWORD` env vars, sets `sb-*` cookies alongside `cc-auth`
+- [x] Middleware session refresh + auto-recovery — `COMPLETE` — Standard `@supabase/ssr` refresh pattern; silently re-signs-in if PIN is valid but Supabase session missing
+- [x] Migration 016 re-harden-rls SQL file — `COMPLETE` — Staged in `supabase/migration-016-re-harden-rls.sql`, not yet applied
+- [ ] Set Supabase user password — `PENDING` — Justin sets password on `niewdel@gmail.com` via Supabase dashboard
+- [ ] Add Railway env vars — `PENDING` — `SUPABASE_USER_EMAIL` + `SUPABASE_USER_PASSWORD` in Railway + local `.env.local`
+- [ ] Deploy code changes — `PENDING` — Push + Railway auto-deploy
+- [ ] Apply migration 016 — `PENDING` — Run via MCP once deploy is live and PIN login verified
 
 ## General Notes
 - Project kicked off 2026-03-25

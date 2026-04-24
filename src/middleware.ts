@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { createServerClient } from "@supabase/ssr";
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const isAuthPage = request.nextUrl.pathname.startsWith("/login");
 
   // Public routes — webhooks, processing endpoints, PIN check
@@ -11,23 +12,62 @@ export function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/api/auth/") ||
     request.nextUrl.pathname.startsWith("/api/health");
 
-  const hasAuth = request.cookies.get("cc-auth")?.value === "authenticated";
+  const hasPin = request.cookies.get("cc-auth")?.value === "authenticated";
 
-  // Not authenticated and not on login/public route → redirect to login
-  if (!hasAuth && !isAuthPage && !isPublicApi) {
+  // PIN gate
+  if (!hasPin && !isAuthPage && !isPublicApi) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
-
-  // Authenticated and on login page → redirect to dashboard
-  if (hasAuth && isAuthPage) {
+  if (hasPin && isAuthPage) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);
   }
 
-  return NextResponse.next();
+  // Supabase session refresh + auto-recovery.
+  // Only runs for authenticated page requests (skip public APIs + login page).
+  if (!hasPin || isAuthPage || isPublicApi) {
+    return NextResponse.next();
+  }
+
+  let response = NextResponse.next({ request });
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          );
+          response = NextResponse.next({ request });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          );
+        },
+      },
+    }
+  );
+
+  // Touch the session so @supabase/ssr refreshes cookies if needed.
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // If PIN is valid but Supabase session is missing (expired refresh token,
+  // first load after migration, etc.), silently re-sign-in so RLS unlocks.
+  if (!user) {
+    const email = process.env.SUPABASE_USER_EMAIL;
+    const password = process.env.SUPABASE_USER_PASSWORD;
+    if (email && password) {
+      await supabase.auth.signInWithPassword({ email, password });
+    }
+  }
+
+  return response;
 }
 
 export const config = {
