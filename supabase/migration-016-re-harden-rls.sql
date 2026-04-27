@@ -47,6 +47,7 @@ DROP POLICY IF EXISTS "PIN-auth access" ON public.contacts;
 DROP POLICY IF EXISTS "PIN-auth access" ON public.sequences;
 DROP POLICY IF EXISTS "PIN-auth access" ON public.outreach_emails;
 DROP POLICY IF EXISTS "PIN-auth access" ON public.pipeline_log;
+DROP POLICY IF EXISTS "PIN-auth access" ON public.lead_jobs;
 
 -- ============================================================
 -- 2. Direct user_id policies
@@ -214,6 +215,11 @@ CREATE POLICY "Users manage outreach emails in own org" ON public.outreach_email
   WITH CHECK (org_id IN (SELECT id FROM public.organizations WHERE user_id = auth.uid()));
 
 CREATE POLICY "Users view pipeline log in own org" ON public.pipeline_log
+  FOR ALL TO authenticated
+  USING (org_id IN (SELECT id FROM public.organizations WHERE user_id = auth.uid()))
+  WITH CHECK (org_id IN (SELECT id FROM public.organizations WHERE user_id = auth.uid()));
+
+CREATE POLICY "Users manage own lead jobs" ON public.lead_jobs
   FOR ALL TO authenticated
   USING (org_id IN (SELECT id FROM public.organizations WHERE user_id = auth.uid()))
   WITH CHECK (org_id IN (SELECT id FROM public.organizations WHERE user_id = auth.uid()));

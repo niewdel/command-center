@@ -1,10 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Users } from "lucide-react";
+import { useEffect, useState, useCallback, Suspense } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { Users, Sparkles, CheckCircle2, AlertCircle, Loader2, X } from "lucide-react";
 import { PageLayout } from "@/components/layout/page-layout";
 import { LeadsTabs } from "@/components/leads/leads-tabs";
 import { Card } from "@/components/ui/card";
+import { buttonVariants } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import type { LeadStats } from "@/types/leads";
 
@@ -18,16 +23,68 @@ const STATUS_DOT: Record<string, string> = {
   disqualified: "bg-red-400",
 };
 
+type LeadJob = {
+  id: string;
+  status: string;
+  current_stage: string | null;
+  progress_pct: number;
+  target_count: number;
+  companies_found: number;
+  contacts_found: number;
+  emails_drafted: number;
+  error: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+  verticals: { name: string } | null;
+};
+
+const ACTIVE_STATUSES = ["queued", "scraping", "enriching", "researching", "writing"];
+
 export default function LeadsStatsPage() {
+  return (
+    <Suspense fallback={null}>
+      <LeadsStatsContent />
+    </Suspense>
+  );
+}
+
+function LeadsStatsContent() {
+  const searchParams = useSearchParams();
+  const focusJobId = searchParams.get("job");
+
   const [stats, setStats] = useState<LeadStats | null>(null);
+  const [jobs, setJobs] = useState<LeadJob[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetch("/api/leads/stats")
-      .then((r) => r.json())
-      .then((data) => setStats(data))
-      .finally(() => setLoading(false));
+  const fetchAll = useCallback(async () => {
+    const [statsRes, jobsRes] = await Promise.all([
+      fetch("/api/leads/stats").then((r) => r.json()),
+      fetch("/api/leads/jobs?limit=10").then((r) => r.json()),
+    ]);
+    setStats(statsRes);
+    setJobs(jobsRes.data ?? []);
+    setLoading(false);
   }, []);
+
+  useEffect(() => {
+    fetchAll();
+    // Realtime: any change to lead_jobs refetches the list (and stats if status flipped to complete)
+    const channel = supabase
+      .channel("lead-jobs-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "lead_jobs" },
+        () => fetchAll()
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchAll]);
+
+  const activeJobs = jobs.filter((j) => ACTIVE_STATUSES.includes(j.status));
+  const recentJobs = jobs.filter((j) => !ACTIVE_STATUSES.includes(j.status));
 
   return (
     <PageLayout
@@ -36,6 +93,11 @@ export default function LeadsStatsPage() {
       icon={Users}
       maxWidth="xl"
       loading={loading}
+      actions={
+        <Link href="/leads/new" className={buttonVariants()}>
+          <Sparkles className="size-4" /> Generate Leads
+        </Link>
+      }
     >
       <LeadsTabs />
 
@@ -43,6 +105,29 @@ export default function LeadsStatsPage() {
         <p className="text-sm text-muted-foreground">No data yet.</p>
       ) : (
         <div className="space-y-6">
+          {(activeJobs.length > 0 || focusJobId) && (
+            <section className="space-y-2">
+              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                Active jobs
+              </h2>
+              {activeJobs.length === 0 ? (
+                <Card className="p-4 text-sm text-muted-foreground">
+                  Job is starting…
+                </Card>
+              ) : (
+                <ul className="space-y-2">
+                  {activeJobs.map((job) => (
+                    <JobRow
+                      key={job.id}
+                      job={job}
+                      highlighted={job.id === focusJobId}
+                    />
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <StatCard
               label="Companies"
@@ -72,7 +157,7 @@ export default function LeadsStatsPage() {
             </h2>
             {stats.verticals.length === 0 ? (
               <Card className="p-4 text-sm text-muted-foreground">
-                No verticals yet. Run the lead-gen CLI to seed one.
+                No verticals yet. Click "Generate Leads" to start your first run.
               </Card>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -100,10 +185,23 @@ export default function LeadsStatsPage() {
             )}
           </section>
 
+          {recentJobs.length > 0 && (
+            <section className="space-y-2">
+              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                Recent jobs
+              </h2>
+              <ul className="space-y-2">
+                {recentJobs.slice(0, 5).map((job) => (
+                  <JobRow key={job.id} job={job} />
+                ))}
+              </ul>
+            </section>
+          )}
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card className="p-4">
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                Company Pipeline
+                Company pipeline
               </h3>
               {Object.keys(stats.companies.byStatus).length === 0 ? (
                 <p className="text-sm text-muted-foreground">No companies yet.</p>
@@ -137,7 +235,7 @@ export default function LeadsStatsPage() {
 
             <Card className="p-4">
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                Pipeline Events
+                Pipeline events
               </h3>
               {Object.keys(stats.events).length === 0 ? (
                 <p className="text-sm text-muted-foreground">No events yet.</p>
@@ -183,5 +281,95 @@ function StatCard({
       <p className="text-2xl font-semibold mt-1 tabular-nums">{value}</p>
       <p className="text-xs text-muted-foreground mt-1">{sub}</p>
     </Card>
+  );
+}
+
+function JobRow({ job, highlighted }: { job: LeadJob; highlighted?: boolean }) {
+  const isActive = ACTIVE_STATUSES.includes(job.status);
+  const failed = job.status === "failed";
+  const complete = job.status === "complete";
+  const cancelled = job.status === "cancelled";
+
+  return (
+    <li>
+      <Card
+        className={cn(
+          "px-4 py-3 space-y-2",
+          highlighted && "ring-2 ring-foreground/40"
+        )}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="font-medium truncate">
+                {job.verticals?.name ?? "Unnamed run"}
+              </p>
+              <JobStatusBadge status={job.status} />
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5 truncate">
+              {job.current_stage ?? "Waiting…"}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {isActive && (
+              <Loader2 className="size-4 animate-spin text-muted-foreground" />
+            )}
+            {complete && <CheckCircle2 className="size-4 text-emerald-400" />}
+            {failed && <AlertCircle className="size-4 text-destructive" />}
+            {cancelled && <X className="size-4 text-muted-foreground" />}
+          </div>
+        </div>
+
+        {isActive && (
+          <div className="space-y-1">
+            <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+              <div
+                className="h-full bg-foreground transition-all"
+                style={{ width: `${job.progress_pct}%` }}
+              />
+            </div>
+            <div className="flex items-center justify-between text-xs text-muted-foreground tabular-nums">
+              <span>{job.progress_pct}%</span>
+              <span>
+                {job.companies_found} co · {job.contacts_found} contacts ·{" "}
+                {job.emails_drafted} emails
+              </span>
+            </div>
+          </div>
+        )}
+
+        {complete && (
+          <p className="text-xs text-muted-foreground">
+            {job.companies_found} companies · {job.contacts_found} contacts ·{" "}
+            {job.emails_drafted} email drafts ready
+          </p>
+        )}
+
+        {failed && job.error && (
+          <p className="text-xs text-destructive line-clamp-2">{job.error}</p>
+        )}
+      </Card>
+    </li>
+  );
+}
+
+function JobStatusBadge({ status }: { status: string }) {
+  const map: Record<string, string> = {
+    queued: "bg-muted text-muted-foreground",
+    scraping: "bg-blue-500/15 text-blue-400",
+    enriching: "bg-blue-500/15 text-blue-400",
+    researching: "bg-purple-500/15 text-purple-400",
+    writing: "bg-amber-500/15 text-amber-400",
+    complete: "bg-emerald-500/15 text-emerald-400",
+    failed: "bg-red-500/15 text-red-400",
+    cancelled: "bg-muted text-muted-foreground",
+  };
+  return (
+    <Badge
+      variant="secondary"
+      className={cn("text-[10px] h-5 capitalize", map[status] ?? map.queued)}
+    >
+      {status}
+    </Badge>
   );
 }
