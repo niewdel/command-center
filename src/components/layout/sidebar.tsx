@@ -20,6 +20,7 @@ import {
   Trash2,
   Upload,
   ImageIcon,
+  Users,
 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -38,6 +39,7 @@ import {
 import { QuickAddDialog } from "@/components/layout/quick-add-dialog";
 
 const extraNav = [
+  { name: "Leads", href: "/leads", icon: Users },
   { name: "Goals", href: "/goals", icon: Target },
   { name: "Expenses", href: "/expenses", icon: DollarSign },
   { name: "Videos", href: "/videos", icon: Play },

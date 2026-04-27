@@ -136,6 +136,25 @@ tags: [niewdel, command-center, progress]
 - [ ] Deploy code changes — `PENDING` — Push + Railway auto-deploy
 - [ ] Apply migration 016 — `PENDING` — Run via MCP once deploy is live and PIN login verified
 
+#### Lead-generator merge (2026-04-27) — `PHASE 1 COMPLETE`
+- [x] Survey lead-generator codebase — `COMPLETE` — Same stack (Next.js 16 + React 19), no native deps; ~840 LOC dashboard, separate Supabase project
+- [x] Migration 017 leads schema — `COMPLETE` — 7 tables (organizations, verticals, companies, contacts, sequences, outreach_emails, pipeline_log) with permissive PIN-auth RLS; "Niewdel" org seeded for Justin's user_id
+- [x] Skip data migration — `COMPLETE` — Old lead-gen Supabase project (iubbppdaprqmkfuyjcbd) was decommissioned by Supabase due to inactivity (NXDOMAIN). Starting fresh; CLI engine will repopulate.
+- [x] Port dashboard pages + API routes — `COMPLETE` — `/leads`, `/leads/companies`, `/leads/contacts`, `/leads/emails` + matching `/api/leads/*` routes, all using shadcn components and PageLayout
+- [x] LeadsTabs sub-nav component — `COMPLETE` — `src/components/leads/leads-tabs.tsx`
+- [x] Sidebar + mobile bottom-nav entries — `COMPLETE` — "Leads" with Users icon
+- [x] Update migration-016 to harden lead tables — `COMPLETE` — auth.uid() join through organizations.user_id
+
+#### Site-audit merge (2026-04-27) — `PHASE 2 PENDING`
+- [ ] Add nixpacks.toml for Chromium install on Railway
+- [ ] Port audit engine from site-audit/src/lib/ → src/lib/audit/
+- [ ] Single-page mode in crawler.ts
+- [ ] Migration 018 audits table + Supabase Storage bucket
+- [ ] /audits page (URL paste + SSE progress + history)
+- [ ] /api/audits/run + /api/audits/list routes
+- [ ] Update migration-016 to harden audits table
+- [ ] Verify Playwright launches on deployed Railway container
+
 ## General Notes
 - Project kicked off 2026-03-25
 - Framework gap fill session 2026-03-27: 6 new files, 10 modified files, clean TypeScript + build

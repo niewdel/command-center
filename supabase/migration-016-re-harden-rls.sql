@@ -39,6 +39,14 @@ DROP POLICY IF EXISTS "PIN-auth access" ON public.tags;
 DROP POLICY IF EXISTS "PIN-auth access" ON public.tasks;
 DROP POLICY IF EXISTS "PIN-auth access" ON public.user_settings;
 DROP POLICY IF EXISTS "PIN-auth access" ON public.workspaces;
+-- Lead-gen tables (added in migration 017)
+DROP POLICY IF EXISTS "PIN-auth access" ON public.organizations;
+DROP POLICY IF EXISTS "PIN-auth access" ON public.verticals;
+DROP POLICY IF EXISTS "PIN-auth access" ON public.companies;
+DROP POLICY IF EXISTS "PIN-auth access" ON public.contacts;
+DROP POLICY IF EXISTS "PIN-auth access" ON public.sequences;
+DROP POLICY IF EXISTS "PIN-auth access" ON public.outreach_emails;
+DROP POLICY IF EXISTS "PIN-auth access" ON public.pipeline_log;
 
 -- ============================================================
 -- 2. Direct user_id policies
@@ -169,3 +177,43 @@ CREATE POLICY "Authenticated users access news stories" ON public.news_stories
   FOR ALL TO authenticated
   USING (true)
   WITH CHECK (true);
+
+-- ============================================================
+-- 6. Lead-gen tables (added in migration 017) — scoped via organizations.user_id
+-- ============================================================
+
+CREATE POLICY "Users manage own organizations" ON public.organizations
+  FOR ALL TO authenticated
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- All lead-gen child tables join through organizations.user_id
+CREATE POLICY "Users manage verticals in own org" ON public.verticals
+  FOR ALL TO authenticated
+  USING (org_id IN (SELECT id FROM public.organizations WHERE user_id = auth.uid()))
+  WITH CHECK (org_id IN (SELECT id FROM public.organizations WHERE user_id = auth.uid()));
+
+CREATE POLICY "Users manage companies in own org" ON public.companies
+  FOR ALL TO authenticated
+  USING (org_id IN (SELECT id FROM public.organizations WHERE user_id = auth.uid()))
+  WITH CHECK (org_id IN (SELECT id FROM public.organizations WHERE user_id = auth.uid()));
+
+CREATE POLICY "Users manage contacts in own org" ON public.contacts
+  FOR ALL TO authenticated
+  USING (org_id IN (SELECT id FROM public.organizations WHERE user_id = auth.uid()))
+  WITH CHECK (org_id IN (SELECT id FROM public.organizations WHERE user_id = auth.uid()));
+
+CREATE POLICY "Users manage sequences in own org" ON public.sequences
+  FOR ALL TO authenticated
+  USING (org_id IN (SELECT id FROM public.organizations WHERE user_id = auth.uid()))
+  WITH CHECK (org_id IN (SELECT id FROM public.organizations WHERE user_id = auth.uid()));
+
+CREATE POLICY "Users manage outreach emails in own org" ON public.outreach_emails
+  FOR ALL TO authenticated
+  USING (org_id IN (SELECT id FROM public.organizations WHERE user_id = auth.uid()))
+  WITH CHECK (org_id IN (SELECT id FROM public.organizations WHERE user_id = auth.uid()));
+
+CREATE POLICY "Users view pipeline log in own org" ON public.pipeline_log
+  FOR ALL TO authenticated
+  USING (org_id IN (SELECT id FROM public.organizations WHERE user_id = auth.uid()))
+  WITH CHECK (org_id IN (SELECT id FROM public.organizations WHERE user_id = auth.uid()));
