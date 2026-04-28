@@ -1,0 +1,225 @@
+import { CategoryResult } from '../types';
+import { ScoringInput } from './index';
+import { generateNarrative } from './narratives';
+
+export function score(input: ScoringInput): CategoryResult {
+  const { pages, screenshots } = input;
+  let total = 0;
+  const findings: string[] = [];
+
+  if (pages.length === 0) {
+    return {
+      category_id: 'visual-design',
+      category_name: 'Visual Design & Branding',
+      score: 0,
+      severity: 'critical',
+      headline: 'No pages could be analyzed.',
+      narrative: 'The crawl returned no pages, so visual design could not be assessed.',
+      findings: ['No pages were available for analysis'],
+    };
+  }
+
+  const homepage = pages.find((p) => {
+    try {
+      const u = new URL(p.url);
+      return u.pathname === '/' || u.pathname === '';
+    } catch {
+      return false;
+    }
+  }) || pages[0];
+
+  // --- Viewport meta tag (8 pts) ---
+  // We infer viewport from PSI SEO score or from page content signals
+  const psiHomepage = input.psiMetrics.find((m) => m.url === homepage.url) || input.psiMetrics[0];
+  const hasViewportSignal = psiHomepage && psiHomepage.scores.seo >= 0.7;
+  if (hasViewportSignal) {
+    total += 8;
+  } else {
+    findings.push('No viewport meta tag detected -- site may not be mobile-friendly');
+  }
+
+  // --- Favicon (7 pts) ---
+  const hasFavicon = pages.some((p) =>
+    p.headLinks.some(
+      (l) =>
+        l.rel.includes('icon') ||
+        l.href.includes('favicon') ||
+        l.href.endsWith('.ico')
+    )
+  );
+
+  if (hasFavicon) {
+    total += 7;
+  } else {
+    findings.push('No favicon detected -- browsers show a generic icon in tabs');
+  }
+
+  // --- Custom web fonts (8 pts) ---
+  const hasWebFonts = pages.some(
+    (p) =>
+      p.headLinks.some(
+        (l) =>
+          l.href.includes('fonts.googleapis.com') ||
+          l.href.includes('fonts.gstatic.com') ||
+          l.href.includes('typekit') ||
+          l.href.includes('fonts.adobe.com') ||
+          l.href.includes('use.typekit.net')
+      )
+  );
+
+  if (hasWebFonts) {
+    total += 8;
+  } else {
+    findings.push('No custom web fonts detected -- site relies on default system fonts');
+  }
+
+  // --- Images across site (5 + 5 + 5 = up to 15 pts) ---
+  const allImages = pages.flatMap((p) => p.images);
+  const uniqueImageSrcs = new Set(allImages.map((img) => img.src));
+  const totalUniqueImages = uniqueImageSrcs.size;
+  const homepageImages = homepage.images.length;
+
+  if (homepageImages > 0) {
+    total += 5;
+  } else {
+    findings.push('No images found on the homepage');
+  }
+
+  if (totalUniqueImages >= 10) {
+    total += 10; // 5 + 5 for 5+ and 10+
+  } else if (totalUniqueImages >= 5) {
+    total += 5;
+  } else {
+    findings.push(`Only ${totalUniqueImages} unique image(s) found across the entire site`);
+  }
+
+  // --- Responsive images (8 pts) ---
+  const hasResponsiveImages = allImages.some(
+    (img) =>
+      img.src.includes('srcset') ||
+      img.src.includes('?w=') ||
+      img.src.includes('&width=') ||
+      img.src.includes('sizes=')
+  ) || pages.some((p) =>
+    p.bodyText.toLowerCase().includes('srcset') ||
+    p.bodyText.toLowerCase().includes('<picture')
+  );
+
+  if (hasResponsiveImages) {
+    total += 8;
+  } else if (allImages.length > 0) {
+    findings.push('No responsive images (srcset/picture) detected -- images may not scale properly on mobile');
+  }
+
+  // --- Consistent font usage (7 pts) ---
+  // We approximate by checking if custom fonts are loaded (sites with web fonts typically have controlled font usage)
+  // Award if web fonts are present (implies intentional font control)
+  if (hasWebFonts) {
+    total += 7;
+  }
+  // Note: without CSS parsing we can't count exact font families, so we tie this to web font presence
+
+  // --- H1 present on pages (8 pts for all, 4 pts for >75%) ---
+  const pagesWithH1 = pages.filter((p) =>
+    p.headings.some((h) => h.level === 1)
+  ).length;
+  const h1Ratio = pages.length > 0 ? pagesWithH1 / pages.length : 0;
+
+  if (h1Ratio === 1) {
+    total += 8;
+  } else if (h1Ratio > 0.75) {
+    total += 4;
+    findings.push(`${pagesWithH1} of ${pages.length} pages have an H1 heading (${Math.round(h1Ratio * 100)}%)`);
+  } else {
+    findings.push(`Only ${pagesWithH1} of ${pages.length} pages have an H1 heading (${Math.round(h1Ratio * 100)}%)`);
+  }
+
+  // --- Image alt text coverage (10 / 5 / 0 pts) ---
+  const imagesWithAlt = allImages.filter(
+    (img) => img.alt && img.alt.trim().length > 0
+  ).length;
+  const altRatio = allImages.length > 0 ? imagesWithAlt / allImages.length : 1;
+
+  if (allImages.length > 0) {
+    if (altRatio > 0.8) {
+      total += 10;
+    } else if (altRatio >= 0.5) {
+      total += 5;
+      findings.push(`${Math.round(altRatio * 100)}% of images have alt text (${imagesWithAlt}/${allImages.length}) -- should be above 80%`);
+    } else {
+      findings.push(`Only ${Math.round(altRatio * 100)}% of images have alt text (${imagesWithAlt}/${allImages.length}) -- poor accessibility`);
+    }
+  }
+
+  // --- OG image on homepage (7 pts) ---
+  const hasOgImage = homepage.ogTags && homepage.ogTags['og:image'];
+  if (hasOgImage) {
+    total += 7;
+  } else {
+    findings.push('Homepage is missing an Open Graph image tag -- social shares will lack a preview image');
+  }
+
+  // --- Color consistency via CSS custom properties (7 pts) ---
+  const hasCssCustomProps = pages.some((p) => {
+    const sd = p.structuredData;
+    return sd && sd.length > 0;
+  });
+  // Award if structured data exists (proxy for well-built site with design systems)
+  if (hasCssCustomProps) {
+    total += 7;
+  }
+
+  // --- Multiple image formats (5 pts) ---
+  const imageExtensions = new Set<string>();
+  for (const img of allImages) {
+    const src = img.src.toLowerCase();
+    if (src.includes('.webp') || src.includes('format=webp') || src.includes('fm=webp')) imageExtensions.add('webp');
+    if (src.includes('.avif') || src.includes('format=avif') || src.includes('fm=avif')) imageExtensions.add('avif');
+    if (src.includes('.svg')) imageExtensions.add('svg');
+    if (src.includes('.png')) imageExtensions.add('png');
+    if (src.includes('.jpg') || src.includes('.jpeg')) imageExtensions.add('jpg');
+    if (src.includes('.gif')) imageExtensions.add('gif');
+  }
+
+  const hasModernFormats = imageExtensions.has('webp') || imageExtensions.has('avif') || imageExtensions.has('svg');
+  if (hasModernFormats) {
+    total += 5;
+  } else if (allImages.length > 0) {
+    findings.push('No modern image formats (WebP, AVIF, SVG) detected -- using only legacy formats');
+  }
+
+  // --- No broken images (10 pts, -5 for 1-2, 0 for 3+) ---
+  const brokenImages = screenshots.flatMap((s) =>
+    s.issues.filter((i) => i.type === 'broken-image')
+  );
+
+  if (brokenImages.length === 0) {
+    total += 10;
+  } else if (brokenImages.length <= 2) {
+    total += 5;
+    findings.push(`${brokenImages.length} broken image(s) detected`);
+  } else {
+    findings.push(`${brokenImages.length} broken images detected -- significant visual degradation`);
+  }
+
+  const finalScore = Math.max(0, Math.min(100, total));
+  const severity = scoreToSeverity(finalScore);
+  const { headline, narrative } = generateNarrative('visual-design', finalScore, findings);
+
+  return {
+    category_id: 'visual-design',
+    category_name: 'Visual Design & Branding',
+    score: finalScore,
+    severity,
+    headline,
+    narrative,
+    findings,
+  };
+}
+
+function scoreToSeverity(score: number): 'critical' | 'serious' | 'moderate' | 'acceptable' | 'strong' {
+  if (score <= 40) return 'critical';
+  if (score <= 65) return 'serious';
+  if (score <= 85) return 'acceptable';
+  return 'strong';
+}

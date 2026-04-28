@@ -48,6 +48,8 @@ DROP POLICY IF EXISTS "PIN-auth access" ON public.sequences;
 DROP POLICY IF EXISTS "PIN-auth access" ON public.outreach_emails;
 DROP POLICY IF EXISTS "PIN-auth access" ON public.pipeline_log;
 DROP POLICY IF EXISTS "PIN-auth access" ON public.lead_jobs;
+-- Audits table (added in migration 019)
+DROP POLICY IF EXISTS "PIN-auth access" ON public.audits;
 
 -- ============================================================
 -- 2. Direct user_id policies
@@ -223,3 +225,12 @@ CREATE POLICY "Users manage own lead jobs" ON public.lead_jobs
   FOR ALL TO authenticated
   USING (org_id IN (SELECT id FROM public.organizations WHERE user_id = auth.uid()))
   WITH CHECK (org_id IN (SELECT id FROM public.organizations WHERE user_id = auth.uid()));
+
+-- ============================================================
+-- 7. Audits (added in migration 019) — direct user_id scoped
+-- ============================================================
+
+CREATE POLICY "Users manage own audits" ON public.audits
+  FOR ALL TO authenticated
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);

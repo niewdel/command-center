@@ -18,6 +18,7 @@ import {
   Zap,
   X,
   Users,
+  Gauge,
 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
@@ -32,6 +33,7 @@ const mainTabs = [
 
 const moreItems = [
   { name: "Leads", href: "/leads", icon: Users },
+  { name: "Audits", href: "/audits", icon: Gauge },
   { name: "Goals", href: "/goals", icon: Target },
   { name: "Expenses", href: "/expenses", icon: DollarSign },
   { name: "Videos", href: "/videos", icon: Play },

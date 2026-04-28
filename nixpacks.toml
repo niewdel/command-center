@@ -1,0 +1,37 @@
+# Railway / Nixpacks build configuration
+# Installs Chromium + system libs so Playwright can launch headless browsers
+# for the site-audit module on the Railway container.
+
+[phases.setup]
+aptPkgs = [
+  "chromium",
+  "fonts-liberation",
+  "libgbm1",
+  "libasound2",
+  "libatk-bridge2.0-0",
+  "libatk1.0-0",
+  "libcups2",
+  "libdbus-1-3",
+  "libdrm2",
+  "libnspr4",
+  "libnss3",
+  "libx11-xcb1",
+  "libxcomposite1",
+  "libxdamage1",
+  "libxrandr2",
+  "libxshmfence1"
+]
+
+[phases.install]
+cmds = ["npm ci"]
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "npm run start"
+
+[variables]
+# Skip Playwright's bundled-browser download — we use the system chromium installed via apt above.
+PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1"
+PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH = "/usr/bin/chromium"
