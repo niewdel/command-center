@@ -388,8 +388,20 @@ function parseIcsFeed(icsText: string): ParsedEvent[] {
 
     if (!inEvent) continue;
 
-    // Parse property
-    const colonIdx = line.indexOf(":");
+    // Parse property — find the first colon that ISN'T inside a quoted
+    // parameter value. RFC 5545 allows quoted params like
+    // DTSTART;TZID="tzone://Microsoft/Utc":20260416T210000 — Outlook emits
+    // these and a naive indexOf(":") splits in the wrong place.
+    let colonIdx = -1;
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') inQuotes = !inQuotes;
+      else if (ch === ':' && !inQuotes) {
+        colonIdx = i;
+        break;
+      }
+    }
     if (colonIdx === -1) continue;
 
     const propPart = line.slice(0, colonIdx);
@@ -418,15 +430,15 @@ function parseIcsFeed(icsText: string): ParsedEvent[] {
         break;
       case "DTSTART": {
         currentEvent.dtstart = value;
-        const tzMatch = params.match(/TZID=([^;]+)/);
-        if (tzMatch) currentEvent.dtstartTzid = tzMatch[1];
+        const tzMatch = params.match(/TZID=("[^"]+"|[^;]+)/);
+        if (tzMatch) currentEvent.dtstartTzid = tzMatch[1].replace(/^"|"$/g, "");
         if (params.includes("VALUE=DATE")) currentEvent.dtstartIsDate = true;
         break;
       }
       case "DTEND": {
         currentEvent.dtend = value;
-        const tzMatch = params.match(/TZID=([^;]+)/);
-        if (tzMatch) currentEvent.dtendTzid = tzMatch[1];
+        const tzMatch = params.match(/TZID=("[^"]+"|[^;]+)/);
+        if (tzMatch) currentEvent.dtendTzid = tzMatch[1].replace(/^"|"$/g, "");
         break;
       }
       case "RRULE":
@@ -550,36 +562,57 @@ export async function syncIcsFeed(connectionId: string): Promise<SyncResult> {
 
   // Build all event data in memory first (no DB queries in loop)
   const upsertRows: Record<string, unknown>[] = [];
+  let skippedBadEvents = 0;
   for (const event of events) {
-    if (event.endDate < windowStart || event.startDate > windowEnd) continue;
-    seenExternalIds.add(event.uid);
+    try {
+      // Reject obviously-broken dates before .toISOString() throws.
+      if (
+        !(event.startDate instanceof Date) ||
+        Number.isNaN(event.startDate.getTime()) ||
+        !(event.endDate instanceof Date) ||
+        Number.isNaN(event.endDate.getTime())
+      ) {
+        skippedBadEvents++;
+        continue;
+      }
+      if (event.endDate < windowStart || event.startDate > windowEnd) continue;
+      seenExternalIds.add(event.uid);
 
-    const meetingInfo =
-      extractMeetingUrl(event.description) || extractMeetingUrl(event.location);
+      const meetingInfo =
+        extractMeetingUrl(event.description) || extractMeetingUrl(event.location);
 
-    upsertRows.push({
-      user_id: connection.user_id,
-      workspace_id: connection.workspace_id || null,
-      connection_id: connectionId,
-      external_id: event.uid,
-      title: event.summary,
-      description: event.description,
-      location: event.location,
-      start_time: event.startDate.toISOString(),
-      end_time: event.endDate.toISOString(),
-      all_day: event.isAllDay,
-      timezone: "America/New_York",
-      status: (event.status?.toLowerCase() === "tentative"
-        ? "tentative"
-        : "confirmed") as "confirmed" | "tentative",
-      meeting_url: meetingInfo?.url || null,
-      meeting_provider: meetingInfo?.provider || null,
-      attendees: event.attendees,
-      color: eventColor,
-      source,
-      is_read_only: true,
-      updated_at: now,
-    });
+      upsertRows.push({
+        user_id: connection.user_id,
+        workspace_id: connection.workspace_id || null,
+        connection_id: connectionId,
+        external_id: event.uid,
+        title: event.summary,
+        description: event.description,
+        location: event.location,
+        start_time: event.startDate.toISOString(),
+        end_time: event.endDate.toISOString(),
+        all_day: event.isAllDay,
+        timezone: "America/New_York",
+        status: (event.status?.toLowerCase() === "tentative"
+          ? "tentative"
+          : "confirmed") as "confirmed" | "tentative",
+        meeting_url: meetingInfo?.url || null,
+        meeting_provider: meetingInfo?.provider || null,
+        attendees: event.attendees,
+        color: eventColor,
+        source,
+        is_read_only: true,
+        updated_at: now,
+      });
+    } catch (err) {
+      // One malformed event must never kill the whole sync. Log + move on.
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`[ics-sync ${connectionId}] skipping event ${event.uid}: ${msg}`);
+      skippedBadEvents++;
+    }
+  }
+  if (skippedBadEvents > 0) {
+    result.errors.push(`Skipped ${skippedBadEvents} malformed event(s) — see logs`);
   }
 
   // Batch dedup: find local events that match incoming synced events by title + start_time
