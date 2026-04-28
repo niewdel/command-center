@@ -55,7 +55,11 @@ function cleanTitle(raw: string): string {
     .trim();
 }
 
-export async function runAudit(auditId: string, rawUrl: string): Promise<void> {
+export async function runAudit(
+  auditId: string,
+  rawUrl: string,
+  maxPages: number = 1,
+): Promise<void> {
   const sb = getServiceClient();
   const log = (msg: string) => console.log(`[audit ${auditId}] ${msg}`);
 
@@ -67,32 +71,45 @@ export async function runAudit(auditId: string, rawUrl: string): Promise<void> {
 
   await patch(auditId, {
     status: "crawling",
-    current_stage: "Loading page",
-    progress_pct: 10,
+    current_stage: maxPages === 1 ? "Loading page" : `Crawling up to ${maxPages} pages`,
+    progress_pct: 5,
     started_at: new Date().toISOString(),
   });
 
-  // Phase 1: single-page crawl
-  log(`Crawling ${url}`);
-  const pages = await crawlSite(url, undefined, { maxPages: 1 });
+  // Phase 1: crawl
+  log(`Crawling ${url} (maxPages=${maxPages})`);
+  const pages = await crawlSite(
+    url,
+    (msg, done, total) => {
+      // Map crawler progress 0..total → 5..50
+      const pct = total > 0 ? 5 + Math.round((done / total) * 45) : 5;
+      void patch(auditId, {
+        current_stage: msg.length > 80 ? msg.slice(0, 77) + "..." : msg,
+        progress_pct: pct,
+        pages_crawled: done,
+      });
+    },
+    { maxPages },
+  );
   if (pages.length === 0) {
     throw new Error("Crawler returned no pages — site may be unreachable or blocked");
   }
+  const psiTargets = [url, ...pages.filter((p) => p.url !== url).slice(0, 4).map((p) => p.url)];
   await patch(auditId, {
-    current_stage: "Running performance audit",
-    progress_pct: 35,
+    current_stage: `Running performance audit (${psiTargets.length} page${psiTargets.length === 1 ? "" : "s"})`,
+    progress_pct: 55,
     pages_crawled: pages.length,
   });
 
-  // Phase 2: PageSpeed Insights
-  log("Running PSI");
-  const psiMetrics = await runPerformanceAudit([url], (msg) => log(`  [PSI] ${msg}`));
+  // Phase 2: PageSpeed Insights — homepage + up to 4 inner pages
+  log(`Running PSI on ${psiTargets.length} URL(s)`);
+  const psiMetrics = await runPerformanceAudit(psiTargets, (msg) => log(`  [PSI] ${msg}`));
   const screenshots: ScreenshotResult[] = [];
 
   await patch(auditId, {
     status: "scoring",
     current_stage: "Scoring",
-    progress_pct: 65,
+    progress_pct: 80,
   });
 
   // Phase 3: scoring

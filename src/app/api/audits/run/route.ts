@@ -49,8 +49,14 @@ function normalizeUrl(raw: string): string | null {
   }
 }
 
+function clampMaxPages(n: unknown): number {
+  const parsed = typeof n === "number" ? n : parseInt(String(n ?? "1"), 10);
+  if (!Number.isFinite(parsed) || parsed < 1) return 1;
+  return Math.min(parsed, 50);
+}
+
 export async function POST(req: NextRequest) {
-  let body: { url?: string };
+  let body: { url?: string; maxPages?: number };
   try {
     body = await req.json();
   } catch {
@@ -61,6 +67,7 @@ export async function POST(req: NextRequest) {
   if (!url) {
     return NextResponse.json({ error: "Valid URL required" }, { status: 400 });
   }
+  const maxPages = clampMaxPages(body.maxPages);
 
   const userId = await getCurrentUserId();
   if (!userId) {
@@ -89,7 +96,7 @@ export async function POST(req: NextRequest) {
 
   // Fire-and-forget: pipeline writes progress + result back to the audits row.
   setImmediate(() => {
-    runAudit(audit.id, url).catch(async (err: unknown) => {
+    runAudit(audit.id, url, maxPages).catch(async (err: unknown) => {
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`[audit ${audit.id}] failed:`, msg);
       try {
