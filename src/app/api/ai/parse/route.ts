@@ -1,12 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { getSystemPrompt, AI_PARSE_TOOLS } from "@/lib/ai/prompts";
-import { createClient } from "@/lib/supabase-server";
 import type { AiParseResult } from "@/types/database";
+
+export const dynamic = "force-dynamic";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
+
+let serviceClient: SupabaseClient | null = null;
+function getServiceClient(): SupabaseClient {
+  if (!serviceClient) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !key) throw new Error("Missing Supabase env vars");
+    serviceClient = createClient(url, key, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+  }
+  return serviceClient;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,8 +41,7 @@ export async function POST(request: NextRequest) {
     // Use provided workspaces or fetch from Supabase
     let workspaces = context?.workspaces;
     if (!workspaces) {
-      const supabase = await createClient();
-      const { data } = await supabase
+      const { data } = await getServiceClient()
         .from("workspaces")
         .select("name, slug, type")
         .order("position");
