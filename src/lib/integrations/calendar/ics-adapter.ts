@@ -461,6 +461,17 @@ function parseIcsFeed(icsText: string): ParsedEvent[] {
   return events;
 }
 
+async function recordSyncError(connectionId: string, error: string): Promise<void> {
+  await getSupabaseAdmin()
+    .from("calendar_connections")
+    .update({
+      sync_error: error,
+      last_sync_attempt_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", connectionId);
+}
+
 export async function syncIcsFeed(connectionId: string): Promise<SyncResult> {
   const supabase = getSupabaseAdmin();
   const result: SyncResult = { added: 0, updated: 0, deleted: 0, errors: [] };
@@ -474,6 +485,7 @@ export async function syncIcsFeed(connectionId: string): Promise<SyncResult> {
 
   if (connError || !connection?.feed_url) {
     result.errors.push("Connection not found or no feed URL");
+    await recordSyncError(connectionId, "Connection not found or no feed URL");
     return result;
   }
 
@@ -501,11 +513,27 @@ export async function syncIcsFeed(connectionId: string): Promise<SyncResult> {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     result.errors.push(`Failed to fetch ICS feed: ${msg}`);
+    await recordSyncError(connectionId, `Failed to fetch ICS feed: ${msg}`);
+    return result;
+  }
+
+  if (!icsText.trim() || !icsText.includes("BEGIN:VCALENDAR")) {
+    const msg = "ICS feed returned an empty or invalid body — the published-calendar URL may have been revoked. Re-publish the calendar and update the feed URL.";
+    result.errors.push(msg);
+    await recordSyncError(connectionId, msg);
     return result;
   }
 
   // Parse events
-  const rawEvents = parseIcsFeed(icsText);
+  let rawEvents: ParsedEvent[];
+  try {
+    rawEvents = parseIcsFeed(icsText);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    result.errors.push(`Failed to parse ICS feed: ${msg}`);
+    await recordSyncError(connectionId, `Failed to parse ICS feed: ${msg}`);
+    return result;
+  }
 
   // Define sync window: 30 days back, 90 days forward
   const windowStart = new Date();
@@ -602,17 +630,34 @@ export async function syncIcsFeed(connectionId: string): Promise<SyncResult> {
     const staleIds = localEvents
       .filter((e) => e.external_id && !seenExternalIds.has(e.external_id))
       .map((e) => e.id);
+
+    // Safety: if a sync would wipe out >50% of existing events, refuse — it
+    // almost always means the upstream feed is broken (revoked URL, partial
+    // body, parser regression). Better to keep stale events than to lose them.
+    if (
+      staleIds.length > 0 &&
+      localEvents.length >= 5 &&
+      staleIds.length / localEvents.length > 0.5
+    ) {
+      const msg = `Skipped delete of ${staleIds.length} events (would have removed ${Math.round((staleIds.length / localEvents.length) * 100)}% of this calendar). Feed likely broken; investigate before re-syncing.`;
+      result.errors.push(msg);
+      await recordSyncError(connectionId, msg);
+      return result;
+    }
+
     if (staleIds.length > 0) {
       await supabase.from("calendar_events").delete().in("id", staleIds);
       result.deleted = staleIds.length;
     }
   }
 
-  // Update last_synced_at
+  // Success — clear any prior error and bump last_synced_at
   await supabase
     .from("calendar_connections")
     .update({
       last_synced_at: new Date().toISOString(),
+      last_sync_attempt_at: new Date().toISOString(),
+      sync_error: null,
       updated_at: new Date().toISOString(),
     })
     .eq("id", connectionId);

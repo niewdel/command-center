@@ -34,11 +34,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "No ICS feeds to sync", synced: 0 });
     }
 
-    const results = await Promise.all(
+    // allSettled so a single broken feed doesn't kill the cron for the rest.
+    const settled = await Promise.allSettled(
       connections.map(async (conn) => {
         const result = await syncIcsFeed(conn.id);
         return { connection: conn.display_name || conn.id, ...result };
       })
+    );
+
+    const results = settled.map((s, i) =>
+      s.status === "fulfilled"
+        ? s.value
+        : {
+            connection: connections[i].display_name || connections[i].id,
+            errors: [s.reason instanceof Error ? s.reason.message : String(s.reason)],
+            added: 0,
+            updated: 0,
+            deleted: 0,
+          }
     );
 
     return NextResponse.json({ synced: connections.length, results });
