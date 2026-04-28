@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase-server";
+import { getServiceClient } from "@/lib/leads/db";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
-  const sb = await createClient();
+  const sb = getServiceClient();
   const params = req.nextUrl.searchParams;
   const contactId = params.get("contact_id");
   const status = params.get("status");
