@@ -1,6 +1,7 @@
 import { CategoryResult } from '../types';
 import { ScoringInput } from './index';
 import { generateNarrative } from './narratives';
+import { detectFrameworks } from './framework';
 
 export function score(input: ScoringInput): CategoryResult {
   const { pages, screenshots } = input;
@@ -55,7 +56,8 @@ export function score(input: ScoringInput): CategoryResult {
   }
 
   // --- Custom web fonts (8 pts) ---
-  const hasWebFonts = pages.some(
+  const fw = detectFrameworks(pages);
+  const hasGoogleOrAdobeFonts = pages.some(
     (p) =>
       p.headLinks.some(
         (l) =>
@@ -66,6 +68,9 @@ export function score(input: ScoringInput): CategoryResult {
           l.href.includes('use.typekit.net')
       )
   );
+  // Modern frameworks self-host fonts (next/font, @nuxt/fonts, sveltekit-fonts)
+  // via /_next/static/media etc., so check that path too.
+  const hasWebFonts = hasGoogleOrAdobeFonts || fw.hasFrameworkFonts;
 
   if (hasWebFonts) {
     total += 8;
@@ -94,16 +99,23 @@ export function score(input: ScoringInput): CategoryResult {
   }
 
   // --- Responsive images (8 pts) ---
-  const hasResponsiveImages = allImages.some(
-    (img) =>
-      img.src.includes('srcset') ||
-      img.src.includes('?w=') ||
-      img.src.includes('&width=') ||
-      img.src.includes('sizes=')
-  ) || pages.some((p) =>
-    p.bodyText.toLowerCase().includes('srcset') ||
-    p.bodyText.toLowerCase().includes('<picture')
-  );
+  // Real signals first: actual srcset attribute on any <img>, framework-served
+  // images (Next/Image etc.), or query params that indicate width-based
+  // responsive variants. Body-text fallback is a last resort.
+  const hasResponsiveImages =
+    allImages.some((img) => img.srcset && img.srcset.trim().length > 0) ||
+    fw.hasFrameworkImages ||
+    allImages.some(
+      (img) =>
+        img.src.includes('?w=') ||
+        img.src.includes('&w=') ||
+        img.src.includes('&width=') ||
+        img.src.includes('sizes=')
+    ) ||
+    pages.some((p) =>
+      p.bodyText.toLowerCase().includes('srcset') ||
+      p.bodyText.toLowerCase().includes('<picture')
+    );
 
   if (hasResponsiveImages) {
     total += 8;
@@ -181,7 +193,14 @@ export function score(input: ScoringInput): CategoryResult {
     if (src.includes('.gif')) imageExtensions.add('gif');
   }
 
-  const hasModernFormats = imageExtensions.has('webp') || imageExtensions.has('avif') || imageExtensions.has('svg');
+  // Framework-served images (Next/Image, Nuxt Image, Astro Image) negotiate
+  // WebP/AVIF via the Accept header without exposing the format in the URL,
+  // so detect those pipelines as modern by definition.
+  const hasModernFormats =
+    imageExtensions.has('webp') ||
+    imageExtensions.has('avif') ||
+    imageExtensions.has('svg') ||
+    fw.hasFrameworkImages;
   if (hasModernFormats) {
     total += 5;
   } else if (allImages.length > 0) {

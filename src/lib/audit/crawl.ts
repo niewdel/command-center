@@ -189,10 +189,14 @@ async function extractPageData(page: Page, response: Response | null, pageUrl: s
     });
 
     // Images
-    const images: { src: string; alt: string }[] = [];
+    const images: { src: string; alt: string; srcset?: string }[] = [];
     document.querySelectorAll('img').forEach((el) => {
       const img = el as HTMLImageElement;
-      images.push({ src: img.src || '', alt: img.alt || '' });
+      images.push({
+        src: img.src || '',
+        alt: img.alt || '',
+        srcset: img.srcset || undefined,
+      });
     });
 
     // Head <link> elements (favicon, stylesheets, preconnects, etc.)

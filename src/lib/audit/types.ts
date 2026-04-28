@@ -10,7 +10,7 @@ export interface CrawledPage {
   bodyText: string;
   links: { href: string; text: string; isInternal: boolean }[];
   headLinks: { rel: string; href: string }[];
-  images: { src: string; alt: string }[];
+  images: { src: string; alt: string; srcset?: string }[];
   forms: { action: string; method: string; fieldCount: number; fields: string[] }[];
   iframes: { src: string; title: string }[];
   buttons: { text: string; type: string }[];
