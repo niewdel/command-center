@@ -38,10 +38,12 @@ type Audit = {
 
 const ACTIVE_STATUSES = ["pending", "crawling", "scoring", "rendering"];
 
-function publicReportUrl(path: string | null): string | null {
-  if (!path) return null;
-  const { data } = supabase.storage.from("audit-reports").getPublicUrl(path);
-  return data.publicUrl;
+function reportUrl(auditId: string, path: string | null): string | null {
+  return path ? `/api/audits/${auditId}/report` : null;
+}
+
+function fixPlanUrl(auditId: string, path: string | null): string | null {
+  return path ? `/api/audits/${auditId}/fix-plan` : null;
 }
 
 export default function AuditsPage() {
@@ -183,8 +185,8 @@ function AuditRow({ audit }: { audit: Audit }) {
   const isActive = ACTIVE_STATUSES.includes(audit.status);
   const failed = audit.status === "failed";
   const complete = audit.status === "complete";
-  const reportUrl = publicReportUrl(audit.report_path);
-  const fixUrl = publicReportUrl(audit.fix_plan_path);
+  const rUrl = reportUrl(audit.id, audit.report_path);
+  const fUrl = fixPlanUrl(audit.id, audit.fix_plan_path);
 
   return (
     <li>
@@ -232,11 +234,11 @@ function AuditRow({ audit }: { audit: Audit }) {
           </div>
         )}
 
-        {complete && (reportUrl || fixUrl) && (
+        {complete && (rUrl || fUrl) && (
           <div className="flex flex-wrap items-center gap-2 pt-1">
-            {reportUrl && (
+            {rUrl && (
               <a
-                href={reportUrl}
+                href={rUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md border border-border hover:bg-muted transition-colors"
@@ -244,9 +246,9 @@ function AuditRow({ audit }: { audit: Audit }) {
                 <ExternalLink className="size-3" /> Report
               </a>
             )}
-            {fixUrl && (
+            {fUrl && (
               <a
-                href={fixUrl}
+                href={fUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md border border-border hover:bg-muted transition-colors"
