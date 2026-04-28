@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Users, Sparkles, CheckCircle2, AlertCircle, Loader2, X } from "lucide-react";
+import { Users, Sparkles, CheckCircle2, AlertCircle, Loader2, X, Copy } from "lucide-react";
 import { PageLayout } from "@/components/layout/page-layout";
 import { LeadsTabs } from "@/components/leads/leads-tabs";
 import { Card } from "@/components/ui/card";
@@ -347,6 +347,17 @@ function JobRow({ job, highlighted }: { job: LeadJob; highlighted?: boolean }) {
 
         {failed && job.error && (
           <p className="text-xs text-destructive line-clamp-2">{job.error}</p>
+        )}
+
+        {(failed || complete || cancelled) && (
+          <div className="pt-1">
+            <Link
+              href={`/leads/new?clone=${job.id}`}
+              className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md border border-border hover:bg-muted transition-colors"
+            >
+              <Copy className="size-3" /> Clone &amp; edit
+            </Link>
+          </div>
         )}
       </Card>
     </li>

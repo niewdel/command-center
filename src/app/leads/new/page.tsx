@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Sparkles, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { PageLayout } from "@/components/layout/page-layout";
@@ -34,7 +34,18 @@ const EMPLOYEE_RANGES = [
 ];
 
 export default function NewLeadJobPage() {
+  return (
+    <Suspense fallback={null}>
+      <NewLeadJobForm />
+    </Suspense>
+  );
+}
+
+function NewLeadJobForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const cloneId = searchParams.get("clone");
+
   const [name, setName] = useState("");
   const [industries, setIndustries] = useState("");
   const [geo, setGeo] = useState("");
@@ -45,6 +56,36 @@ export default function NewLeadJobPage() {
   const [target, setTarget] = useState(25);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!cloneId) return;
+    fetch(`/api/leads/jobs/${cloneId}`)
+      .then((r) => r.json())
+      .then((res) => {
+        const job = res.data;
+        if (!job) return;
+        const c = (job.criteria ?? {}) as {
+          industries?: string[];
+          geo?: string[];
+          locations?: string[];
+          revenue_ranges?: string[];
+          employee_ranges?: string[];
+          icp_description?: string;
+        };
+        const verticalName = job.verticals?.name as string | undefined;
+        if (verticalName) setName(verticalName);
+        if (c.industries) setIndustries(c.industries.join(", "));
+        if (c.geo) setGeo(c.geo.join(", "));
+        if (c.locations) setLocations(c.locations.join(", "));
+        if (c.revenue_ranges) setRevenueRanges(c.revenue_ranges);
+        if (c.employee_ranges) setEmployeeRanges(c.employee_ranges);
+        if (c.icp_description) setIcp(c.icp_description);
+        if (job.target_count) setTarget(job.target_count);
+      })
+      .catch(() => {
+        // pre-fill is best-effort; user can still fill the form manually
+      });
+  }, [cloneId]);
 
   const toggleSet = (
     arr: string[],
