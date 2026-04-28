@@ -102,16 +102,14 @@ export async function runPipeline(jobId: string): Promise<void> {
 
   const rawOrgs = await searchAllOrgs(apolloParams, target * 5);
 
-  const targetStates = (criteria.geo ?? []).map((g) => g.toLowerCase());
+  // Geo filter is handled server-side by Apollo's organization_locations
+  // param, so we trust Apollo's results here. (The previous local check
+  // failed to match "CA" against "California" and rejected valid orgs.)
   const targetIndustries = (criteria.industries ?? []).map((i) => i.toLowerCase());
 
   const filtered = rawOrgs
     .filter((o) => {
       if (!o.primary_domain) return false;
-      if (targetStates.length) {
-        const state = (o.state ?? "").toLowerCase();
-        if (!targetStates.some((s) => state.includes(s))) return false;
-      }
       if (targetIndustries.length) {
         const industry = (o.industry ?? "").toLowerCase();
         const keywords = (o.keywords ?? []).map((k) => k.toLowerCase());
