@@ -9,6 +9,8 @@ import {
   ExternalLink,
   Wrench,
   Globe,
+  Sparkles,
+  Check,
 } from "lucide-react";
 import { PageLayout } from "@/components/layout/page-layout";
 import { Card } from "@/components/ui/card";
@@ -256,6 +258,7 @@ function AuditRow({ audit }: { audit: Audit }) {
                 <Wrench className="size-3" /> Fix plan
               </a>
             )}
+            <CopyPromptButton auditId={audit.id} />
             {audit.pages_crawled !== null && (
               <span className="text-xs text-muted-foreground">
                 {audit.pages_crawled} page{audit.pages_crawled === 1 ? "" : "s"} crawled
@@ -269,6 +272,61 @@ function AuditRow({ audit }: { audit: Audit }) {
         )}
       </Card>
     </li>
+  );
+}
+
+function CopyPromptButton({ auditId }: { auditId: string }) {
+  const [state, setState] = useState<"idle" | "loading" | "copied" | "error">("idle");
+
+  const handleClick = async () => {
+    setState("loading");
+    try {
+      const res = await fetch(`/api/audits/${auditId}/prompt`);
+      if (!res.ok) throw new Error(await res.text());
+      const text = await res.text();
+      await navigator.clipboard.writeText(text);
+      setState("copied");
+      setTimeout(() => setState("idle"), 2500);
+    } catch {
+      setState("error");
+      setTimeout(() => setState("idle"), 2500);
+    }
+  };
+
+  const label =
+    state === "loading"
+      ? "Generating…"
+      : state === "copied"
+      ? "Copied"
+      : state === "error"
+      ? "Failed"
+      : "Copy Claude prompt";
+
+  const Icon =
+    state === "loading"
+      ? Loader2
+      : state === "copied"
+      ? Check
+      : state === "error"
+      ? AlertCircle
+      : Sparkles;
+
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      disabled={state === "loading"}
+      className={cn(
+        "inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md border border-border transition-colors",
+        state === "copied" && "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+        state === "error" && "bg-red-500/15 text-red-400 border-red-500/30",
+        state === "idle" && "hover:bg-muted",
+        state === "loading" && "opacity-60 cursor-wait"
+      )}
+    >
+      <Icon className={cn("size-3", state === "loading" && "animate-spin")} />
+      {label}
+    </button>
   );
 }
 
