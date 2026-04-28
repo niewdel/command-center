@@ -146,7 +146,7 @@ tags: [niewdel, command-center, progress]
 - [x] Update migration-016 to harden lead tables — `COMPLETE` — auth.uid() join through organizations.user_id
 
 #### Site-audit merge (2026-04-27) — `PHASE 2 SUBSTANTIALLY COMPLETE`
-- [x] Add nixpacks.toml for Chromium install on Railway — `COMPLETE` — Apt-installs chromium + system libs, sets PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium and PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+- [x] Add railpack.json for Chromium install on Railway — `COMPLETE` — Started with nixpacks.toml then a Dockerfile (failed: Dockerfile build couldn't see NEXT_PUBLIC_SUPABASE_* env vars during /audits prerender) and finally landed on railpack.json with `deploy.aptPackages` (correct schema after a typo at `deployAptPackages`). Verified chromium 147.0.7727.116 in runtime container via `railway ssh`. nixpacks.toml + Dockerfile removed.
 - [x] Port audit engine from site-audit/src/lib/ → src/lib/audit/ — `COMPLETE` — types, crawl, performance, fix-plan, report-html, report-fix-html + scoring/* (8 categories + narratives + index)
 - [x] Single-page mode in crawler.ts — `COMPLETE` — Added CrawlOptions { maxPages, skipDiscovery }; maxPages=1 auto-skips robots.txt + sitemap discovery
 - [x] Migration 019 audits table + Supabase Storage bucket — `COMPLETE` — audits table (status, scores, JSON result, report_path, fix_plan_path), audit-reports bucket with public read
@@ -155,7 +155,7 @@ tags: [niewdel, command-center, progress]
 - [x] Sidebar + mobile bottom-nav entries for "Audits" — `COMPLETE` — Gauge icon, alongside Leads
 - [x] Update migration-016 to harden audits table — `COMPLETE` — Drops permissive policy, adds auth.uid() = user_id policy
 - [ ] Apply migration 019 — `PENDING` — Run via Supabase MCP (or SQL editor) before first audit
-- [ ] Verify Playwright launches on deployed Railway container — `PENDING` — Confirm after Railway picks up nixpacks.toml + new playwright dep
+- [x] Verify Playwright launches on deployed Railway container — `COMPLETE` — Chromium binary present at /usr/bin/chromium; PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH set in container env. End-to-end audit run not yet exercised — first manual run in /audits will be the final smoke test.
 - Notes: Switched from SSE to fire-and-forget + Supabase realtime to match the lead-jobs pattern already in production. Same UX (live progress) without long-lived HTTP connections.
 
 ## General Notes
