@@ -50,3 +50,10 @@ public/workbox-*.js
 public/workbox-*.js.map
 public/swe-worker-*.js
 iPad_Annotation_Options_for_Presentations.pdf
+
+# iCloud-style duplicates
+* 2.*
+* 2
+
+# claude code transient state
+.claude/scheduled_tasks.lock

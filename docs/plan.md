@@ -1,3 +1,7 @@
+---
+tags: [niewdel, command-center, plan]
+---
+
 # Plan — Command Center
 
 ## Execution Phases

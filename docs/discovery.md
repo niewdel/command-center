@@ -1,3 +1,7 @@
+---
+tags: [niewdel, command-center, discovery]
+---
+
 # Discovery — Command Center
 
 ## Discovery Session Instructions

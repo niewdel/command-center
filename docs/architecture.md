@@ -1,3 +1,7 @@
+---
+tags: [niewdel, command-center, architecture]
+---
+
 # Architecture — Command Center
 
 ## Entity & Workspace Structure
