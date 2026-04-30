@@ -164,3 +164,4 @@ tags: [niewdel, command-center, progress]
 - Framework polish session 2026-03-28: 4 new files (2 pages, toast, notifications), 8+ modified files, clean build
 - Content digester session 2026-03-28: 8 new files (migration, 2 lib modules, 3 API routes, 1 page), 2 modified files (sidebar, types), clean TypeScript
 - Design + Inbox session 2026-03-29: 19 new files, 11 modified files. Full UI rework (Phase A+B) + complete inbox module (Phase C). Clean build.
+- Repo relocated 2026-04-30: moved from iCloud-backed `~/Documents/claude-projects/Niewdel/command-center` to local `~/Developer/command-center`. Faster localhost, no iCloud sync churn. Old folder pending deletion after verification.
