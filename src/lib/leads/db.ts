@@ -203,12 +203,55 @@ export type LeadJobUpdate = Partial<{
   error: string;
   started_at: string;
   completed_at: string;
+  last_heartbeat_at: string;
 }>;
+
+const NON_TERMINAL_STATUSES: LeadJobStatus[] = [
+  "queued",
+  "scraping",
+  "enriching",
+  "researching",
+  "writing",
+];
+
+// Heartbeat staleness threshold. Pipeline writes happen every per-item tick
+// (sub-second to ~10s during research/write stages), so 2 minutes is well
+// outside normal jitter but tight enough that a dead worker fails fast.
+export const LEAD_JOB_HEARTBEAT_TIMEOUT_MS = 2 * 60 * 1000;
 
 export async function updateLeadJob(jobId: string, patch: LeadJobUpdate) {
   const { error } = await getServiceClient()
     .from("lead_jobs")
-    .update(patch)
+    .update({ last_heartbeat_at: new Date().toISOString(), ...patch })
     .eq("id", jobId);
   if (error) throw new Error(`Failed to update lead_job: ${error.message}`);
+}
+
+/**
+ * Mark any non-terminal lead_jobs whose heartbeat is older than
+ * LEAD_JOB_HEARTBEAT_TIMEOUT_MS as failed. Returns the swept ids.
+ *
+ * Safe to call concurrently — the WHERE clause filters by status, so a job
+ * that finishes between the read and the write is naturally excluded.
+ */
+export async function sweepStaleLeadJobs(): Promise<string[]> {
+  const cutoff = new Date(
+    Date.now() - LEAD_JOB_HEARTBEAT_TIMEOUT_MS
+  ).toISOString();
+  const sb = getServiceClient();
+
+  const { data, error } = await sb
+    .from("lead_jobs")
+    .update({
+      status: "failed" as LeadJobStatus,
+      error:
+        "Worker process died mid-pipeline (no heartbeat). Re-run the job.",
+      completed_at: new Date().toISOString(),
+    })
+    .in("status", NON_TERMINAL_STATUSES)
+    .lt("last_heartbeat_at", cutoff)
+    .select("id");
+
+  if (error) throw new Error(`Failed to sweep lead_jobs: ${error.message}`);
+  return (data ?? []).map((r) => r.id as string);
 }

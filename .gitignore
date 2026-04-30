@@ -57,3 +57,6 @@ iPad_Annotation_Options_for_Presentations.pdf
 
 # claude code transient state
 .claude/scheduled_tasks.lock
+
+# supabase cli scratch
+supabase/.temp/

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServiceClient, getOrg } from "@/lib/leads/db";
+import { getServiceClient, getOrg, sweepStaleLeadJobs } from "@/lib/leads/db";
 import { runPipeline } from "@/lib/leads/pipeline";
 
 // Audit/scrape jobs need real wall-clock time on Railway. Default Railway
@@ -132,6 +132,15 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+  // Opportunistic sweep — fail any orphaned non-terminal jobs before
+  // returning, so the UI never shows a stuck "researching..." row.
+  // Logged-and-swallowed because a sweep failure shouldn't block the read.
+  try {
+    await sweepStaleLeadJobs();
+  } catch (e) {
+    console.warn("[lead-jobs GET] sweep failed:", e);
+  }
+
   const sb = getServiceClient();
   const limit = parseInt(req.nextUrl.searchParams.get("limit") ?? "20");
   const { data, error } = await sb
