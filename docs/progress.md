@@ -114,11 +114,11 @@ tags: [niewdel, command-center, progress]
 - [x] Google OAuth credentials — `COMPLETE` — Google Cloud Console app registered 2026-03-29
 - [x] Migration-006 run — `COMPLETE` — Tables created in Supabase 2026-03-29
 - [ ] Microsoft OAuth credentials — `PENDING` — Azure AD app registration needed
-- [ ] CRON_SECRET env var — `PENDING` — Add to Railway + set up periodic sync trigger
+- [x] CRON_SECRET env var — `COMPLETE` — Set in Railway; in-process scheduler registers via src/instrumentation.ts on boot (2026-05-01)
 - [x] Anthropic API key — `COMPLETE` — Already configured
 - [ ] OpenAI API key — `PENDING` — Needed for Instagram Whisper transcription
 - [ ] Slack app setup — `PENDING` — Content digester Slack channel integration
-- [ ] Periodic sync trigger — `PENDING` — Railway cron or cron-job.org for inbox sync every 10 min
+- [x] Periodic sync trigger — `COMPLETE` — In-process croner scheduler in src/instrumentation.ts: sweep-lead-jobs (5m), sync-calendars (15m), refresh-news (1h)
 
 ---
 
