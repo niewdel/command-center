@@ -91,6 +91,7 @@ export function Sidebar() {
 
   const handleLock = () => {
     document.cookie = "cc-auth=; path=/; max-age=0";
+    document.cookie = "cc-auth-fresh=; path=/; max-age=0";
     router.push("/login");
     router.refresh();
   };

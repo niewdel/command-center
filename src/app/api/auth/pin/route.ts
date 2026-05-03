@@ -18,6 +18,16 @@ export async function POST(request: NextRequest) {
     path: "/",
     maxAge: 60 * 60 * 24 * 30, // 30 days
   });
+  // Stamp middleware's freshness cookie too — we're about to call
+  // signInWithPassword below, so the next page load can skip the redundant
+  // Supabase round-trip in middleware.
+  response.cookies.set("cc-auth-fresh", "1", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    path: "/",
+    maxAge: 5 * 60,
+  });
 
   // Also establish a Supabase Auth session so RLS policies scoped to auth.uid()
   // can read data. The server client writes sb-* cookies onto `response`.
