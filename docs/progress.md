@@ -125,6 +125,53 @@ tags: [niewdel, command-center, progress]
 ## Blockers
 *(None currently)*
 
+#### SEO Agent — Phase 1 (2026-05-03) — `COMPLETE`
+- [x] Migration 022 — seo_jobs, seo_checks, seo_issues + clients.seo_config jsonb. RLS via auth.uid() per migration-016 hardened pattern.
+- [x] Migration 023 — `ai_search` issue category (applied via MCP only, no file shipped — folded into 024)
+- [x] Pipeline — Playwright crawl + PSI mobile + per-page snapshots, fingerprint-based idempotent issue upsert, diff vs previous, Claude AI summary
+- [x] Site checks — robots.txt parser (catches AI bot blocks: GPTBot, PerplexityBot, ClaudeBot, Google-Extended, etc.), /llms.txt, /pricing.md
+- [x] Per-page checks — title/meta length, missing H1, alt text, canonical-self validation, schema/JSON-LD presence; cross-page duplicate-title detection
+- [x] Cron — weekly-check Mon 9am ET (DST-aware via croner), sweep every 15min for stuck jobs
+- [x] UI — `/seo` overview, `/seo/clients/[id]` detail with grouped issues + per-page snapshot data + score deltas; settings drawer for keywords, competitors, contact email, dry_run flag
+- [x] Fix-plan generator — markdown brief (Copy / Download from UI), Claude Code prompt format
+- Smoke test confirmed working 2026-05-04
+
+#### SEO Agent — Phases 2/3/4 (2026-05-04) — `COMPLETE`
+**Phase 2 — Trends & Reports:**
+- [x] Desktop Lighthouse — `runPerformanceAudit` extended with strategy param; pipeline runs mobile+desktop in parallel
+- [x] Freshness scoring — `freshness.ts` derives median days-since-change from sitemap `<lastmod>` + content_hash diff vs prior check
+- [x] Score history chart — inline SVG sparkline component (no Recharts dep) on `/seo/clients/[id]`, 4-line tooltip on hover
+- [x] Monthly PDF report — Playwright print-to-PDF via reused chromium binary; branded HTML template w/ exec summary, sparklines, top issues, resolved
+- [x] Monthly cron — 1st of month 9am ET, fire-and-forget setImmediate; manual "Monthly report" button on client detail page
+
+**Phase 3 — Paid Checks (gated on `DATAFORSEO_LOGIN`/`PASSWORD`):**
+- [x] DataForSEO client — `dataforseo.ts` calls `/v3/serp/google/organic/live/advanced` + `/v3/dataforseo_labs/google/ranked_keywords/live` via fetch + Basic auth (no SDK)
+- [x] `paid_keyword` executor — per target_keyword: live SERP, find rank, store snapshot in `seo_keyword_ranks`, compute WoW delta
+- [x] `paid_competitor` executor — pulls competitor ranked_keywords, diffs against client's, stores top 50/competitor in `seo_competitor_gaps` (replace-on-run)
+- [x] Crons — paid_keyword Tue 9am ET, paid_competitor 1st of month 9:30am ET; both gated on `paid_tracking_enabled` flag
+- [x] UI — Keyword ranks + Competitor gaps sections on `/seo/clients/[id]`, manual run buttons, realtime-subbed
+
+**Phase 4 — Close the Loop:**
+- [x] Auto-create tasks — pipeline creates a `tasks` row for each NEW critical/high issue when `dry_run !== true`; links via `seo_issues.task_id`; uses new `tasks.source = 'seo'`; idempotent on re-run
+- [x] Weekly digest email — Resend integration (REST, no SDK); fires on new criticals/highs OR ≥5pt regression; suppressed on dry_run
+- [x] Mark Fixed / Ignore — PATCH `/api/seo/issues/[id]`, buttons on each issue, refreshes via realtime channel
+
+**Migration 024 — APPLIED via MCP 2026-05-04:**
+- Extended `seo_issues.category` to allow `ai_search` (folds in 023)
+- Extended `tasks.source` to allow `seo` (kept `ai` which was in production but missing from schema.sql)
+- Created `seo_keyword_ranks` (workspace-scoped RLS, idx on client+keyword+captured_at desc)
+- Created `seo_competitor_gaps` (workspace-scoped RLS, idx on search_volume desc)
+- Both new tables added to `supabase_realtime` publication
+
+**Pending env vars (none blocking — features no-op gracefully until set):**
+- [ ] `RESEND_API_KEY` + `SEO_DIGEST_FROM` — email digest + monthly PDF delivery (Justin to swap to `admin@niewdel.com` once Workspace MX resolves)
+- [ ] `DATAFORSEO_LOGIN` + `DATAFORSEO_PASSWORD` — Phase 3 paid checks (Justin creating account)
+- [ ] `NEXT_PUBLIC_APP_URL` — used in digest email to deep-link back to dashboard
+
+**Phase 5 (white-label / multi-tenant) — `SKIPPED`** — internal-only deployment; revisit if/when SaaS launch.
+
+Notes: Single migration covers all schema deltas to avoid migration-023-style drift. Full build + typecheck clean; only pre-existing lint warnings remain.
+
 #### RLS recovery + Supabase Auth (2026-04-24) — `PARTIALLY COMPLETE`
 - [x] Diagnose blank-data issue — `COMPLETE` — 2026-04-22 `harden_rls_across_public_schema` migration replaced permissive PIN-auth policies with `{authenticated}` + `auth.uid()` policies; app has no Supabase Auth session so every query returned `[]`
 - [x] Migration 015 restore-pin-auth-rls — `COMPLETE` — Applied 2026-04-24; permissive `USING(true) WITH CHECK(true)` policies restored on all 23 public tables; data visible again

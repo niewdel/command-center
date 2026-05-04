@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
+import { ScoreHistoryChart } from "@/components/seo/score-history-chart";
 
 type SeoConfig = {
   enabled?: boolean;
@@ -92,6 +93,7 @@ type Check = {
       technical?: number | null;
       onpage?: number | null;
       lighthouse_mobile?: number | null;
+      lighthouse_desktop?: number | null;
     };
   } | null;
   pages: PageSnap[] | null;
@@ -111,6 +113,25 @@ type Issue = {
   status: string;
   first_seen_at: string;
   last_seen_at: string;
+};
+
+type KeywordRank = {
+  keyword: string;
+  rank: number | null;
+  url: string | null;
+  captured_at: string;
+  prior_rank: number | null;
+  delta: number | null;
+};
+
+type CompetitorGap = {
+  competitor_domain: string;
+  keyword: string;
+  competitor_rank: number;
+  competitor_url: string | null;
+  search_volume: number | null;
+  cpc: number | null;
+  captured_at: string;
 };
 
 type Job = {
@@ -180,8 +201,13 @@ export default function SeoClientDetailPage({
   const [checks, setChecks] = useState<Check[]>([]);
   const [issues, setIssues] = useState<Issue[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [keywordRanks, setKeywordRanks] = useState<KeywordRank[]>([]);
+  const [competitorGaps, setCompetitorGaps] = useState<CompetitorGap[]>([]);
+  const [runningKw, setRunningKw] = useState(false);
+  const [runningComp, setRunningComp] = useState(false);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
+  const [runningReport, setRunningReport] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [fixPlanOpen, setFixPlanOpen] = useState(false);
   const [fixPlanLoading, setFixPlanLoading] = useState(false);
@@ -197,9 +223,41 @@ export default function SeoClientDetailPage({
       setChecks(res.checks ?? []);
       setIssues(res.issues ?? []);
       setJobs(res.jobs ?? []);
+      setKeywordRanks(res.keyword_ranks ?? []);
+      setCompetitorGaps(res.competitor_gaps ?? []);
     }
     setLoading(false);
   }, [id]);
+
+  const handleRunKeyword = async () => {
+    setRunningKw(true);
+    try {
+      const res = await fetch(`/api/seo/clients/${id}/run-keyword`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error ?? "Failed to start keyword check");
+      }
+    } finally {
+      setRunningKw(false);
+    }
+  };
+
+  const handleRunCompetitor = async () => {
+    setRunningComp(true);
+    try {
+      const res = await fetch(`/api/seo/clients/${id}/run-competitor`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error ?? "Failed to start competitor check");
+      }
+    } finally {
+      setRunningComp(false);
+    }
+  };
 
   useEffect(() => {
     fetchAll();
@@ -218,6 +276,16 @@ export default function SeoClientDetailPage({
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "seo_issues", filter: `client_id=eq.${id}` },
+        () => fetchAll()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "seo_keyword_ranks", filter: `client_id=eq.${id}` },
+        () => fetchAll()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "seo_competitor_gaps", filter: `client_id=eq.${id}` },
         () => fetchAll()
       )
       .subscribe();
@@ -241,6 +309,21 @@ export default function SeoClientDetailPage({
       }
     } finally {
       setRunning(false);
+    }
+  };
+
+  const handleRunMonthly = async () => {
+    setRunningReport(true);
+    try {
+      const res = await fetch(`/api/seo/clients/${id}/run-monthly`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error ?? "Failed to start monthly report");
+      }
+    } finally {
+      setRunningReport(false);
     }
   };
 
@@ -325,6 +408,25 @@ export default function SeoClientDetailPage({
           <Button
             size="sm"
             variant="outline"
+            onClick={handleRunMonthly}
+            disabled={runningReport || !latest || !cfg.enabled || !cfg.domain}
+            className="rounded gap-1.5"
+            title={
+              !latest
+                ? "Run a weekly check first"
+                : "Generate + email monthly PDF report"
+            }
+          >
+            {runningReport ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <Download className="size-3.5" />
+            )}
+            Monthly report
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
             onClick={openFixPlan}
             disabled={!latest || sortedIssues.length === 0}
             className="rounded gap-1.5"
@@ -384,7 +486,7 @@ export default function SeoClientDetailPage({
       )}
 
       {/* Header scores + meta */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <ScoreCard
           label="Technical"
           score={latest?.technical_score}
@@ -400,6 +502,11 @@ export default function SeoClientDetailPage({
           score={latest?.lighthouse_mobile}
           delta={latest?.diff_from_previous?.score_deltas?.lighthouse_mobile}
         />
+        <ScoreCard
+          label="Desktop"
+          score={latest?.lighthouse_desktop}
+          delta={latest?.diff_from_previous?.score_deltas?.lighthouse_desktop}
+        />
         <Card className="p-4 space-y-1">
           <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
             Last check
@@ -409,9 +516,25 @@ export default function SeoClientDetailPage({
           </div>
           <div className="text-xs text-muted-foreground">
             {latest ? `${latest.pages_crawled ?? 0} pages` : "—"}
+            {latest?.freshness_days != null
+              ? ` · ${latest.freshness_days}d median age`
+              : ""}
           </div>
         </Card>
       </div>
+
+      {/* Score history */}
+      {checks.length >= 2 && (
+        <ScoreHistoryChart
+          points={checks.map((c) => ({
+            created_at: c.created_at,
+            technical_score: c.technical_score,
+            onpage_score: c.onpage_score,
+            lighthouse_mobile: c.lighthouse_mobile,
+            lighthouse_desktop: c.lighthouse_desktop,
+          }))}
+        />
+      )}
 
       {/* AI summary */}
       {latest?.ai_summary && (
@@ -474,9 +597,143 @@ export default function SeoClientDetailPage({
             All clear — no open issues from the latest check.
           </Card>
         ) : (
-          <IssueGroupedList issues={sortedIssues} pages={latest?.pages ?? null} />
+          <IssueGroupedList
+            issues={sortedIssues}
+            pages={latest?.pages ?? null}
+            onRefresh={fetchAll}
+          />
         )}
       </div>
+
+      {/* Keyword ranks */}
+      {(cfg.target_keywords ?? []).length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold font-heading">
+              Keyword ranks ({keywordRanks.length})
+            </h2>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleRunKeyword}
+              disabled={runningKw}
+              className="rounded h-7 text-xs gap-1.5"
+            >
+              {runningKw ? (
+                <Loader2 className="size-3 animate-spin" />
+              ) : (
+                <Play className="size-3" />
+              )}
+              Run keyword check
+            </Button>
+          </div>
+          {keywordRanks.length === 0 ? (
+            <Card className="p-4 text-xs text-muted-foreground">
+              No rank data yet. Click <strong>Run keyword check</strong> to track{" "}
+              {cfg.target_keywords?.length} keyword
+              {cfg.target_keywords?.length === 1 ? "" : "s"}.
+            </Card>
+          ) : (
+            <Card className="p-2 divide-y divide-border">
+              {keywordRanks.map((kw) => (
+                <div
+                  key={kw.keyword}
+                  className="flex items-center justify-between gap-3 p-2 text-xs"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium truncate">{kw.keyword}</div>
+                    {kw.url && (
+                      <a
+                        href={kw.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[11px] font-mono text-muted-foreground hover:text-foreground inline-flex items-center gap-1 truncate"
+                      >
+                        {kw.url}
+                        <ExternalLink className="size-3 opacity-60 shrink-0" />
+                      </a>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="font-mono tabular-nums">
+                      {kw.rank == null ? (
+                        <span className="text-muted-foreground">not in top 50</span>
+                      ) : (
+                        <>#{kw.rank}</>
+                      )}
+                    </span>
+                    {kw.delta != null && kw.delta !== 0 && (
+                      <span
+                        className={cn(
+                          "font-mono tabular-nums text-[11px]",
+                          kw.delta > 0 ? "text-emerald-400" : "text-rose-400"
+                        )}
+                      >
+                        {kw.delta > 0 ? "↑" : "↓"}
+                        {Math.abs(kw.delta)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* Competitor gaps */}
+      {(cfg.competitor_domains ?? []).length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold font-heading">
+              Competitor gaps ({competitorGaps.length})
+            </h2>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleRunCompetitor}
+              disabled={runningComp}
+              className="rounded h-7 text-xs gap-1.5"
+            >
+              {runningComp ? (
+                <Loader2 className="size-3 animate-spin" />
+              ) : (
+                <Play className="size-3" />
+              )}
+              Run competitor check
+            </Button>
+          </div>
+          {competitorGaps.length === 0 ? (
+            <Card className="p-4 text-xs text-muted-foreground">
+              No gap data yet. Click <strong>Run competitor check</strong> to compare
+              against {cfg.competitor_domains?.length} competitor
+              {cfg.competitor_domains?.length === 1 ? "" : "s"}.
+            </Card>
+          ) : (
+            <Card className="p-2 divide-y divide-border max-h-[420px] overflow-auto">
+              {competitorGaps.slice(0, 50).map((gap, i) => (
+                <div
+                  key={`${gap.competitor_domain}-${gap.keyword}-${i}`}
+                  className="flex items-center justify-between gap-3 p-2 text-xs"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium truncate">{gap.keyword}</div>
+                    <div className="text-[11px] text-muted-foreground inline-flex items-center gap-2">
+                      <span className="font-mono">{gap.competitor_domain}</span>
+                      <span>#{gap.competitor_rank}</span>
+                    </div>
+                  </div>
+                  {gap.search_volume != null && (
+                    <span className="font-mono tabular-nums text-muted-foreground shrink-0">
+                      {gap.search_volume.toLocaleString()}/mo
+                    </span>
+                  )}
+                </div>
+              ))}
+            </Card>
+          )}
+        </div>
+      )}
 
       {/* Recent runs */}
       <div className="space-y-2">
@@ -608,10 +865,39 @@ function pageKeyOf(url: string | null): string {
 function IssueGroupedList({
   issues,
   pages,
+  onRefresh,
 }: {
   issues: Issue[];
   pages: PageSnap[] | null;
+  onRefresh: () => void;
 }) {
+  const [acting, setActing] = useState<Record<string, boolean>>({});
+
+  const setIssueStatus = async (
+    id: string,
+    status: "fixed" | "ignored"
+  ) => {
+    setActing((s) => ({ ...s, [id]: true }));
+    try {
+      const res = await fetch(`/api/seo/issues/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error ?? "Failed to update issue");
+        return;
+      }
+      onRefresh();
+    } finally {
+      setActing((s) => {
+        const next = { ...s };
+        delete next[id];
+        return next;
+      });
+    }
+  };
   // Group by page (site-wide first, then by issue count desc)
   const groups = new Map<string, Issue[]>();
   for (const i of issues) {
@@ -797,6 +1083,18 @@ function IssueGroupedList({
                         {iss.recommendation}
                       </p>
                     )}
+                    <div className="flex items-center gap-2 pt-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 text-[11px] rounded gap-1 text-muted-foreground"
+                        disabled={!!acting[iss.id]}
+                        onClick={() => setIssueStatus(iss.id, "ignored")}
+                        title="Hide from digests — use only for issues you've decided not to fix"
+                      >
+                        Ignore
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>

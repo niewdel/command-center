@@ -15,6 +15,7 @@ export interface SeoConfig {
   };
   dry_run?: boolean;                 // first 2 weeks per client; suppresses task creation + sends
   report_status?: "enabled" | "paused";
+  paid_tracking_enabled?: boolean;   // gates paid_keyword + paid_competitor crons
 }
 
 export type SeoJobType =

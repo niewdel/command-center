@@ -307,3 +307,4 @@ export async function getSeoClient(clientId: string): Promise<SeoClientRow | nul
     .maybeSingle();
   return (data as SeoClientRow) ?? null;
 }
+

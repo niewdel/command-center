@@ -31,7 +31,7 @@ export async function GET() {
     const ids = rows.map((r) => r.id);
     const { data: checks } = await sb
       .from("seo_checks")
-      .select("client_id, technical_score, lighthouse_mobile, onpage_score, pages_crawled, ai_summary, diff_from_previous, created_at")
+      .select("client_id, technical_score, lighthouse_mobile, lighthouse_desktop, onpage_score, freshness_days, pages_crawled, ai_summary, diff_from_previous, created_at")
       .in("client_id", ids)
       .order("created_at", { ascending: false });
     for (const c of checks ?? []) {

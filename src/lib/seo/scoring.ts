@@ -1,16 +1,25 @@
 import type { CrawledPage, PSIMetrics } from "@/lib/audit/types";
-import type { CheckScores } from "./types";
+import type { CheckScores, PageSnapshot } from "./types";
+import { computeFreshnessDays } from "./freshness";
 
 // Aggregate scores derived from per-page snapshots + PSI metrics.
 //
-// Phase 1 keeps these simple — single weighted formulas over the page set.
-// Future phases can add weights per page (homepage matters more than a blog
-// archive) and trend-aware noise filtering on the diff side, not here.
+// Phase 2 adds: lighthouse_desktop (separate PSI run) and freshness_days
+// (median age across pages, derived from sitemap lastmod or prior-check
+// content_hash diff).
 
-export function computeScores(
+interface FreshnessContext {
+  client_id: string;
+  rootUrl: string;
+  snapshots: PageSnapshot[];
+}
+
+export async function computeScores(
   pages: CrawledPage[],
-  psi: PSIMetrics[]
-): CheckScores {
+  psiMobile: PSIMetrics[],
+  psiDesktop: PSIMetrics[] = [],
+  freshnessCtx?: FreshnessContext
+): Promise<CheckScores> {
   if (pages.length === 0) {
     return {
       technical: 0,
@@ -32,16 +41,21 @@ export function computeScores(
     100 * (0.7 * statusFraction + 0.3 * canonicalFraction)
   );
 
-  // --- Lighthouse mobile (only — we only run mobile in Phase 1) ---
   const lighthouseMobile =
-    psi.length > 0
+    psiMobile.length > 0
       ? Math.round(
-          psi.reduce((sum, p) => sum + p.scores.performance, 0) / psi.length
+          psiMobile.reduce((sum, p) => sum + p.scores.performance, 0) /
+            psiMobile.length
         )
       : null;
 
-  // Phase 1: only mobile is run. Desktop slot reserved for Phase 2.
-  const lighthouseDesktop: number | null = null;
+  const lighthouseDesktop =
+    psiDesktop.length > 0
+      ? Math.round(
+          psiDesktop.reduce((sum, p) => sum + p.scores.performance, 0) /
+            psiDesktop.length
+        )
+      : null;
 
   // --- Onpage: weighted completeness across title/meta/h1/alt/schema ---
   const titleOk = pages.filter((p) => {
@@ -76,11 +90,20 @@ export function computeScores(
         pages.length)
   );
 
+  let freshnessDays: number | null = null;
+  if (freshnessCtx) {
+    try {
+      freshnessDays = await computeFreshnessDays(freshnessCtx);
+    } catch {
+      freshnessDays = null;
+    }
+  }
+
   return {
     technical,
     lighthouse_mobile: lighthouseMobile,
     lighthouse_desktop: lighthouseDesktop,
     onpage,
-    freshness_days: null, // Phase 2: derive from sitemap lastmod or content_hash diff vs prior check
+    freshness_days: freshnessDays,
   };
 }

@@ -45,11 +45,70 @@ export async function GET(
     .order("created_at", { ascending: false })
     .limit(10);
 
+  // Latest keyword rank per keyword + the prior rank for delta. We pull the
+  // last 60 captures, then dedup keyword → newest two rows.
+  const { data: rawRanks } = await sb
+    .from("seo_keyword_ranks")
+    .select("keyword, rank, url, captured_at")
+    .eq("client_id", id)
+    .order("captured_at", { ascending: false })
+    .limit(200);
+
+  type KwRow = {
+    keyword: string;
+    rank: number | null;
+    url: string | null;
+    captured_at: string;
+  };
+  const latestByKw = new Map<
+    string,
+    {
+      keyword: string;
+      rank: number | null;
+      url: string | null;
+      captured_at: string;
+      prior_rank: number | null;
+      delta: number | null;
+    }
+  >();
+  for (const r of (rawRanks ?? []) as KwRow[]) {
+    const existing = latestByKw.get(r.keyword);
+    if (!existing) {
+      latestByKw.set(r.keyword, {
+        keyword: r.keyword,
+        rank: r.rank,
+        url: r.url,
+        captured_at: r.captured_at,
+        prior_rank: null,
+        delta: null,
+      });
+    } else if (existing.prior_rank == null) {
+      existing.prior_rank = r.rank;
+      existing.delta =
+        existing.rank != null && r.rank != null
+          ? r.rank - existing.rank // positive = improved (rank went down = better position)
+          : null;
+    }
+  }
+  const keyword_ranks = [...latestByKw.values()];
+
+  // Competitor gaps — current snapshot only (executor replaces on each run).
+  const { data: gaps } = await sb
+    .from("seo_competitor_gaps")
+    .select(
+      "competitor_domain, keyword, competitor_rank, competitor_url, search_volume, cpc, captured_at"
+    )
+    .eq("client_id", id)
+    .order("search_volume", { ascending: false, nullsFirst: false })
+    .limit(200);
+
   return NextResponse.json({
     client,
     checks: checks ?? [],
     issues: issues ?? [],
     jobs: jobs ?? [],
+    keyword_ranks,
+    competitor_gaps: gaps ?? [],
   });
 }
 

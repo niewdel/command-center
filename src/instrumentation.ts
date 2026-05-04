@@ -39,6 +39,31 @@ const SCHEDULES: Array<{
   // SEO sweep — every 15 min. Marks any seo_jobs whose heartbeat is
   // stale (process died mid-run) as failed so the UI moves on.
   { name: "seo-sweep", cron: "*/15 * * * *", path: "/api/cron/seo/sweep" },
+  // SEO monthly report — 1st of the month, 09:00 America/New_York.
+  // Generates branded PDF + emails to seo_config.contact_email when set.
+  {
+    name: "seo-monthly-report",
+    cron: "0 9 1 * *",
+    path: "/api/cron/seo/monthly-report",
+    timezone: "America/New_York",
+  },
+  // SEO paid keyword tracking — Tue 09:00 ET, weekly. Runs DataForSEO SERP
+  // for each client.target_keywords. Only fires for clients that opted into
+  // paid_tracking_enabled = true in seo_config.
+  {
+    name: "seo-paid-keyword",
+    cron: "0 9 * * 2",
+    path: "/api/cron/seo/paid-keyword",
+    timezone: "America/New_York",
+  },
+  // SEO competitor gap analysis — 1st of the month, 09:30 ET. Heavier
+  // ranked-keywords API, so monthly cadence only.
+  {
+    name: "seo-paid-competitor",
+    cron: "30 9 1 * *",
+    path: "/api/cron/seo/paid-competitor",
+    timezone: "America/New_York",
+  },
 ];
 
 export async function register() {

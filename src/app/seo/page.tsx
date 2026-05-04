@@ -31,7 +31,12 @@ type SeoConfig = {
 type DiffSummary = {
   new_issues_count?: number;
   resolved_issues_count?: number;
-  score_deltas?: { technical?: number | null; onpage?: number | null; lighthouse_mobile?: number | null };
+  score_deltas?: {
+    technical?: number | null;
+    onpage?: number | null;
+    lighthouse_mobile?: number | null;
+    lighthouse_desktop?: number | null;
+  };
 };
 
 type SeoClientRow = {
@@ -42,7 +47,9 @@ type SeoClientRow = {
   latest_check: {
     technical_score: number | null;
     lighthouse_mobile: number | null;
+    lighthouse_desktop: number | null;
     onpage_score: number | null;
+    freshness_days: number | null;
     pages_crawled: number | null;
     ai_summary: string | null;
     diff_from_previous: DiffSummary | null;
@@ -211,10 +218,11 @@ export default function SeoOverviewPage() {
                 </div>
 
                 {/* Scores row */}
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   <ScorePill label="Tech" score={last?.technical_score ?? null} />
                   <ScorePill label="On-page" score={last?.onpage_score ?? null} />
                   <ScorePill label="Mobile" score={last?.lighthouse_mobile ?? null} />
+                  <ScorePill label="Desktop" score={last?.lighthouse_desktop ?? null} />
                 </div>
 
                 {/* Low-page-count warning */}

@@ -27,10 +27,12 @@ interface PSIResponse {
   };
 }
 
-function buildUrl(targetUrl: string): string {
+type PSIStrategy = 'mobile' | 'desktop';
+
+function buildUrl(targetUrl: string, strategy: PSIStrategy = 'mobile'): string {
   const params = new URLSearchParams();
   params.set('url', targetUrl);
-  params.set('strategy', 'mobile');
+  params.set('strategy', strategy);
   params.append('category', 'performance');
   params.append('category', 'accessibility');
   params.append('category', 'seo');
@@ -76,9 +78,10 @@ function extractMetrics(url: string, data: PSIResponse): PSIMetrics {
 
 async function fetchPSISingle(
   url: string,
+  strategy: PSIStrategy,
   onProgress?: (message: string) => void
 ): Promise<PSIMetrics | null> {
-  const requestUrl = buildUrl(url);
+  const requestUrl = buildUrl(url, strategy);
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -117,15 +120,16 @@ async function fetchPSISingle(
 
 async function fetchPSI(
   url: string,
+  strategy: PSIStrategy,
   onProgress?: (message: string) => void
 ): Promise<PSIMetrics | null> {
-  onProgress?.(`Analyzing performance for ${url}...`);
+  onProgress?.(`Analyzing ${strategy} performance for ${url}...`);
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     if (attempt > 0) {
-      onProgress?.(`Retrying PSI for ${url} (attempt ${attempt + 1})...`);
+      onProgress?.(`Retrying ${strategy} PSI for ${url} (attempt ${attempt + 1})...`);
     }
-    const result = await fetchPSISingle(url, onProgress);
+    const result = await fetchPSISingle(url, strategy, onProgress);
     if (result) return result;
 
     // Don't retry on last attempt
@@ -167,27 +171,29 @@ async function runWithConcurrency<T>(
 }
 
 /**
- * Runs PageSpeed Insights audits against the provided URLs (mobile strategy).
+ * Runs PageSpeed Insights audits against the provided URLs.
  * Skips any URL that fails or times out. Runs up to 3 concurrent requests.
+ * Strategy defaults to 'mobile'; pass 'desktop' for desktop scoring.
  */
 export async function runPerformanceAudit(
   urls: string[],
-  onProgress?: (message: string) => void
+  onProgress?: (message: string) => void,
+  strategy: PSIStrategy = 'mobile'
 ): Promise<PSIMetrics[]> {
   if (urls.length === 0) {
     onProgress?.('No URLs provided for performance audit.');
     return [];
   }
 
-  onProgress?.(`Starting performance audit for ${urls.length} URL${urls.length === 1 ? '' : 's'}...`);
+  onProgress?.(`Starting ${strategy} performance audit for ${urls.length} URL${urls.length === 1 ? '' : 's'}...`);
 
-  const tasks = urls.map((url) => () => fetchPSI(url, onProgress));
+  const tasks = urls.map((url) => () => fetchPSI(url, strategy, onProgress));
   const results = await runWithConcurrency(tasks, MAX_CONCURRENT);
 
   const successful = results.filter((r): r is PSIMetrics => r !== null);
 
   onProgress?.(
-    `Performance audit complete: ${successful.length}/${urls.length} URL${urls.length === 1 ? '' : 's'} analyzed.`
+    `${strategy} performance audit complete: ${successful.length}/${urls.length} URL${urls.length === 1 ? '' : 's'} analyzed.`
   );
 
   return successful;
