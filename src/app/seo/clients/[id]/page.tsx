@@ -208,6 +208,10 @@ export default function SeoClientDetailPage({
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [runningReport, setRunningReport] = useState(false);
+  // When the user clicks "Monthly report" we stash the returned jobId here,
+  // then watch the jobs realtime feed below — when this jobId transitions
+  // to status=complete with a report_url, we auto-open it in a new tab.
+  const [awaitingReportJobId, setAwaitingReportJobId] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [fixPlanOpen, setFixPlanOpen] = useState(false);
   const [fixPlanLoading, setFixPlanLoading] = useState(false);
@@ -318,14 +322,36 @@ export default function SeoClientDetailPage({
       const res = await fetch(`/api/seo/clients/${id}/run-monthly`, {
         method: "POST",
       });
+      const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        alert(err.error ?? "Failed to start monthly report");
+        alert(json.error ?? "Failed to start monthly report");
+        return;
+      }
+      if (json.jobId) {
+        setAwaitingReportJobId(json.jobId as string);
       }
     } finally {
       setRunningReport(false);
     }
   };
+
+  // Auto-open the PDF the moment the just-clicked monthly_report job completes.
+  // Realtime updates jobs[] which triggers this effect; we match by jobId so
+  // older completed reports don't re-trigger an open on every page mount.
+  useEffect(() => {
+    if (!awaitingReportJobId) return;
+    const job = jobs.find((j) => j.id === awaitingReportJobId);
+    if (!job) return;
+    if (job.status === "complete") {
+      const url = job.metadata?.report_url as string | undefined;
+      if (url) {
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
+      setAwaitingReportJobId(null);
+    } else if (job.status === "failed" || job.status === "cancelled") {
+      setAwaitingReportJobId(null);
+    }
+  }, [awaitingReportJobId, jobs]);
 
   const openFixPlan = async () => {
     setFixPlanOpen(true);
@@ -742,30 +768,50 @@ export default function SeoClientDetailPage({
           {jobs.length === 0 ? (
             <div className="p-3 text-sm text-muted-foreground">No runs yet.</div>
           ) : (
-            jobs.map((j) => (
-              <div
-                key={j.id}
-                className="flex items-center justify-between gap-3 p-2 text-xs"
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <span
-                    className={cn(
-                      "size-2 rounded-full",
-                      j.status === "complete" && "bg-emerald-400",
-                      j.status === "failed" && "bg-rose-400",
-                      (j.status === "queued" || j.status === "running") && "bg-primary animate-pulse"
+            jobs.map((j) => {
+              const reportUrl =
+                j.type === "monthly_report" && j.status === "complete"
+                  ? (j.metadata?.report_url as string | undefined)
+                  : undefined;
+              return (
+                <div
+                  key={j.id}
+                  className="flex items-center justify-between gap-3 p-2 text-xs"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span
+                      className={cn(
+                        "size-2 rounded-full",
+                        j.status === "complete" && "bg-emerald-400",
+                        j.status === "failed" && "bg-rose-400",
+                        (j.status === "queued" || j.status === "running") && "bg-primary animate-pulse"
+                      )}
+                    />
+                    <span className="font-medium">{j.type}</span>
+                    <span className="text-muted-foreground truncate">
+                      {j.current_stage ?? j.error_message ?? j.status}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {reportUrl && (
+                      <a
+                        href={reportUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-primary hover:underline"
+                        title="Open monthly report PDF"
+                      >
+                        <Download className="size-3" />
+                        PDF
+                      </a>
                     )}
-                  />
-                  <span className="font-medium">{j.type}</span>
-                  <span className="text-muted-foreground truncate">
-                    {j.current_stage ?? j.error_message ?? j.status}
-                  </span>
+                    <span className="font-mono text-muted-foreground">
+                      {formatDate(j.created_at)}
+                    </span>
+                  </div>
                 </div>
-                <span className="font-mono text-muted-foreground shrink-0">
-                  {formatDate(j.created_at)}
-                </span>
-              </div>
-            ))
+              );
+            })
           )}
         </Card>
       </div>
