@@ -7,11 +7,9 @@ import {
   LayoutDashboard,
   Layers,
   MoreHorizontal,
-  Newspaper,
   Play,
   DollarSign,
   Bug,
-  Target,
   Settings,
   CalendarDays,
   Calendar,
@@ -19,6 +17,7 @@ import {
   X,
   Users,
   Gauge,
+  TrendingUp,
 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
@@ -32,14 +31,15 @@ const mainTabs = [
 ];
 
 const moreItems = [
-  { name: "Leads", href: "/leads", icon: Users },
-  { name: "Audits", href: "/audits", icon: Gauge },
-  { name: "Goals", href: "/goals", icon: Target },
-  { name: "Expenses", href: "/expenses", icon: DollarSign },
-  { name: "Videos", href: "/videos", icon: Play },
-  { name: "News", href: "/news", icon: Newspaper },
-  { name: "Issues", href: "/issues", icon: Bug },
-  { name: "Settings", href: "/settings", icon: Settings },
+  // Agents (autonomous — runs on a cron)
+  { name: "SEO Agent", href: "/seo", icon: TrendingUp, group: "Agents" },
+  // Tools (manual / on-demand)
+  { name: "Lead Gen", href: "/leads", icon: Users, group: "Tools" },
+  { name: "Website Scoring", href: "/audits", icon: Gauge, group: "Tools" },
+  { name: "Expenses", href: "/expenses", icon: DollarSign, group: "Tools" },
+  { name: "Video Digests", href: "/videos", icon: Play, group: "Tools" },
+  { name: "Bug Reports", href: "/issues", icon: Bug, group: "Tools" },
+  { name: "Settings", href: "/settings", icon: Settings, group: "Tools" },
 ];
 
 export function BottomNav() {
@@ -121,21 +121,32 @@ export function BottomNav() {
               <X className="size-4 text-muted-foreground" />
             </button>
           </div>
-          <div className="space-y-1">
-            {moreItems.map((item) => {
-              const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+          <div className="space-y-3">
+            {["Agents", "Tools"].map((groupName) => {
+              const groupItems = moreItems.filter((i) => i.group === groupName);
+              if (groupItems.length === 0) return null;
               return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors",
-                    isActive ? "bg-accent text-foreground" : "text-muted-foreground"
-                  )}
-                >
-                  <item.icon className="size-4" />
-                  <span>{item.name}</span>
-                </Link>
+                <div key={groupName} className="space-y-1">
+                  <p className="px-3 text-[10px] font-medium uppercase text-muted-foreground tracking-wide">
+                    {groupName}
+                  </p>
+                  {groupItems.map((item) => {
+                    const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors",
+                          isActive ? "bg-accent text-foreground" : "text-muted-foreground"
+                        )}
+                      >
+                        <item.icon className="size-4" />
+                        <span>{item.name}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
               );
             })}
           </div>

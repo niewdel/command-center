@@ -15,7 +15,12 @@ declare global {
   var __ccCronJobs: CronType[] | undefined;
 }
 
-const SCHEDULES: Array<{ name: string; cron: string; path: string }> = [
+const SCHEDULES: Array<{
+  name: string;
+  cron: string;
+  path: string;
+  timezone?: string;
+}> = [
   // Sweep orphaned lead jobs every 5 min — tight enough that a stuck
   // pipeline shows up in the UI within a few minutes even without a page
   // visit.
@@ -23,9 +28,17 @@ const SCHEDULES: Array<{ name: string; cron: string; path: string }> = [
   // Calendar ICS poll — 15 min matches the granularity event consumers
   // actually need.
   { name: "sync-calendars", cron: "*/15 * * * *", path: "/api/cron/sync-calendars" },
-  // News refresh hits Claude per topic — keep it hourly to avoid
-  // burning budget on duplicates.
-  { name: "refresh-news", cron: "0 * * * *", path: "/api/cron/refresh-news" },
+  // SEO weekly check — Mon 09:00 America/New_York. Croner handles DST so
+  // this is 9am ET year-round, automatically shifting between EDT and EST.
+  {
+    name: "seo-weekly-check",
+    cron: "0 9 * * 1",
+    path: "/api/cron/seo/weekly-check",
+    timezone: "America/New_York",
+  },
+  // SEO sweep — every 15 min. Marks any seo_jobs whose heartbeat is
+  // stale (process died mid-run) as failed so the UI moves on.
+  { name: "seo-sweep", cron: "*/15 * * * *", path: "/api/cron/seo/sweep" },
 ];
 
 export async function register() {
@@ -58,8 +71,8 @@ export async function register() {
     return;
   }
 
-  globalThis.__ccCronJobs = SCHEDULES.map(({ name, cron, path }) =>
-    new Cron(cron, { name, protect: true }, async () => {
+  globalThis.__ccCronJobs = SCHEDULES.map(({ name, cron, path, timezone }) =>
+    new Cron(cron, { name, protect: true, timezone }, async () => {
       const started = Date.now();
       try {
         const res = await fetch(`${base}${path}`, {

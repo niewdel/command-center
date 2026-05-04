@@ -9,9 +9,7 @@ import {
   Lock,
   CalendarDays,
   Calendar,
-  Target,
   Settings,
-  Newspaper,
   Bug,
   Zap,
   Play,
@@ -22,6 +20,7 @@ import {
   ImageIcon,
   Users,
   Gauge,
+  TrendingUp,
 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -39,14 +38,16 @@ import {
 } from "@/components/ui/dialog";
 import { QuickAddDialog } from "@/components/layout/quick-add-dialog";
 
-const extraNav = [
-  { name: "Leads", href: "/leads", icon: Users },
-  { name: "Audits", href: "/audits", icon: Gauge },
-  { name: "Goals", href: "/goals", icon: Target },
+const agentsNav = [
+  { name: "SEO Agent", href: "/seo", icon: TrendingUp },
+];
+
+const toolsNav = [
+  { name: "Lead Gen", href: "/leads", icon: Users },
+  { name: "Website Scoring", href: "/audits", icon: Gauge },
   { name: "Expenses", href: "/expenses", icon: DollarSign },
-  { name: "Videos", href: "/videos", icon: Play },
-  { name: "News", href: "/news", icon: Newspaper },
-  { name: "Issues", href: "/issues", icon: Bug },
+  { name: "Video Digests", href: "/videos", icon: Play },
+  { name: "Bug Reports", href: "/issues", icon: Bug },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
@@ -57,6 +58,15 @@ export function Sidebar() {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [showWorkspaceDialog, setShowWorkspaceDialog] = useState(false);
   const [editingWorkspace, setEditingWorkspace] = useState<Workspace | null>(null);
+
+  // Computed after mount to avoid SSR/CSR hydration mismatch (server has no
+  // `navigator`, client does — would render different shortcut prefixes).
+  const [shortcutPrefix, setShortcutPrefix] = useState<string>("Ctrl+");
+  useEffect(() => {
+    if (typeof navigator !== "undefined" && /Mac/.test(navigator.userAgent)) {
+      setShortcutPrefix("⌘");
+    }
+  }, []);
 
   const fetchWorkspaces = useCallback(async () => {
     const { data } = await supabase
@@ -222,12 +232,37 @@ export function Sidebar() {
             })}
           </div>
 
-          {/* Planning section */}
+          {/* Agents section */}
+          <div className="pt-3 mt-1 border-t border-sidebar-border">
+            <p className="px-2.5 mb-1.5 pt-3 text-[11px] font-medium uppercase text-muted-foreground">
+              Agents
+            </p>
+            {agentsNav.map((item) => {
+              const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium transition-colors",
+                    isActive
+                      ? "bg-accent text-foreground"
+                      : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+                  )}
+                >
+                  <item.icon className="size-4 shrink-0" />
+                  <span>{item.name}</span>
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* Tools section */}
           <div className="pt-3 mt-1 border-t border-sidebar-border">
             <p className="px-2.5 mb-1.5 pt-3 text-[11px] font-medium uppercase text-muted-foreground">
               Tools
             </p>
-            {extraNav.map((item) => {
+            {toolsNav.map((item) => {
               const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
               return (
                 <Link
@@ -259,7 +294,7 @@ export function Sidebar() {
             <Plus className="size-4" />
             Quick Add
             <kbd className="ml-auto text-[10px] opacity-50 px-1.5 py-0.5 rounded bg-primary/10 text-primary/70">
-              {typeof navigator !== "undefined" && /Mac/.test(navigator.userAgent) ? "⌘" : "Ctrl+"}N
+              {shortcutPrefix}N
             </kbd>
           </Button>
           <button
