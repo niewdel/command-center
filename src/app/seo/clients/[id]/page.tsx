@@ -208,10 +208,6 @@ export default function SeoClientDetailPage({
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [runningReport, setRunningReport] = useState(false);
-  // When the user clicks "Monthly report" we stash the returned jobId here,
-  // then watch the jobs realtime feed below — when this jobId transitions
-  // to status=complete with a report_url, we auto-open it in a new tab.
-  const [awaitingReportJobId, setAwaitingReportJobId] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [fixPlanOpen, setFixPlanOpen] = useState(false);
   const [fixPlanLoading, setFixPlanLoading] = useState(false);
@@ -316,6 +312,11 @@ export default function SeoClientDetailPage({
     }
   };
 
+  // Polling-based monthly report runner. We can't rely on window.open from a
+  // realtime callback — pop-up blockers reject window.open calls that fire
+  // outside the original user-gesture context. By keeping the click handler
+  // open and polling until completion, the eventual <a download> click stays
+  // within the gesture chain and the new tab/download is allowed.
   const handleRunMonthly = async () => {
     setRunningReport(true);
     try {
@@ -327,31 +328,46 @@ export default function SeoClientDetailPage({
         alert(json.error ?? "Failed to start monthly report");
         return;
       }
-      if (json.jobId) {
-        setAwaitingReportJobId(json.jobId as string);
+      const jobId = json.jobId as string | undefined;
+      if (!jobId) return;
+
+      // Poll up to 90s for completion. Monthly reports typically finish in 3-8s
+      // (Playwright print-to-PDF), so a 1.5s interval keeps the UI snappy
+      // without hammering the API.
+      const start = Date.now();
+      while (Date.now() - start < 90_000) {
+        await new Promise((r) => setTimeout(r, 1500));
+        const job = await fetch(`/api/seo/jobs/${jobId}`)
+          .then((r) => (r.ok ? r.json() : null))
+          .catch(() => null);
+        if (!job) continue;
+        if (job.status === "complete") {
+          const url = job.metadata?.report_url as string | undefined;
+          if (url) {
+            const a = document.createElement("a");
+            a.href = url;
+            a.target = "_blank";
+            a.rel = "noopener noreferrer";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+          }
+          return;
+        }
+        if (job.status === "failed" || job.status === "cancelled") {
+          alert(
+            `Monthly report failed: ${job.error_message ?? "unknown error"}`
+          );
+          return;
+        }
       }
+      alert(
+        "Monthly report is taking longer than expected. Check Recent runs in a moment for the PDF link."
+      );
     } finally {
       setRunningReport(false);
     }
   };
-
-  // Auto-open the PDF the moment the just-clicked monthly_report job completes.
-  // Realtime updates jobs[] which triggers this effect; we match by jobId so
-  // older completed reports don't re-trigger an open on every page mount.
-  useEffect(() => {
-    if (!awaitingReportJobId) return;
-    const job = jobs.find((j) => j.id === awaitingReportJobId);
-    if (!job) return;
-    if (job.status === "complete") {
-      const url = job.metadata?.report_url as string | undefined;
-      if (url) {
-        window.open(url, "_blank", "noopener,noreferrer");
-      }
-      setAwaitingReportJobId(null);
-    } else if (job.status === "failed" || job.status === "cancelled") {
-      setAwaitingReportJobId(null);
-    }
-  }, [awaitingReportJobId, jobs]);
 
   const openFixPlan = async () => {
     setFixPlanOpen(true);
