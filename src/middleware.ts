@@ -19,12 +19,20 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/api/auth/") ||
     request.nextUrl.pathname.startsWith("/api/health");
 
+  // Print mode for the SEO client report — the route validates an HMAC
+  // token, so middleware lets it pass without session auth. Path shape:
+  //   /seo/clients/<uuid>/report?print=1&token=…
+  const isReportPrint =
+    /^\/seo\/clients\/[^/]+\/report\/?$/.test(request.nextUrl.pathname) &&
+    request.nextUrl.searchParams.get("print") === "1" &&
+    !!request.nextUrl.searchParams.get("token");
+
   const hasPin = request.cookies.get("cc-auth")?.value === "authenticated";
   const authIsFresh =
     request.cookies.get(AUTH_FRESHNESS_COOKIE)?.value === "1";
 
   // PIN gate
-  if (!hasPin && !isAuthPage && !isPublicApi) {
+  if (!hasPin && !isAuthPage && !isPublicApi && !isReportPrint) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
@@ -40,7 +48,7 @@ export async function middleware(request: NextRequest) {
   //   - authenticated requests with a fresh auth cookie skip it too
   // The /api/auth/pin route stamps the freshness cookie after a successful
   // sign-in, so the first navigation after PIN entry also skips this block.
-  if (!hasPin || isAuthPage || isPublicApi || authIsFresh) {
+  if (!hasPin || isAuthPage || isPublicApi || isReportPrint || authIsFresh) {
     return NextResponse.next();
   }
 
