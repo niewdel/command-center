@@ -87,7 +87,7 @@ export function ScoreHistoryChart({
     <Card className="p-4 space-y-3">
       <div className="flex items-center justify-between">
         <div className="space-y-0.5">
-          <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+          <div className="text-[10px] uppercase text-muted-foreground">
             Score history
           </div>
           <div className="text-xs text-muted-foreground">
