@@ -634,6 +634,16 @@ export default function SeoClientDetailPage({
                 j.type === "monthly_report" && j.status === "complete"
                   ? (j.metadata?.report_url as string | undefined)
                   : undefined;
+              const ga4Captured = j.metadata?.traffic_captured as boolean | undefined;
+              const ga4Error = j.metadata?.traffic_error as string | null | undefined;
+              const ga4Badge =
+                j.type === "weekly_check" && j.status === "complete"
+                  ? ga4Captured === true
+                    ? { label: "GA4 ✓", tone: "ok" as const, title: "Traffic snapshot captured" }
+                    : ga4Captured === false
+                      ? { label: "GA4 ✗", tone: "err" as const, title: ga4Error ?? "GA4 fetch failed" }
+                      : null
+                  : null;
               return (
                 <div
                   key={j.id}
@@ -654,6 +664,19 @@ export default function SeoClientDetailPage({
                     </span>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
+                    {ga4Badge && (
+                      <span
+                        title={ga4Badge.title}
+                        className={cn(
+                          "rounded px-1.5 py-0.5 text-[10px] uppercase font-semibold border",
+                          ga4Badge.tone === "ok"
+                            ? "border-emerald-400/40 text-emerald-400 bg-emerald-400/10"
+                            : "border-destructive/40 text-destructive bg-destructive/10"
+                        )}
+                      >
+                        {ga4Badge.label}
+                      </span>
+                    )}
                     {reportUrl && (
                       <a
                         href={reportUrl}
