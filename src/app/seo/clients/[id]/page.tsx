@@ -174,7 +174,9 @@ export default function SeoClientDetailPage({
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         alert(err.error ?? "Failed to start keyword check");
+        return;
       }
+      await fetchAll();
     } finally {
       setRunningKw(false);
     }
@@ -189,7 +191,9 @@ export default function SeoClientDetailPage({
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         alert(err.error ?? "Failed to start competitor check");
+        return;
       }
+      await fetchAll();
     } finally {
       setRunningComp(false);
     }
@@ -247,7 +251,11 @@ export default function SeoClientDetailPage({
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         alert(err.error ?? "Failed to start check");
+        return;
       }
+      // Eagerly refresh so the active-job progress card appears immediately;
+      // realtime keeps it updated after this.
+      await fetchAll();
     } finally {
       setRunning(false);
     }
