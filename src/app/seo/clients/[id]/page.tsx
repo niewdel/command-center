@@ -4,8 +4,6 @@ import { useEffect, useState, useCallback, use } from "react";
 import {
   TrendingUp,
   Loader2,
-  CheckCircle2,
-  Globe,
   Play,
   Settings,
   ExternalLink,
@@ -13,13 +11,10 @@ import {
   Copy,
   Download,
   Check as CheckIcon,
-  ChevronDown,
-  ChevronRight,
 } from "lucide-react";
 import { PageLayout } from "@/components/layout/page-layout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -37,7 +32,8 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
-import { ScoreHistoryChart } from "@/components/seo/score-history-chart";
+import { ClientReport } from "@/components/seo/report";
+import type { ReportData } from "@/lib/seo/report-data";
 
 type SeoConfig = {
   enabled?: boolean;
@@ -59,45 +55,8 @@ type Client = {
   seo_config: SeoConfig | null;
 };
 
-type PageSnap = {
-  url: string;
-  status_code: number;
-  title: string;
-  meta_desc: string;
-  h1_count: number;
-  h2_count: number;
-  alt_total: number;
-  alt_missing: number;
-  schema_types: string[];
-  has_canonical: boolean;
-  psi_mobile?: number;
-  psi_desktop?: number;
-  word_count: number;
-};
-
 type Check = {
   id: string;
-  technical_score: number | null;
-  lighthouse_mobile: number | null;
-  lighthouse_desktop: number | null;
-  onpage_score: number | null;
-  freshness_days: number | null;
-  pages_crawled: number | null;
-  ai_summary: string | null;
-  diff_from_previous: {
-    new_issues_count?: number;
-    resolved_issues_count?: number;
-    pages_added?: number;
-    pages_removed?: number;
-    pages_changed?: number;
-    score_deltas?: {
-      technical?: number | null;
-      onpage?: number | null;
-      lighthouse_mobile?: number | null;
-      lighthouse_desktop?: number | null;
-    };
-  } | null;
-  pages: PageSnap[] | null;
   created_at: string;
 };
 
@@ -135,21 +94,6 @@ type CompetitorGap = {
   captured_at: string;
 };
 
-type TrafficSnapshot = {
-  id: string;
-  period_start: string;
-  period_end: string;
-  sessions: number;
-  users: number;
-  page_views: number;
-  organic_sessions: number;
-  avg_session_duration_s: number | null;
-  bounce_rate: number | null;
-  top_pages: Array<{ path: string; sessions: number; users: number }> | null;
-  top_sources: Array<{ source: string; medium: string; sessions: number }> | null;
-  captured_at: string;
-};
-
 type Job = {
   id: string;
   type: string;
@@ -163,39 +107,6 @@ type Job = {
 };
 
 const SEVERITY_ORDER = { critical: 0, high: 1, medium: 2, low: 3 } as const;
-
-function severityClass(s: string): string {
-  switch (s) {
-    case "critical":
-      return "bg-rose-500/15 text-rose-400 border-rose-500/30";
-    case "high":
-      return "bg-orange-500/15 text-orange-400 border-orange-500/30";
-    case "medium":
-      return "bg-amber-500/15 text-amber-400 border-amber-500/30";
-    default:
-      return "bg-muted/40 text-muted-foreground border-border";
-  }
-}
-
-function categoryLabel(c: string): string {
-  switch (c) {
-    case "ai_search":
-      return "AI search";
-    case "onpage":
-      return "on-page";
-    case "gbp":
-      return "GBP";
-    default:
-      return c;
-  }
-}
-
-function scoreColor(score: number | null | undefined): string {
-  if (score == null) return "text-muted-foreground";
-  if (score >= 85) return "text-emerald-400";
-  if (score >= 65) return "text-amber-400";
-  return "text-rose-400";
-}
 
 function formatDate(iso: string | null | undefined): string {
   if (!iso) return "—";
@@ -219,7 +130,7 @@ export default function SeoClientDetailPage({
   const [jobs, setJobs] = useState<Job[]>([]);
   const [keywordRanks, setKeywordRanks] = useState<KeywordRank[]>([]);
   const [competitorGaps, setCompetitorGaps] = useState<CompetitorGap[]>([]);
-  const [traffic, setTraffic] = useState<TrafficSnapshot[]>([]);
+  const [reportData, setReportData] = useState<ReportData | null>(null);
   const [runningKw, setRunningKw] = useState(false);
   const [runningComp, setRunningComp] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -234,7 +145,12 @@ export default function SeoClientDetailPage({
   const [copied, setCopied] = useState(false);
 
   const fetchAll = useCallback(async () => {
-    const res = await fetch(`/api/seo/clients/${id}`).then((r) => r.json());
+    const [res, reportRes] = await Promise.all([
+      fetch(`/api/seo/clients/${id}`).then((r) => r.json()),
+      fetch(`/api/seo/clients/${id}/report-data?range=30d`).then((r) =>
+        r.ok ? r.json() : null
+      ),
+    ]);
     if (res.client) {
       setClient(res.client);
       setChecks(res.checks ?? []);
@@ -242,7 +158,9 @@ export default function SeoClientDetailPage({
       setJobs(res.jobs ?? []);
       setKeywordRanks(res.keyword_ranks ?? []);
       setCompetitorGaps(res.competitor_gaps ?? []);
-      setTraffic(res.traffic ?? []);
+    }
+    if (reportRes && !reportRes.error) {
+      setReportData(reportRes as ReportData);
     }
     setLoading(false);
   }, [id]);
@@ -550,128 +468,21 @@ export default function SeoClientDetailPage({
         </Card>
       )}
 
-      {/* Header scores + meta */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <ScoreCard
-          label="Technical"
-          score={latest?.technical_score}
-          delta={latest?.diff_from_previous?.score_deltas?.technical}
-        />
-        <ScoreCard
-          label="On-page"
-          score={latest?.onpage_score}
-          delta={latest?.diff_from_previous?.score_deltas?.onpage}
-        />
-        <ScoreCard
-          label="Mobile"
-          score={latest?.lighthouse_mobile}
-          delta={latest?.diff_from_previous?.score_deltas?.lighthouse_mobile}
-        />
-        <ScoreCard
-          label="Desktop"
-          score={latest?.lighthouse_desktop}
-          delta={latest?.diff_from_previous?.score_deltas?.lighthouse_desktop}
-        />
-        <Card className="p-4 space-y-1">
-          <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
-            Last check
-          </div>
-          <div className="text-sm font-medium">
-            {latest ? formatDate(latest.created_at) : "Never"}
-          </div>
-          <div className="text-xs text-muted-foreground">
-            {latest ? `${latest.pages_crawled ?? 0} pages` : "—"}
-            {latest?.freshness_days != null
-              ? ` · ${latest.freshness_days}d median age`
-              : ""}
-          </div>
-        </Card>
-      </div>
-
-      {/* Score history */}
-      {checks.length >= 2 && (
-        <ScoreHistoryChart
-          points={checks.map((c) => ({
-            created_at: c.created_at,
-            technical_score: c.technical_score,
-            onpage_score: c.onpage_score,
-            lighthouse_mobile: c.lighthouse_mobile,
-            lighthouse_desktop: c.lighthouse_desktop,
-          }))}
-        />
-      )}
-
-      {/* AI summary */}
-      {latest?.ai_summary && (
-        <Card className="p-4 border-l-2 border-l-primary/60">
-          <p className="text-sm text-pretty leading-relaxed">
-            {latest.ai_summary}
-          </p>
+      {/* Last check metadata strip */}
+      {latest && (
+        <Card className="p-3 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+          <span>
+            Last check: <span className="text-foreground font-medium">{formatDate(latest.created_at)}</span>
+          </span>
         </Card>
       )}
 
-      {/* Diff strip */}
-      {latest?.diff_from_previous &&
-        ((latest.diff_from_previous.new_issues_count ?? 0) > 0 ||
-          (latest.diff_from_previous.resolved_issues_count ?? 0) > 0 ||
-          (latest.diff_from_previous.pages_added ?? 0) > 0 ||
-          (latest.diff_from_previous.pages_removed ?? 0) > 0 ||
-          (latest.diff_from_previous.pages_changed ?? 0) > 0) && (
-          <Card className="p-3 flex flex-wrap items-center gap-3 text-xs">
-            <span className="text-muted-foreground uppercase tracking-wide text-[10px]">
-              Since last check
-            </span>
-            {(latest.diff_from_previous.new_issues_count ?? 0) > 0 && (
-              <span className="text-rose-400">
-                +{latest.diff_from_previous.new_issues_count} new issues
-              </span>
-            )}
-            {(latest.diff_from_previous.resolved_issues_count ?? 0) > 0 && (
-              <span className="text-emerald-400">
-                -{latest.diff_from_previous.resolved_issues_count} fixed
-              </span>
-            )}
-            {(latest.diff_from_previous.pages_added ?? 0) > 0 && (
-              <span className="text-muted-foreground">
-                +{latest.diff_from_previous.pages_added} pages added
-              </span>
-            )}
-            {(latest.diff_from_previous.pages_removed ?? 0) > 0 && (
-              <span className="text-muted-foreground">
-                -{latest.diff_from_previous.pages_removed} pages removed
-              </span>
-            )}
-            {(latest.diff_from_previous.pages_changed ?? 0) > 0 && (
-              <span className="text-muted-foreground">
-                {latest.diff_from_previous.pages_changed} pages changed
-              </span>
-            )}
-          </Card>
-        )}
-
-      {/* GA4 traffic snapshot */}
-      {cfg.ga4_property_id && <TrafficCard snapshots={traffic} />}
-
-      {/* Open issues — grouped by page */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold font-heading">
-            Open issues ({sortedIssues.length})
-          </h2>
+      {/* Embedded report — same components as the standalone /report route */}
+      {reportData && (
+        <div className="mt-4">
+          <ClientReport data={reportData} mode="embedded" />
         </div>
-        {sortedIssues.length === 0 ? (
-          <Card className="p-6 text-center text-sm text-muted-foreground inline-flex items-center justify-center gap-2 w-full">
-            <CheckCircle2 className="size-4 text-emerald-400" />
-            All clear — no open issues from the latest check.
-          </Card>
-        ) : (
-          <IssueGroupedList
-            issues={sortedIssues}
-            pages={latest?.pages ?? null}
-            onRefresh={fetchAll}
-          />
-        )}
-      </div>
+      )}
 
       {/* Keyword ranks */}
       {(cfg.target_keywords ?? []).length > 0 && (
@@ -937,469 +748,6 @@ export default function SeoClientDetailPage({
         </SheetContent>
       </Sheet>
     </PageLayout>
-  );
-}
-
-function pageKeyOf(url: string | null): string {
-  if (!url) return "__site__";
-  try {
-    const u = new URL(url);
-    return u.pathname.replace(/\/+$/, "") || "/";
-  } catch {
-    return url;
-  }
-}
-
-function IssueGroupedList({
-  issues,
-  pages,
-  onRefresh,
-}: {
-  issues: Issue[];
-  pages: PageSnap[] | null;
-  onRefresh: () => void;
-}) {
-  const [acting, setActing] = useState<Record<string, boolean>>({});
-
-  const setIssueStatus = async (
-    id: string,
-    status: "fixed" | "ignored"
-  ) => {
-    setActing((s) => ({ ...s, [id]: true }));
-    try {
-      const res = await fetch(`/api/seo/issues/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        alert(err.error ?? "Failed to update issue");
-        return;
-      }
-      onRefresh();
-    } finally {
-      setActing((s) => {
-        const next = { ...s };
-        delete next[id];
-        return next;
-      });
-    }
-  };
-  // Group by page (site-wide first, then by issue count desc)
-  const groups = new Map<string, Issue[]>();
-  for (const i of issues) {
-    const k = pageKeyOf(i.page_url);
-    if (!groups.has(k)) groups.set(k, []);
-    groups.get(k)!.push(i);
-  }
-  const orderedKeys = [...groups.keys()].sort((a, b) => {
-    if (a === "__site__") return -1;
-    if (b === "__site__") return 1;
-    return groups.get(b)!.length - groups.get(a)!.length;
-  });
-
-  // Index snapshots by page key for quick lookup in headers
-  const snapByKey = new Map<string, PageSnap>();
-  for (const p of pages ?? []) snapByKey.set(pageKeyOf(p.url), p);
-
-  // Open the first 2 groups by default; collapse the rest
-  const [open, setOpen] = useState<Record<string, boolean>>(() => {
-    const init: Record<string, boolean> = {};
-    orderedKeys.slice(0, 2).forEach((k) => {
-      init[k] = true;
-    });
-    return init;
-  });
-
-  return (
-    <div className="space-y-2">
-      {orderedKeys.map((key) => {
-        const grpIssues = groups.get(key)!;
-        const isOpen = open[key] ?? false;
-        const counts = {
-          critical: grpIssues.filter((i) => i.severity === "critical").length,
-          high: grpIssues.filter((i) => i.severity === "high").length,
-          medium: grpIssues.filter((i) => i.severity === "medium").length,
-          low: grpIssues.filter((i) => i.severity === "low").length,
-        };
-        const label = key === "__site__" ? "Site-wide" : key;
-        const snap = snapByKey.get(key);
-        return (
-          <Card key={key} className="overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setOpen((s) => ({ ...s, [key]: !isOpen }))}
-              className="w-full flex items-center gap-2 p-3 text-left hover:bg-accent/30 transition-colors"
-            >
-              {isOpen ? (
-                <ChevronDown className="size-4 text-muted-foreground shrink-0" />
-              ) : (
-                <ChevronRight className="size-4 text-muted-foreground shrink-0" />
-              )}
-              <span className="font-medium text-sm font-mono truncate flex-1">
-                {label}
-              </span>
-              {/* Page health markers */}
-              {snap && (
-                <div className="flex items-center gap-1.5 shrink-0 text-[10px] text-muted-foreground">
-                  {snap.psi_mobile != null && (
-                    <span
-                      className={cn(
-                        "tabular-nums font-mono",
-                        snap.psi_mobile >= 85 && "text-emerald-400",
-                        snap.psi_mobile >= 65 && snap.psi_mobile < 85 && "text-amber-400",
-                        snap.psi_mobile < 65 && "text-rose-400"
-                      )}
-                      title="Lighthouse mobile score"
-                    >
-                      {snap.psi_mobile}
-                    </span>
-                  )}
-                  {snap.status_code !== 200 && (
-                    <span className="text-rose-400 font-mono" title="HTTP status">
-                      {snap.status_code}
-                    </span>
-                  )}
-                </div>
-              )}
-              <div className="flex items-center gap-1.5 shrink-0">
-                {counts.critical > 0 && (
-                  <Badge
-                    variant="outline"
-                    className={cn("text-[10px] uppercase", severityClass("critical"))}
-                  >
-                    {counts.critical} crit
-                  </Badge>
-                )}
-                {counts.high > 0 && (
-                  <Badge
-                    variant="outline"
-                    className={cn("text-[10px] uppercase", severityClass("high"))}
-                  >
-                    {counts.high} high
-                  </Badge>
-                )}
-                {counts.medium > 0 && (
-                  <Badge
-                    variant="outline"
-                    className={cn("text-[10px] uppercase", severityClass("medium"))}
-                  >
-                    {counts.medium} med
-                  </Badge>
-                )}
-                {counts.low > 0 && (
-                  <Badge
-                    variant="outline"
-                    className={cn("text-[10px] uppercase", severityClass("low"))}
-                  >
-                    {counts.low} low
-                  </Badge>
-                )}
-              </div>
-            </button>
-            {isOpen && (
-              <div className="border-t border-border divide-y divide-border">
-                {/* Per-page snapshot summary */}
-                {snap && key !== "__site__" && (
-                  <div className="p-3 bg-muted/20 text-xs space-y-1">
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground">
-                      <span>HTTP {snap.status_code}</span>
-                      {snap.psi_mobile != null && (
-                        <span>Mobile {snap.psi_mobile}/100</span>
-                      )}
-                      <span>H1: {snap.h1_count}</span>
-                      <span>
-                        Images: {snap.alt_total - snap.alt_missing}/{snap.alt_total} with alt
-                      </span>
-                      <span>{snap.has_canonical ? "Canonical ✓" : "No canonical"}</span>
-                      <span>
-                        Schema: {snap.schema_types.length === 0 ? "none" : snap.schema_types.join(", ")}
-                      </span>
-                    </div>
-                    {snap.title && (
-                      <div className="text-foreground/80 truncate">
-                        <span className="text-muted-foreground">Title ({snap.title.length}): </span>
-                        {snap.title}
-                      </div>
-                    )}
-                  </div>
-                )}
-                {grpIssues.map((iss) => (
-                  <div key={iss.id} className="p-3 space-y-1.5">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Badge
-                            variant="outline"
-                            className={cn("text-[10px] uppercase", severityClass(iss.severity))}
-                          >
-                            {iss.severity}
-                          </Badge>
-                          <Badge variant="outline" className="text-[10px]">
-                            {categoryLabel(iss.category)}
-                          </Badge>
-                          <span className="text-sm font-medium">
-                            {iss.title}
-                          </span>
-                        </div>
-                        {iss.page_url && key !== "__site__" && (
-                          <a
-                            href={iss.page_url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 mt-0.5"
-                          >
-                            <Globe className="size-3" />
-                            {iss.page_url}
-                            <ExternalLink className="size-3 opacity-60" />
-                          </a>
-                        )}
-                      </div>
-                      <span className="text-[10px] text-muted-foreground shrink-0">
-                        seen {formatDate(iss.first_seen_at)}
-                      </span>
-                    </div>
-                    {iss.description && (
-                      <p className="text-xs text-muted-foreground text-pretty">
-                        {iss.description}
-                      </p>
-                    )}
-                    {iss.recommendation && (
-                      <p className="text-xs text-pretty">
-                        <span className="text-muted-foreground">Fix: </span>
-                        {iss.recommendation}
-                      </p>
-                    )}
-                    <div className="flex items-center gap-2 pt-1">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-6 text-[11px] rounded gap-1 text-muted-foreground"
-                        disabled={!!acting[iss.id]}
-                        onClick={() => setIssueStatus(iss.id, "ignored")}
-                        title="Hide from digests — use only for issues you've decided not to fix"
-                      >
-                        Ignore
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
-        );
-      })}
-    </div>
-  );
-}
-
-function ScoreCard({
-  label,
-  score,
-  delta,
-}: {
-  label: string;
-  score: number | null | undefined;
-  delta?: number | null;
-}) {
-  const showDelta = delta != null && delta !== 0;
-  return (
-    <Card className="p-4 space-y-1">
-      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
-        {label}
-      </div>
-      <div className="flex items-baseline gap-1.5">
-        <div className={cn("text-2xl font-semibold tabular-nums font-heading", scoreColor(score))}>
-          {score == null ? "—" : score}
-        </div>
-        {showDelta && (
-          <span
-            className={cn(
-              "text-xs font-mono tabular-nums",
-              (delta as number) > 0 ? "text-emerald-400" : "text-rose-400"
-            )}
-          >
-            {(delta as number) > 0 ? "+" : ""}
-            {delta}
-          </span>
-        )}
-      </div>
-      <div className="text-xs text-muted-foreground">
-        {score == null ? "Not yet measured" : "out of 100"}
-      </div>
-    </Card>
-  );
-}
-
-// Traffic card — shows the latest GA4 snapshot with WoW deltas and the top
-// pages + sources for the most recent week.
-function TrafficCard({ snapshots }: { snapshots: TrafficSnapshot[] }) {
-  if (snapshots.length === 0) {
-    return (
-      <Card className="p-4 space-y-2">
-        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
-          Traffic (Google Analytics)
-        </div>
-        <p className="text-xs text-muted-foreground">
-          No traffic data yet. The next weekly check will pull a snapshot.
-          Make sure the gtag.js measurement code is installed on the site
-          and that traffic is flowing in GA4.
-        </p>
-      </Card>
-    );
-  }
-
-  const latest = snapshots[0];
-  const prior = snapshots[1] ?? null;
-  const delta = (current: number, p: number | null) =>
-    p == null ? null : current - p;
-
-  const sessionsDelta = delta(latest.sessions, prior?.sessions ?? null);
-  const usersDelta = delta(latest.users, prior?.users ?? null);
-  const organicDelta = delta(
-    latest.organic_sessions,
-    prior?.organic_sessions ?? null
-  );
-
-  const fmtDuration = (s: number | null) => {
-    if (s == null) return "n/a";
-    const m = Math.floor(s / 60);
-    const sec = Math.round(s % 60);
-    return m > 0 ? `${m}m ${sec}s` : `${sec}s`;
-  };
-
-  const fmtDate = (iso: string) => {
-    return new Date(iso).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
-  };
-
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold font-heading">Traffic</h2>
-        <span className="text-[10px] text-muted-foreground">
-          {fmtDate(latest.period_start)} to {fmtDate(latest.period_end)}
-        </span>
-      </div>
-      <Card className="p-4 space-y-4">
-        {/* Top-line metrics */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <TrafficMetric
-            label="Sessions"
-            value={latest.sessions}
-            delta={sessionsDelta}
-          />
-          <TrafficMetric
-            label="Organic"
-            value={latest.organic_sessions}
-            delta={organicDelta}
-          />
-          <TrafficMetric
-            label="Users"
-            value={latest.users}
-            delta={usersDelta}
-          />
-          <TrafficMetric
-            label="Avg duration"
-            value={fmtDuration(latest.avg_session_duration_s)}
-            delta={null}
-            literal
-          />
-        </div>
-
-        {/* Top pages + sources */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-border">
-          <div className="space-y-1.5">
-            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
-              Top pages
-            </div>
-            {(latest.top_pages ?? []).length === 0 ? (
-              <p className="text-xs text-muted-foreground">No data yet.</p>
-            ) : (
-              <div className="space-y-1">
-                {(latest.top_pages ?? []).slice(0, 5).map((p, i) => (
-                  <div
-                    key={`${p.path}-${i}`}
-                    className="flex items-center justify-between gap-3 text-xs"
-                  >
-                    <span className="font-mono truncate text-foreground/90">
-                      {p.path}
-                    </span>
-                    <span className="font-mono tabular-nums text-muted-foreground shrink-0">
-                      {p.sessions.toLocaleString()}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <div className="space-y-1.5">
-            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
-              Top sources
-            </div>
-            {(latest.top_sources ?? []).length === 0 ? (
-              <p className="text-xs text-muted-foreground">No data yet.</p>
-            ) : (
-              <div className="space-y-1">
-                {(latest.top_sources ?? []).slice(0, 5).map((s, i) => (
-                  <div
-                    key={`${s.source}-${s.medium}-${i}`}
-                    className="flex items-center justify-between gap-3 text-xs"
-                  >
-                    <span className="truncate text-foreground/90">
-                      {s.source} <span className="text-muted-foreground">/ {s.medium}</span>
-                    </span>
-                    <span className="font-mono tabular-nums text-muted-foreground shrink-0">
-                      {s.sessions.toLocaleString()}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </Card>
-    </div>
-  );
-}
-
-function TrafficMetric({
-  label,
-  value,
-  delta,
-  literal = false,
-}: {
-  label: string;
-  value: number | string;
-  delta: number | null;
-  literal?: boolean;
-}) {
-  const showDelta = delta != null && delta !== 0;
-  return (
-    <div className="space-y-1">
-      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
-        {label}
-      </div>
-      <div className="flex items-baseline gap-1.5">
-        <div className="text-xl font-semibold tabular-nums font-heading">
-          {literal ? value : (value as number).toLocaleString()}
-        </div>
-        {showDelta && (
-          <span
-            className={cn(
-              "text-[11px] font-mono tabular-nums",
-              (delta as number) > 0 ? "text-emerald-400" : "text-rose-400"
-            )}
-          >
-            {(delta as number) > 0 ? "+" : ""}
-            {(delta as number).toLocaleString()}
-          </span>
-        )}
-      </div>
-    </div>
   );
 }
 
