@@ -88,6 +88,19 @@ function escapeHtml(s: string): string {
     .replace(/'/g, "&#039;");
 }
 
+// Strip em/en dashes from any text we render. Existing seo_checks.ai_summary
+// rows in the database may contain em dashes from before the SEO Claude prompt
+// was hardened; this guarantees no em dashes ever surface in a rendered report,
+// regardless of when the underlying summary was generated.
+function stripDashes(s: string): string {
+  return s
+    .replace(/\s+—\s+/g, ". ")
+    .replace(/\s+–\s+/g, ". ")
+    .replace(/[—–]/g, "-")
+    .replace(/\.\s+\./g, ".")
+    .trim();
+}
+
 // Score color thresholds — green/amber/red on a light background.
 function scoreColor(s: number | null): string {
   if (s == null) return "#9CA3AF";
@@ -260,7 +273,11 @@ export function renderMonthlyReportHtml(d: MonthlyReportData): string {
   <meta charset="utf-8" />
   <title>${escapeHtml(d.client_name)} | SEO Report | ${escapeHtml(d.period_label)}</title>
   <style>
-    @page { size: letter; margin: 0; }
+    /* Page margins set in JS via Playwright's page.pdf() — top:14mm,
+       bottom:16mm (footer space), left/right:0. CSS @page margin must
+       agree, otherwise headers/sections that wrap to a new page land
+       at the literal top of the printable area with no breathing room. */
+    @page { size: letter; margin: 14mm 0 16mm 0; }
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; }
     body {
@@ -273,7 +290,9 @@ export function renderMonthlyReportHtml(d: MonthlyReportData): string {
       line-height: 1.5;
     }
     h1, h2, h3 { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", system-ui, sans-serif; margin: 0; }
-    .container { padding: 32px 40px 28px 40px; max-width: 760px; margin: 0 auto; }
+    /* Side padding lives on the container; top/bottom comes from @page
+       margin so subsequent pages get the same breathing room as page 1. */
+    .container { padding: 0 40px; max-width: 760px; margin: 0 auto; }
 
     /* Header */
     .header { display:flex; justify-content:space-between; align-items:flex-start; padding-bottom: 22px; border-bottom: 1px solid #E5E7EB; margin-bottom: 24px; }
@@ -282,7 +301,9 @@ export function renderMonthlyReportHtml(d: MonthlyReportData): string {
     .header h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; margin: 6px 0 4px 0; color: #111827; }
     .header .meta { font-size: 13px; color: #6B7280; }
     .logo-wrap { padding-top: 4px; }
-    .logo-wrap img { max-height: 32px; width: auto; display: block; }
+    /* Wordmark is white-on-transparent; brightness(0) recolors any opaque
+       pixels to pure black so it's readable on the white report background. */
+    .logo-wrap img { max-height: 32px; width: auto; display: block; filter: brightness(0); }
 
     /* Bottom-line callout */
     .lead {
@@ -351,7 +372,7 @@ export function renderMonthlyReportHtml(d: MonthlyReportData): string {
     <!-- Bottom-line callout -->
     <div class="lead">
       <div class="headline">${escapeHtml(bottomLine(d))}</div>
-      ${d.ai_summary ? `<div class="summary">${escapeHtml(d.ai_summary)}</div>` : ""}
+      ${d.ai_summary ? `<div class="summary">${escapeHtml(stripDashes(d.ai_summary))}</div>` : ""}
     </div>
 
     <!-- Score cards -->
@@ -423,11 +444,22 @@ export function renderMonthlyReportFooterHtml(generatedAtIso: string): string {
   const dateLabel = new Date(generatedAtIso).toLocaleDateString("en-US", {
     dateStyle: "long",
   });
-  return `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Inter',system-ui,sans-serif;font-size:9pt;width:100%;padding:0 14mm;color:#6B7280;display:flex;justify-content:space-between;align-items:center;-webkit-print-color-adjust:exact;">
-  <span>Generated ${escapeHtml(dateLabel)}</span>
-  <span style="display:inline-flex;align-items:center;gap:6px;">
-    <span>Delivered by</span>
-    ${logo ? `<img src="${logo}" style="height:11px;width:auto;filter:brightness(0);opacity:0.8;vertical-align:middle;" alt="Niewdel" />` : `<strong style="color:#111827;">Niewdel</strong>`}
-  </span>
+  // Footer layout notes:
+  // - Outer div is the full-width container Playwright injects on every page.
+  // - Inner table guarantees vertical alignment of "Delivered by" text and the
+  //   wordmark (flex inside Playwright's footer template is unreliable across
+  //   chromium versions; table cells with vertical-align:middle always work).
+  // - Logo is height:18px (up from 11px) and display:block to drop the
+  //   baseline gap that was throwing off centering.
+  return `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Inter',system-ui,sans-serif;font-size:9pt;width:100%;padding:0 14mm;color:#6B7280;-webkit-print-color-adjust:exact;">
+  <table style="width:100%;border-collapse:collapse;">
+    <tr>
+      <td style="vertical-align:middle;text-align:left;font-size:9pt;color:#6B7280;">Generated ${escapeHtml(dateLabel)}</td>
+      <td style="vertical-align:middle;text-align:right;font-size:9pt;color:#6B7280;white-space:nowrap;">
+        <span style="vertical-align:middle;">Delivered by</span>
+        ${logo ? `<img src="${logo}" style="height:18px;width:auto;filter:brightness(0);opacity:0.85;vertical-align:middle;margin-left:6px;" alt="Niewdel" />` : `<strong style="color:#111827;vertical-align:middle;margin-left:6px;">Niewdel</strong>`}
+      </td>
+    </tr>
+  </table>
 </div>`;
 }

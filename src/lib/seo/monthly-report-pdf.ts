@@ -31,7 +31,10 @@ export async function renderMonthlyReportPdf(
     const pdfArgs: Parameters<typeof page.pdf>[0] = {
       format: "letter",
       printBackground: true,
-      margin: { top: "0", right: "0", bottom: "16mm", left: "0" },
+      // Top 14mm gives wrapped sections breathing room when they cross page
+       // boundaries. Bottom 16mm reserves space for the per-page footer
+       // template. Sides 0 so the body fills edge-to-edge.
+      margin: { top: "14mm", right: "0", bottom: "16mm", left: "0" },
     };
 
     if (opts.footerTemplate) {
