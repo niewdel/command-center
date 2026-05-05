@@ -135,6 +135,7 @@ tags: [niewdel, command-center, progress]
 - [x] UI — `/seo` overview, `/seo/clients/[id]` detail with grouped issues + per-page snapshot data + score deltas; settings drawer for keywords, competitors, contact email, dry_run flag
 - [x] Fix-plan generator — markdown brief (Copy / Download from UI), Claude Code prompt format
 - Smoke test confirmed working 2026-05-04
+- Task 18 smoke test (URL-driven Playwright PDF pipeline) confirmed working 2026-05-05: job complete, PDF 9.3MB, 3 pages, PDF v1.4, letter size, Chromium m147
 
 #### SEO Agent — Phases 2/3/4 (2026-05-04) — `COMPLETE`
 **Phase 2 — Trends & Reports:**

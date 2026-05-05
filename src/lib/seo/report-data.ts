@@ -4,7 +4,13 @@
 // section can be omitted entirely instead of showing empty placeholders.
 
 import { getServiceClient } from "./db";
-import type { ScoreHistoryPoint } from "./monthly-report-html";
+export interface ScoreHistoryPoint {
+  created_at: string;
+  technical_score: number | null;
+  onpage_score: number | null;
+  lighthouse_mobile: number | null;
+  lighthouse_desktop: number | null;
+}
 
 export type ReportRange = "30d" | "90d" | "life";
 
