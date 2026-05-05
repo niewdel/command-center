@@ -460,7 +460,7 @@ export function renderMonthlyReportFooterHtml(generatedAtIso: string): string {
     <tr>
       <td style="${baseFont}line-height:${logoH};text-align:left;vertical-align:middle;">Generated ${escapeHtml(dateLabel)}</td>
       <td style="${baseFont}line-height:${logoH};text-align:right;vertical-align:middle;white-space:nowrap;">
-        <span style="${baseFont}vertical-align:middle;">Delivered by&nbsp;</span>${logo ? `<img src="${logo}" style="height:${logoH};width:auto;display:inline-block;vertical-align:middle;filter:brightness(0);opacity:0.9;transform:translateY(-2px);" alt="Niewdel" />` : `<strong style="color:#111827;${baseFont}font-weight:700;vertical-align:middle;">Niewdel</strong>`}
+        <span style="${baseFont}vertical-align:middle;">Delivered by</span>${logo ? `<img src="${logo}" style="height:${logoH};width:auto;display:inline-block;vertical-align:middle;filter:brightness(0);opacity:0.9;transform:translateY(2px);margin-left:10px;" alt="Niewdel" />` : `<strong style="color:#111827;${baseFont}font-weight:700;vertical-align:middle;margin-left:10px;">Niewdel</strong>`}
       </td>
     </tr>
   </table>
