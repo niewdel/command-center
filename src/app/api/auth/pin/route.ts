@@ -11,20 +11,24 @@ export async function POST(request: NextRequest) {
   }
 
   const response = NextResponse.json({ success: true });
+  // SameSite=lax (not strict) so the PIN cookie survives top-level cross-site
+  // GET navigations — required for OAuth callback flows (Google redirects
+  // back to /api/integrations/google/callback and the cookie must be sent).
+  // Strict would mean middleware sees no auth cookie on the OAuth return and
+  // bounces the user to /login, killing the flow. Lax is still secure: the
+  // cookie is blocked from embeds, fetches, and POST navigations — only
+  // user-initiated top-level GETs receive it.
   response.cookies.set("cc-auth", "authenticated", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
+    sameSite: "lax",
     path: "/",
     maxAge: 60 * 60 * 24 * 30, // 30 days
   });
-  // Stamp middleware's freshness cookie too — we're about to call
-  // signInWithPassword below, so the next page load can skip the redundant
-  // Supabase round-trip in middleware.
   response.cookies.set("cc-auth-fresh", "1", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
+    sameSite: "lax",
     path: "/",
     maxAge: 5 * 60,
   });

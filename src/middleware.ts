@@ -86,7 +86,7 @@ export async function middleware(request: NextRequest) {
   response.cookies.set(AUTH_FRESHNESS_COOKIE, "1", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
+    sameSite: "lax",
     path: "/",
     maxAge: AUTH_FRESHNESS_TTL_S,
   });
