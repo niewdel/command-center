@@ -319,11 +319,10 @@ export default function SeoClientDetailPage({
     }
   };
 
-  // Polling-based monthly report runner. We can't rely on window.open from a
-  // realtime callback — pop-up blockers reject window.open calls that fire
-  // outside the original user-gesture context. By keeping the click handler
-  // open and polling until completion, the eventual <a download> click stays
-  // within the gesture chain and the new tab/download is allowed.
+  // Monthly report runner. Fires the job and relies on realtime to reflect
+  // progress in the Recent runs panel. No polling needed — the job completes
+  // quickly (email send only; no PDF generation) and Supabase realtime pushes
+  // the status update within a second or two.
   const handleRunMonthly = async () => {
     setRunningReport(true);
     try {
@@ -335,42 +334,7 @@ export default function SeoClientDetailPage({
         alert(json.error ?? "Failed to start monthly report");
         return;
       }
-      const jobId = json.jobId as string | undefined;
-      if (!jobId) return;
-
-      // Poll up to 90s for completion. Monthly reports typically finish in 3-8s
-      // (Playwright print-to-PDF), so a 1.5s interval keeps the UI snappy
-      // without hammering the API.
-      const start = Date.now();
-      while (Date.now() - start < 90_000) {
-        await new Promise((r) => setTimeout(r, 1500));
-        const job = await fetch(`/api/seo/jobs/${jobId}`)
-          .then((r) => (r.ok ? r.json() : null))
-          .catch(() => null);
-        if (!job) continue;
-        if (job.status === "complete") {
-          const url = job.metadata?.report_url as string | undefined;
-          if (url) {
-            const a = document.createElement("a");
-            a.href = url;
-            a.target = "_blank";
-            a.rel = "noopener noreferrer";
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-          }
-          return;
-        }
-        if (job.status === "failed" || job.status === "cancelled") {
-          alert(
-            `Monthly report failed: ${job.error_message ?? "unknown error"}`
-          );
-          return;
-        }
-      }
-      alert(
-        "Monthly report is taking longer than expected. Check Recent runs in a moment for the PDF link."
-      );
+      // Job is running — realtime will surface stage/status in Recent runs.
     } finally {
       setRunningReport(false);
     }
@@ -688,10 +652,6 @@ export default function SeoClientDetailPage({
             <div className="p-3 text-sm text-muted-foreground">No runs yet.</div>
           ) : (
             jobs.map((j) => {
-              const reportUrl =
-                j.type === "monthly_report" && j.status === "complete"
-                  ? (j.metadata?.report_url as string | undefined)
-                  : undefined;
               const ga4Captured = j.metadata?.traffic_captured as boolean | undefined;
               const ga4Error = j.metadata?.traffic_error as string | null | undefined;
               const ga4Badge =
@@ -734,18 +694,6 @@ export default function SeoClientDetailPage({
                       >
                         {ga4Badge.label}
                       </span>
-                    )}
-                    {reportUrl && (
-                      <a
-                        href={reportUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1 text-primary hover:underline"
-                        title="Open monthly report PDF"
-                      >
-                        <Download className="size-3" />
-                        PDF
-                      </a>
                     )}
                     <span className="font-mono text-muted-foreground">
                       {formatDate(j.created_at)}
