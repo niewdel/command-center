@@ -9,8 +9,12 @@ import {
   upsertOpenIssue,
   resolveMissingIssues,
   updateSeoJob,
+  getWorkspaceOwner,
+  insertTrafficSnapshot,
 } from "./db";
 import { sendEmail, isEmailConfigured } from "@/lib/email/resend";
+import { fetchTrafficSnapshot } from "@/lib/google/ga4";
+import { getConnection } from "@/lib/google/oauth";
 import {
   pageToSnapshot,
   extractPageIssues,
@@ -270,6 +274,51 @@ export async function runWeeklyCheck(jobId: string): Promise<void> {
     .update({ diff_from_previous: diff, ai_summary: aiSummary })
     .eq("id", checkId);
 
+  // ------- Stage 6.5: GA4 traffic snapshot (best-effort) -------
+  // Pulls last 7 days of traffic data when the client has a ga4_property_id
+  // configured AND the workspace owner has a connected Google account.
+  // Failures are logged but never break the rest of the check — traffic is
+  // a value-add, not a hard requirement.
+  const ga4PropertyId = client.seo_config.ga4_property_id;
+  let trafficCaptured = false;
+  let trafficError: string | null = null;
+  if (ga4PropertyId) {
+    await updateSeoJob(jobId, {
+      current_stage: "Fetching GA4 traffic snapshot",
+      progress_pct: 94,
+    });
+    try {
+      const ownerId = await getWorkspaceOwner(job.workspace_id);
+      if (!ownerId) {
+        trafficError = "no workspace owner found";
+      } else {
+        const conn = await getConnection(ownerId);
+        if (!conn) {
+          trafficError = "no Google connection for workspace owner";
+        } else {
+          const snap = await fetchTrafficSnapshot({
+            user_id: ownerId,
+            property_id: ga4PropertyId,
+          });
+          await insertTrafficSnapshot({
+            workspace_id: job.workspace_id,
+            client_id: job.client_id,
+            job_id: jobId,
+            ga4_property_id: ga4PropertyId,
+            ...snap,
+          });
+          trafficCaptured = true;
+          log(
+            `GA4 traffic snapshot stored: ${snap.sessions} sessions, ${snap.organic_sessions} organic, ${snap.users} users (${snap.period_start} to ${snap.period_end})`
+          );
+        }
+      }
+    } catch (err) {
+      trafficError = err instanceof Error ? err.message : String(err);
+      log(`GA4 traffic fetch failed: ${trafficError}`);
+    }
+  }
+
   // ------- Stage 7: Weekly digest email -------
   // Auto-task creation was deliberately removed — Justin's workflow is to
   // copy the fix-plan markdown into Claude Code in the client's repo. The
@@ -339,6 +388,8 @@ export async function runWeeklyCheck(jobId: string): Promise<void> {
       digest_sent: digestSent,
       digest_error: digestError,
       dry_run: dryRun,
+      traffic_captured: trafficCaptured,
+      traffic_error: trafficError,
       issues_resolved: resolvedCount,
       claude_summary: claudeUsed,
       wall_time_ms: elapsedMs,

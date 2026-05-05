@@ -308,3 +308,61 @@ export async function getSeoClient(clientId: string): Promise<SeoClientRow | nul
   return (data as SeoClientRow) ?? null;
 }
 
+// Look up the user_id that owns the workspace this client belongs to.
+// Used by the GA4 pipeline step to find the right google_oauth_connections
+// row for fetching traffic data.
+export async function getWorkspaceOwner(workspaceId: string): Promise<string | null> {
+  const { data } = await getServiceClient()
+    .from("workspaces")
+    .select("user_id")
+    .eq("id", workspaceId)
+    .maybeSingle();
+  return ((data as { user_id?: string } | null)?.user_id) ?? null;
+}
+
+// ============================================================
+// seo_traffic_snapshots — GA4 data per weekly_check run
+// ============================================================
+
+export interface TrafficSnapshotInput {
+  workspace_id: string;
+  client_id: string;
+  job_id: string;
+  ga4_property_id: string;
+  period_start: string;
+  period_end: string;
+  sessions: number;
+  users: number;
+  page_views: number;
+  organic_sessions: number;
+  avg_session_duration_s: number;
+  bounce_rate: number;
+  top_pages: Array<{ path: string; sessions: number; users: number }>;
+  top_sources: Array<{ source: string; medium: string; sessions: number }>;
+}
+
+export async function insertTrafficSnapshot(
+  input: TrafficSnapshotInput
+): Promise<void> {
+  const sb = getServiceClient();
+  const { error } = await sb.from("seo_traffic_snapshots").insert({
+    workspace_id: input.workspace_id,
+    client_id: input.client_id,
+    job_id: input.job_id,
+    ga4_property_id: input.ga4_property_id,
+    period_start: input.period_start,
+    period_end: input.period_end,
+    sessions: input.sessions,
+    users: input.users,
+    page_views: input.page_views,
+    organic_sessions: input.organic_sessions,
+    avg_session_duration_s: input.avg_session_duration_s,
+    bounce_rate: input.bounce_rate,
+    top_pages: input.top_pages,
+    top_sources: input.top_sources,
+  });
+  if (error) {
+    throw new Error(`Failed to insert traffic snapshot: ${error.message}`);
+  }
+}
+
