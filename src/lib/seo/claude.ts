@@ -119,3 +119,116 @@ function stripDashes(s: string): string {
     .replace(/\.\s+\./g, ".")
     .trim();
 }
+
+// ---------------------------------------------------------------------------
+// Monthly email summary — client-facing prose covering scores + issues +
+// traffic in 3-5 sentences. Used as the body of the monthly report email
+// instead of a boring bullet list.
+// ---------------------------------------------------------------------------
+
+const EMAIL_SUMMARY_SYSTEM = `You are writing a brief monthly email summary for an SEO client. Address the reader directly in plain English. No jargon. Cover three things in 3-5 sentences total:
+1. How the site's SEO health moved this month (scores up/down, what changed)
+2. What was found or fixed (new issues, resolved issues)
+3. Traffic context if provided (sessions, organic search, notable shifts)
+
+End with a single short recommendation or affirmation. Be specific with numbers where they help. If traffic data is all zeros, briefly note that data collection just started or is still ramping up. Never use lists, bullets, headers, or markdown. Return plain prose only.
+
+CRITICAL FORMATTING RULE: Never use em dashes or en dashes anywhere in your output. Use periods, commas, colons, semicolons, parentheses, or restructured sentences instead. This rule has zero exceptions.`;
+
+interface EmailSummaryInput {
+  domain: string;
+  client_name: string;
+  contact_name: string | null;
+  period_label: string;
+  scores: {
+    technical: number | null;
+    onpage: number | null;
+    lighthouse_mobile: number | null;
+    lighthouse_desktop: number | null;
+  };
+  deltas: {
+    technical: number | null;
+    onpage: number | null;
+    lighthouse_mobile: number | null;
+    lighthouse_desktop: number | null;
+  };
+  new_issue_count: number;
+  resolved_issue_count: number;
+  top_critical_issues: string[];
+  traffic: {
+    sessions: number;
+    organic_sessions: number;
+    users: number;
+    sessions_delta: number | null;
+    organic_sessions_delta: number | null;
+  } | null;
+}
+
+export async function generateEmailSummary(
+  input: EmailSummaryInput
+): Promise<string> {
+  const fmt = (n: number | null) =>
+    n == null ? "n/a" : `${n > 0 ? "+" : ""}${n}`;
+
+  const userParts: string[] = [
+    `Client: ${input.client_name} (${input.domain})`,
+    input.contact_name
+      ? `Recipient: ${input.contact_name}`
+      : "Recipient: (no name)",
+    `Period: ${input.period_label}`,
+    "",
+    "SEO scores (out of 100, change vs prior period):",
+    `- Technical: ${input.scores.technical ?? "n/a"} (${fmt(input.deltas.technical)})`,
+    `- On-page: ${input.scores.onpage ?? "n/a"} (${fmt(input.deltas.onpage)})`,
+    `- Lighthouse mobile: ${input.scores.lighthouse_mobile ?? "n/a"} (${fmt(input.deltas.lighthouse_mobile)})`,
+    `- Lighthouse desktop: ${input.scores.lighthouse_desktop ?? "n/a"} (${fmt(input.deltas.lighthouse_desktop)})`,
+    "",
+    `Issue movement: ${input.new_issue_count} new, ${input.resolved_issue_count} resolved this month.`,
+  ];
+
+  if (input.top_critical_issues.length > 0) {
+    userParts.push("Top critical/high issues:");
+    for (const t of input.top_critical_issues.slice(0, 3))
+      userParts.push(`- ${t}`);
+  }
+
+  if (input.traffic) {
+    userParts.push(
+      "",
+      "Traffic (last 7 days vs prior 7 days):",
+      `- Sessions: ${input.traffic.sessions} (${fmt(input.traffic.sessions_delta)})`,
+      `- Organic sessions: ${input.traffic.organic_sessions} (${fmt(input.traffic.organic_sessions_delta)})`,
+      `- Users: ${input.traffic.users}`
+    );
+    if (input.traffic.sessions === 0) {
+      userParts.push(
+        "Note: traffic numbers are zero, likely because GA4 tracking was just installed or no traffic has flowed yet this period."
+      );
+    }
+  } else {
+    userParts.push("", "Traffic: not yet connected for this client.");
+  }
+
+  userParts.push(
+    "",
+    "Write a 3-5 sentence email body. Open with a one-sentence summary of the period. Then briefly cover what was fixed or flagged. Then mention traffic if meaningful. Close with a single concrete recommendation. Plain prose only."
+  );
+
+  const client = getClient();
+  const response = await client.messages.create({
+    model: MODEL,
+    max_tokens: 400,
+    system: [
+      {
+        type: "text",
+        text: EMAIL_SUMMARY_SYSTEM,
+        cache_control: { type: "ephemeral" },
+      },
+    ],
+    messages: [{ role: "user", content: userParts.join("\n") }],
+  });
+
+  const textBlock = response.content.find((b) => b.type === "text");
+  const raw = textBlock && "text" in textBlock ? textBlock.text.trim() : "";
+  return stripDashes(raw);
+}

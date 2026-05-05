@@ -16,6 +16,7 @@ import {
 } from "./monthly-report-html";
 import { renderMonthlyReportPdf } from "./monthly-report-pdf";
 import { sendReportEmail } from "./send-report";
+import { generateEmailSummary } from "./claude";
 
 const REPORTS_BUCKET = "audit-reports"; // reuse existing public bucket
 
@@ -281,20 +282,61 @@ export async function runMonthlyReport(jobId: string): Promise<void> {
   const email = client.seo_config.contact_email;
   const dryRun = client.seo_config.dry_run === true;
   if (email && !dryRun) {
+    // Generate a 3-5 sentence client-facing summary covering scores +
+    // issues + traffic. Falls back to a minimal body if Claude fails so
+    // we never block the email send on the AI step.
+    let summaryProse: string | null = null;
+    try {
+      summaryProse = await generateEmailSummary({
+        domain: client.seo_config.domain,
+        client_name: client.name,
+        contact_name: client.seo_config.contact_name ?? null,
+        period_label: data.period_label,
+        scores: {
+          technical: data.current.technical,
+          onpage: data.current.onpage,
+          lighthouse_mobile: data.current.lighthouse_mobile,
+          lighthouse_desktop: data.current.lighthouse_desktop,
+        },
+        deltas: data.deltas,
+        new_issue_count: data.top_issues.length,
+        resolved_issue_count: data.resolved_issues.length,
+        top_critical_issues: data.top_issues
+          .slice(0, 3)
+          .map((i) => i.title),
+        traffic: data.traffic
+          ? {
+              sessions: data.traffic.sessions,
+              organic_sessions: data.traffic.organic_sessions,
+              users: data.traffic.users,
+              sessions_delta: data.traffic.sessions_delta,
+              organic_sessions_delta: data.traffic.organic_sessions_delta,
+            }
+          : null,
+      });
+    } catch (err) {
+      log(
+        `Email summary generation failed: ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
+
+    const greeting = client.seo_config.contact_name
+      ? `Hi ${client.seo_config.contact_name},`
+      : "Hi,";
+    const bodyHtml = summaryProse
+      ? `<p>${greeting}</p>
+<p>${summaryProse.replace(/\n\n+/g, "</p><p>").replace(/\n/g, "<br/>")}</p>
+<p><a href="${reportUrl}">Download the full PDF report</a></p>`
+      : `<p>${greeting}</p>
+<p>Your SEO monthly report for ${data.period_label} is ready.</p>
+<p><a href="${reportUrl}">Download the full PDF report</a></p>`;
+
     const result = await sendReportEmail({
       workspace_id: job.workspace_id,
       to: email,
       subject: `${client.name}: SEO report for ${data.period_label}`,
       from_name: "Niewdel",
-      html: `<p>Hi${client.seo_config.contact_name ? ` ${client.seo_config.contact_name}` : ""},</p>
-<p>Your SEO monthly report for ${data.period_label} is ready.</p>
-<ul>
-  <li>Technical: ${latest.technical_score ?? "n/a"} ${data.deltas.technical != null && data.deltas.technical !== 0 ? `(${data.deltas.technical > 0 ? "+" : ""}${data.deltas.technical})` : ""}</li>
-  <li>On-page: ${latest.onpage_score ?? "n/a"}</li>
-  <li>Mobile: ${latest.lighthouse_mobile ?? "n/a"}</li>
-  <li>Desktop: ${latest.lighthouse_desktop ?? "n/a"}</li>
-</ul>
-<p><a href="${reportUrl}">Download the full PDF report</a></p>`,
+      html: bodyHtml,
     });
     if (result.ok) {
       emailSent = true;
