@@ -206,7 +206,30 @@ export default function SeoClientDetailPage({
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "seo_jobs", filter: `client_id=eq.${id}` },
-        () => fetchAll()
+        (payload) => {
+          // Apply seo_jobs changes from the realtime payload directly so the
+          // progress bar and stage label update instantly. Going through
+          // fetchAll() pulls the full ReportData (5 SQL queries) on every
+          // tick, which queues up and stalls progress updates behind heavy
+          // re-fetches. seo_checks/issues/etc still go through fetchAll()
+          // since they only fire at the end of a run.
+          setJobs((prev) => {
+            if (payload.eventType === "DELETE") {
+              const oldId = (payload.old as { id?: string } | null)?.id;
+              return oldId ? prev.filter((j) => j.id !== oldId) : prev;
+            }
+            const next = payload.new as Job;
+            if (!next?.id) return prev;
+            const idx = prev.findIndex((j) => j.id === next.id);
+            if (idx >= 0) {
+              const out = prev.slice();
+              out[idx] = next;
+              return out;
+            }
+            // INSERT — prepend (jobs are sorted by created_at desc).
+            return [next, ...prev];
+          });
+        }
       )
       .on(
         "postgres_changes",
