@@ -8,6 +8,7 @@
 
 interface SendEmailInput {
   to: string | string[];
+  bcc?: string | string[];
   subject: string;
   html: string;
   from?: string;
@@ -46,6 +47,9 @@ export async function sendEmail(input: SendEmailInput): Promise<{ id: string }> 
     to: Array.isArray(input.to) ? input.to : [input.to],
     subject: input.subject,
     html: input.html,
+    ...(input.bcc
+      ? { bcc: Array.isArray(input.bcc) ? input.bcc : [input.bcc] }
+      : {}),
     ...(input.replyTo ? { reply_to: input.replyTo } : {}),
   };
 

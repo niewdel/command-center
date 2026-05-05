@@ -1594,7 +1594,7 @@ function SettingsForm({
             onChange={(e) => setDryRun(e.target.checked)}
             className="size-4"
           />
-          Dry-run (no auto-tasks, no client emails)
+          Dry-run (no client emails sent)
         </label>
       </div>
 
