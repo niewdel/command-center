@@ -49,6 +49,7 @@ type SeoConfig = {
   crawl_config?: { max_pages?: number };
   dry_run?: boolean;
   report_status?: "enabled" | "paused";
+  ga4_property_id?: string;
 };
 
 type Client = {
@@ -1228,8 +1229,54 @@ function SettingsForm({
   );
   const [enabled, setEnabled] = useState(cfg.enabled !== false);
   const [dryRun, setDryRun] = useState(!!cfg.dry_run);
+  const [ga4PropertyId, setGa4PropertyId] = useState(cfg.ga4_property_id ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Google connection + property list (loaded on mount).
+  const [googleConnected, setGoogleConnected] = useState<boolean | null>(null);
+  const [googleEmail, setGoogleEmail] = useState<string | null>(null);
+  const [ga4Properties, setGa4Properties] = useState<
+    Array<{ property_id: string; property_name: string; account_name: string }>
+  >([]);
+  const [ga4Loading, setGa4Loading] = useState(false);
+  const [ga4Error, setGa4Error] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const status = await fetch("/api/integrations/google/status").then((r) =>
+          r.json()
+        );
+        setGoogleConnected(!!status.connected);
+        setGoogleEmail(status.google_email ?? null);
+        if (status.connected) {
+          setGa4Loading(true);
+          const props = await fetch("/api/integrations/google/properties").then(
+            (r) => r.json()
+          );
+          if (props.error) setGa4Error(props.error);
+          else setGa4Properties(props.properties ?? []);
+          setGa4Loading(false);
+        }
+      } catch (err) {
+        setGa4Error(err instanceof Error ? err.message : "Failed to load");
+        setGa4Loading(false);
+      }
+    })();
+  }, []);
+
+  const handleConnectGoogle = () => {
+    window.location.href = "/api/integrations/google/authorize";
+  };
+
+  const handleDisconnectGoogle = async () => {
+    await fetch("/api/integrations/google/disconnect", { method: "POST" });
+    setGoogleConnected(false);
+    setGoogleEmail(null);
+    setGa4Properties([]);
+    setGa4PropertyId("");
+  };
 
   const splitLines = (s: string) =>
     s
@@ -1250,6 +1297,7 @@ function SettingsForm({
       crawl_config: { max_pages: Math.max(1, Math.min(100, Number(maxPages) || 25)) },
       dry_run: dryRun,
       report_status: cfg.report_status ?? "enabled",
+      ga4_property_id: ga4PropertyId.trim() || undefined,
     };
     const res = await fetch(`/api/seo/clients/${client.id}`, {
       method: "PATCH",
@@ -1352,6 +1400,78 @@ function SettingsForm({
           />
           Dry-run (no auto-tasks, no client emails)
         </label>
+      </div>
+
+      {/* Google Analytics integration */}
+      <div className="space-y-2 pt-3 border-t border-border">
+        <div className="flex items-center justify-between">
+          <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+            Google Analytics
+          </Label>
+          {googleConnected === true ? (
+            <button
+              type="button"
+              onClick={handleDisconnectGoogle}
+              className="text-[11px] text-muted-foreground hover:text-rose-400"
+            >
+              Disconnect
+            </button>
+          ) : null}
+        </div>
+
+        {googleConnected === null ? (
+          <div className="text-xs text-muted-foreground">Loading...</div>
+        ) : googleConnected ? (
+          <>
+            <p className="text-[11px] text-muted-foreground">
+              Connected as{" "}
+              <span className="font-mono text-foreground">{googleEmail}</span>
+            </p>
+            <div className="space-y-1.5">
+              <Label className="text-xs">GA4 property for this client</Label>
+              {ga4Loading ? (
+                <div className="text-xs text-muted-foreground">
+                  Loading properties...
+                </div>
+              ) : ga4Error ? (
+                <p className="text-xs text-rose-400">{ga4Error}</p>
+              ) : (
+                <select
+                  value={ga4PropertyId}
+                  onChange={(e) => setGa4PropertyId(e.target.value)}
+                  className="w-full h-9 rounded border border-border bg-background px-3 text-sm"
+                >
+                  <option value="">None — skip traffic tracking</option>
+                  {ga4Properties.map((p) => (
+                    <option key={p.property_id} value={p.property_id}>
+                      {p.account_name}: {p.property_name} ({p.property_id})
+                    </option>
+                  ))}
+                </select>
+              )}
+              <p className="text-[11px] text-muted-foreground">
+                Pick the GA4 property that tracks {domain || "this client&rsquo;s site"}.
+                Traffic data lands in the next weekly check.
+              </p>
+            </div>
+          </>
+        ) : (
+          <div className="space-y-2">
+            <p className="text-[11px] text-muted-foreground">
+              Connect your Google account once. The same connection works for
+              all clients.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleConnectGoogle}
+              className="rounded"
+            >
+              Connect Google Analytics
+            </Button>
+          </div>
+        )}
       </div>
 
       {error && <p className="text-xs text-rose-400">{error}</p>}

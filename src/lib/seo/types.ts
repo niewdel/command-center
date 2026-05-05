@@ -16,6 +16,11 @@ export interface SeoConfig {
   dry_run?: boolean;                 // first 2 weeks per client; suppresses task creation + sends
   report_status?: "enabled" | "paused";
   paid_tracking_enabled?: boolean;   // gates paid_keyword + paid_competitor crons
+
+  // Google Analytics 4 — set per-client. Pipeline pulls a traffic snapshot
+  // each weekly_check when this is set AND the user has a connected
+  // google_oauth_connections row.
+  ga4_property_id?: string;
 }
 
 export type SeoJobType =
