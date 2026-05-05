@@ -1,20 +1,23 @@
 // Monthly SEO report executor. Triggered by the monthly_report cron, run as
 // fire-and-forget setImmediate from the cron handler. Mirrors the
 // runWeeklyCheck pattern: writes progress to seo_jobs every stage.
+//
+// Flow:
+//   1. Load 30-day report data via getReportData()
+//   2. If no history → fail (no checks run yet)
+//   3. If dry_run → mark complete with preview URL in stage message
+//   4. If no contact_email → mark complete noting email suppressed
+//   5. Otherwise: generate AI email summary, render HTML email body, send
 
 import {
-  getServiceClient,
   getSeoJob,
   getSeoClient,
   updateSeoJob,
 } from "./db";
-import { renderMonthlyReportPdf } from "./monthly-report-pdf";
+import { renderMonthlyReportEmail } from "./monthly-report-email";
 import { sendReportEmail } from "./send-report";
 import { generateEmailSummary } from "./claude";
 import { getReportData } from "./report-data";
-import { signPrintToken } from "./report-print-token";
-
-const REPORTS_BUCKET = "audit-reports"; // reuse existing public bucket
 
 export async function runMonthlyReport(jobId: string): Promise<void> {
   const log = (msg: string) => console.log(`[seo-month ${jobId}] ${msg}`);
@@ -42,7 +45,7 @@ export async function runMonthlyReport(jobId: string): Promise<void> {
   });
 
   // Use the unified report fetcher — same data shape powers the in-app
-  // dashboard. Range is fixed to 30d for the monthly PDF.
+  // dashboard. Range is fixed to 30d for the monthly email.
   const data = await getReportData(job.client_id, "30d");
 
   if (data.history.length === 0) {
@@ -54,141 +57,157 @@ export async function runMonthlyReport(jobId: string): Promise<void> {
     return;
   }
 
-  await updateSeoJob(jobId, {
-    current_stage: "Rendering report",
-    progress_pct: 55,
-  });
-
-  // Build the print URL. Token covers (client_id, range, day_bucket) and
-  // is valid for the rest of today UTC.
   const baseUrl =
     process.env.NEXT_PUBLIC_APP_URL ??
     process.env.APP_URL ??
     "http://localhost:3000";
-  const token = signPrintToken(job.client_id, "30d");
-  const printUrl = `${baseUrl}/seo/clients/${job.client_id}/report?range=30d&print=1&token=${token}`;
 
-  // Footer template — same per-page footer the prior renderer used.
-  const generated = new Date(data.client.generated_at).toLocaleDateString(
-    "en-US",
-    { month: "short", day: "numeric", year: "numeric" }
-  );
-  const footerTemplate = `
-    <div style="font-size:9px;color:#666;width:100%;padding:0 12mm;display:flex;justify-content:space-between;">
-      <span>Delivered by Niewdel · ${generated}</span>
-      <span class="pageNumber"></span>/<span class="totalPages"></span>
-    </div>
-  `;
+  const dryRun = client.seo_config.dry_run === true;
+  const email = client.seo_config.contact_email;
 
-  await updateSeoJob(jobId, {
-    current_stage: "Generating PDF",
-    progress_pct: 70,
-  });
-
-  const pdfBytes = await renderMonthlyReportPdf(printUrl, { footerTemplate });
-
-  await updateSeoJob(jobId, {
-    current_stage: "Uploading to storage",
-    progress_pct: 85,
-  });
-
-  // Filename uses the GENERATION timestamp + job id suffix so every run
-  // produces a unique file. This avoids browser/CDN caching surprises and
-  // lets historical reports be re-opened from "Recent runs" without ever
-  // serving a stale render.
-  const stamp = new Date()
-    .toISOString()
-    .replace(/[:.]/g, "-")
-    .slice(0, 19);
-  const reportPath = `seo/${job.client_id}/monthly-${stamp}-${jobId.slice(0, 8)}.pdf`;
-
-  const sb = getServiceClient();
-
-  const { error: uploadErr } = await sb.storage
-    .from(REPORTS_BUCKET)
-    .upload(reportPath, pdfBytes, {
-      contentType: "application/pdf",
-      upsert: true,
+  // Dry-run: nothing to send. The in-app /seo/clients/<id>/report IS the preview.
+  if (dryRun) {
+    const previewUrl = `${baseUrl}/seo/clients/${job.client_id}/report?range=30d`;
+    await updateSeoJob(jobId, {
+      status: "complete",
+      progress_pct: 100,
+      current_stage: `Dry run: nothing sent (preview at /seo/clients/${job.client_id}/report)`,
+      completed_at: new Date().toISOString(),
+      metadata: {
+        email_sent: false,
+        email_via: null,
+        email_error: null,
+        dry_run: true,
+        preview_url: previewUrl,
+      },
     });
-  if (uploadErr) throw new Error(`Upload failed: ${uploadErr.message}`);
+    log(`Dry-run complete. Preview: ${previewUrl}`);
+    return;
+  }
 
-  const { data: pub } = sb.storage.from(REPORTS_BUCKET).getPublicUrl(reportPath);
-  const reportUrl = pub.publicUrl;
+  // No contact_email: skip send.
+  if (!email) {
+    await updateSeoJob(jobId, {
+      status: "complete",
+      progress_pct: 100,
+      current_stage: "No contact_email configured",
+      completed_at: new Date().toISOString(),
+      metadata: {
+        email_sent: false,
+        email_via: null,
+        email_error: null,
+        dry_run: false,
+      },
+    });
+    log("No contact_email — skipped send.");
+    return;
+  }
 
-  // Email delivery — only if not dry_run AND we have a contact_email.
+  await updateSeoJob(jobId, {
+    current_stage: "Generating email content",
+    progress_pct: 40,
+  });
+
+  // Generate a 3-5 sentence client-facing prose summary. This becomes a brief
+  // intro paragraph above the structured report in the email body. Falls back
+  // to null if Claude fails so we never block the email send on the AI step.
+  let summaryProse: string | null = null;
+  try {
+    summaryProse = await generateEmailSummary({
+      domain: client.seo_config.domain,
+      client_name: client.name,
+      contact_name: client.seo_config.contact_name ?? null,
+      period_label: data.client.period_label,
+      scores: {
+        technical: data.health.technical.current,
+        onpage: data.health.onpage.current,
+        lighthouse_mobile: data.health.lighthouse_mobile.current,
+        lighthouse_desktop: data.health.lighthouse_desktop.current,
+      },
+      deltas: {
+        technical: data.health.technical.delta,
+        onpage: data.health.onpage.delta,
+        lighthouse_mobile: data.health.lighthouse_mobile.delta,
+        lighthouse_desktop: data.health.lighthouse_desktop.delta,
+      },
+      new_issue_count: data.issues.open_top.length,
+      resolved_issue_count: data.issues.resolved.length,
+      top_critical_issues: data.issues.open_top.slice(0, 3).map((i) => i.title),
+      traffic: data.traffic
+        ? {
+            sessions: data.traffic.sessions.current,
+            organic_sessions: data.traffic.organic_sessions.current,
+            users: data.traffic.users.current,
+            sessions_delta: data.traffic.sessions.delta,
+            organic_sessions_delta: data.traffic.organic_sessions.delta,
+          }
+        : null,
+    });
+  } catch (err) {
+    log(
+      `Email summary generation failed: ${err instanceof Error ? err.message : String(err)}`
+    );
+  }
+
+  await updateSeoJob(jobId, {
+    current_stage: "Rendering email",
+    progress_pct: 60,
+  });
+
+  // Render the full inline-HTML email body.
+  const reportHtml = renderMonthlyReportEmail(data, { baseUrl });
+
+  // Prepend the AI prose summary as a greeting block above the report card.
+  const FONT = "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;";
+  const greeting = client.seo_config.contact_name
+    ? `Hi ${client.seo_config.contact_name},`
+    : "Hi,";
+
+  const introProse = summaryProse
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;">
+  <tr>
+    <td style="padding:0 32px 0 32px;">
+      <p style="${FONT}font-size:14px;color:#0f172a;margin:0 0 8px 0;">${greeting}</p>
+      <p style="${FONT}font-size:14px;color:#334155;line-height:1.6;margin:0 0 24px 0;">${summaryProse.replace(/\n\n+/g, '</p><p style="font-size:14px;color:#334155;line-height:1.6;margin:12px 0;">').replace(/\n/g, "<br/>")}</p>
+    </td>
+  </tr>
+</table>`
+    : "";
+
+  // Inject intro prose into the email body right after the <body> opening.
+  // The renderMonthlyReportEmail output starts with <!doctype html>...<body ...><table...>.
+  // We insert the intro block before the outer wrapper table.
+  const bodyHtml = introProse
+    ? reportHtml.replace(
+        /(<body[^>]*>)/,
+        `$1\n${introProse}`
+      )
+    : reportHtml;
+
+  await updateSeoJob(jobId, {
+    current_stage: "Sending email",
+    progress_pct: 80,
+  });
+
+  const result = await sendReportEmail({
+    workspace_id: job.workspace_id,
+    to: email,
+    subject: `${client.name}: SEO report for ${data.client.period_label}`,
+    from_name: "Niewdel",
+    html: bodyHtml,
+  });
+
   let emailSent = false;
   let emailError: string | null = null;
   let emailVia: string | null = null;
-  const email = client.seo_config.contact_email;
-  const dryRun = client.seo_config.dry_run === true;
-  if (email && !dryRun) {
-    // Generate a 3-5 sentence client-facing summary covering scores +
-    // issues + traffic. Falls back to a minimal body if Claude fails so
-    // we never block the email send on the AI step.
-    let summaryProse: string | null = null;
-    try {
-      summaryProse = await generateEmailSummary({
-        domain: client.seo_config.domain,
-        client_name: client.name,
-        contact_name: client.seo_config.contact_name ?? null,
-        period_label: data.client.period_label,
-        scores: {
-          technical: data.health.technical.current,
-          onpage: data.health.onpage.current,
-          lighthouse_mobile: data.health.lighthouse_mobile.current,
-          lighthouse_desktop: data.health.lighthouse_desktop.current,
-        },
-        deltas: {
-          technical: data.health.technical.delta,
-          onpage: data.health.onpage.delta,
-          lighthouse_mobile: data.health.lighthouse_mobile.delta,
-          lighthouse_desktop: data.health.lighthouse_desktop.delta,
-        },
-        new_issue_count: data.issues.open_top.length,
-        resolved_issue_count: data.issues.resolved.length,
-        top_critical_issues: data.issues.open_top.slice(0, 3).map((i) => i.title),
-        traffic: data.traffic
-          ? {
-              sessions: data.traffic.sessions.current,
-              organic_sessions: data.traffic.organic_sessions.current,
-              users: data.traffic.users.current,
-              sessions_delta: data.traffic.sessions.delta,
-              organic_sessions_delta: data.traffic.organic_sessions.delta,
-            }
-          : null,
-      });
-    } catch (err) {
-      log(
-        `Email summary generation failed: ${err instanceof Error ? err.message : String(err)}`
-      );
-    }
 
-    const greeting = client.seo_config.contact_name
-      ? `Hi ${client.seo_config.contact_name},`
-      : "Hi,";
-    const bodyHtml = summaryProse
-      ? `<p>${greeting}</p>
-<p>${summaryProse.replace(/\n\n+/g, "</p><p>").replace(/\n/g, "<br/>")}</p>
-<p><a href="${reportUrl}">Download the full PDF report</a></p>`
-      : `<p>${greeting}</p>
-<p>Your SEO monthly report for ${data.client.period_label} is ready.</p>
-<p><a href="${reportUrl}">Download the full PDF report</a></p>`;
-
-    const result = await sendReportEmail({
-      workspace_id: job.workspace_id,
-      to: email,
-      subject: `${client.name}: SEO report for ${data.client.period_label}`,
-      from_name: "Niewdel",
-      html: bodyHtml,
-    });
-    if (result.ok) {
-      emailSent = true;
-      emailVia = result.via;
-      log(`Emailed report to ${email} via ${result.via}`);
-    } else {
-      emailError = result.error ?? "send failed";
-      log(`Email failed (${result.via}): ${emailError}`);
-    }
+  if (result.ok) {
+    emailSent = true;
+    emailVia = result.via;
+    log(`Emailed report to ${email} via ${result.via}`);
+  } else {
+    emailError = result.error ?? "send failed";
+    log(`Email failed (${result.via}): ${emailError}`);
   }
 
   await updateSeoJob(jobId, {
@@ -196,22 +215,15 @@ export async function runMonthlyReport(jobId: string): Promise<void> {
     progress_pct: 100,
     current_stage: emailSent
       ? `Sent to ${email}`
-      : dryRun
-        ? "Dry run: report stored, email suppressed"
-        : email
-          ? `Stored. Email failed: ${emailError ?? "unknown"}`
-          : "Stored. No contact_email configured.",
+      : `Email failed: ${emailError ?? "unknown"}`,
     completed_at: new Date().toISOString(),
     metadata: {
-      report_path: reportPath,
-      report_url: reportUrl,
       email_sent: emailSent,
       email_via: emailVia,
       email_error: emailError,
-      dry_run: dryRun,
-      pdf_bytes: pdfBytes.length,
+      dry_run: false,
     },
   });
 
-  log(`Done. Report at ${reportPath}`);
+  log(`Done. email_sent=${emailSent}, via=${emailVia}`);
 }
