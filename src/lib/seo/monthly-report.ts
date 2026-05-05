@@ -133,6 +133,17 @@ export async function runMonthlyReport(jobId: string): Promise<void> {
     .eq("status", "fixed")
     .gte("resolved_at", periodStart.toISOString());
 
+  // GA4 traffic snapshots — last 2 (current + prior period for delta).
+  // Skipped silently when client has no ga4_property_id or no rows yet.
+  const { data: trafficRows } = await sb
+    .from("seo_traffic_snapshots")
+    .select(
+      "period_start, period_end, sessions, organic_sessions, users, page_views, avg_session_duration_s, bounce_rate, top_pages, top_sources, captured_at"
+    )
+    .eq("client_id", job.client_id)
+    .order("captured_at", { ascending: false })
+    .limit(2);
+
   await updateSeoJob(jobId, {
     current_stage: "Rendering report",
     progress_pct: 55,
@@ -186,6 +197,45 @@ export async function runMonthlyReport(jobId: string): Promise<void> {
       category: i.category,
     })),
     ai_summary: latest.ai_summary,
+    traffic: ((): MonthlyReportData["traffic"] => {
+      const rows = trafficRows ?? [];
+      if (rows.length === 0) return null;
+      const cur = rows[0] as {
+        period_start: string;
+        period_end: string;
+        sessions: number;
+        organic_sessions: number;
+        users: number;
+        avg_session_duration_s: number | null;
+        bounce_rate: number | null;
+        top_pages: Array<{ path: string; sessions: number; users: number }> | null;
+        top_sources: Array<{ source: string; medium: string; sessions: number }> | null;
+      };
+      const prior = (rows[1] as typeof cur | undefined) ?? null;
+      const dn = (a: number, b: number | null | undefined): number | null =>
+        b == null ? null : a - b;
+      return {
+        period_start: cur.period_start,
+        period_end: cur.period_end,
+        sessions: cur.sessions,
+        organic_sessions: cur.organic_sessions,
+        users: cur.users,
+        avg_session_duration_s: cur.avg_session_duration_s ?? 0,
+        bounce_rate: cur.bounce_rate ?? 0,
+        sessions_delta: dn(cur.sessions, prior?.sessions),
+        organic_sessions_delta: dn(cur.organic_sessions, prior?.organic_sessions),
+        users_delta: dn(cur.users, prior?.users),
+        top_pages: (cur.top_pages ?? []).map((p) => ({
+          path: p.path,
+          sessions: p.sessions,
+        })),
+        top_sources: (cur.top_sources ?? []).map((s) => ({
+          source: s.source,
+          medium: s.medium,
+          sessions: s.sessions,
+        })),
+      };
+    })(),
   };
 
   const html = renderMonthlyReportHtml(data);

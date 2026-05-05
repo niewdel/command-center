@@ -59,6 +59,24 @@ export interface MonthlyReportData {
   }>;
 
   ai_summary: string | null;
+
+  // GA4 traffic — present only when seo_config.ga4_property_id is set on the
+  // client AND a snapshot exists. When null, the Traffic section of the PDF
+  // is omitted entirely so the report doesn't show empty traffic placeholders.
+  traffic: {
+    period_start: string;
+    period_end: string;
+    sessions: number;
+    organic_sessions: number;
+    users: number;
+    avg_session_duration_s: number;
+    bounce_rate: number;
+    sessions_delta: number | null;        // vs prior period (snapshot 2 weeks ago)
+    organic_sessions_delta: number | null;
+    users_delta: number | null;
+    top_pages: Array<{ path: string; sessions: number }>;
+    top_sources: Array<{ source: string; medium: string; sessions: number }>;
+  } | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -159,6 +177,102 @@ function sparkline(
   return `<svg viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" style="display:block;">
     <path d="${segs.join(" ")}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
   </svg>`;
+}
+
+// Render the Traffic section. Returns "" when no traffic data is available
+// so the PDF doesn't show empty placeholders for clients without GA4.
+function renderTrafficSection(d: MonthlyReportData): string {
+  const t = d.traffic;
+  if (!t) return "";
+
+  const fmtN = (n: number) => n.toLocaleString();
+  const fmtDur = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = Math.round(s % 60);
+    return m > 0 ? `${m}m ${sec}s` : `${sec}s`;
+  };
+
+  const deltaPillText = (delta: number | null): string => {
+    if (delta == null || delta === 0) return "";
+    const positive = delta > 0;
+    const sign = positive ? "+" : "";
+    const bg = positive ? "#D1FAE5" : "#FEE2E2";
+    const fg = positive ? "#065F46" : "#991B1B";
+    const arrow = positive ? "&uarr;" : "&darr;";
+    return `<span style="display:inline-block;margin-left:8px;padding:1px 6px;font-size:10px;font-weight:600;background:${bg};color:${fg};border-radius:9999px;">${arrow} ${sign}${fmtN(Math.abs(delta))}</span>`;
+  };
+
+  const trafficCard = (
+    label: string,
+    value: string,
+    delta: number | null
+  ): string => `
+    <div style="padding:14px 16px;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:8px;">
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:#6B7280;font-weight:600;">${label}</div>
+      <div style="display:flex;align-items:baseline;gap:4px;margin-top:6px;">
+        <span style="font-size:22px;font-weight:700;color:#111827;line-height:1;">${value}</span>
+      </div>
+      <div style="margin-top:6px;height:18px;">${delta != null ? deltaPillText(delta) : ""}</div>
+    </div>`;
+
+  const pagesHtml =
+    t.top_pages.length === 0
+      ? `<div style="font-size:12px;color:#9CA3AF;font-style:italic;">No page data yet.</div>`
+      : t.top_pages
+          .slice(0, 5)
+          .map(
+            (p) => `
+        <div style="display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid #F3F4F6;">
+          <span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#374151;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">${escapeHtml(p.path)}</span>
+          <span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#6B7280;">${fmtN(p.sessions)}</span>
+        </div>`
+          )
+          .join("");
+
+  const sourcesHtml =
+    t.top_sources.length === 0
+      ? `<div style="font-size:12px;color:#9CA3AF;font-style:italic;">No source data yet.</div>`
+      : t.top_sources
+          .slice(0, 5)
+          .map(
+            (s) => `
+        <div style="display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid #F3F4F6;">
+          <span style="font-size:12px;color:#374151;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">${escapeHtml(s.source)} <span style="color:#9CA3AF;">/ ${escapeHtml(s.medium)}</span></span>
+          <span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#6B7280;">${fmtN(s.sessions)}</span>
+        </div>`
+          )
+          .join("");
+
+  const fmtRangeDate = (iso: string) =>
+    new Date(iso + "T00:00:00Z").toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
+
+  return `
+    <div class="section">
+      <div class="section-keep-with-next">
+        <div class="section-title">Traffic &middot; ${fmtRangeDate(t.period_start)} to ${fmtRangeDate(t.period_end)}</div>
+        <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:10px;margin-bottom:16px;">
+          ${trafficCard("Sessions", fmtN(t.sessions), t.sessions_delta)}
+          ${trafficCard("Organic", fmtN(t.organic_sessions), t.organic_sessions_delta)}
+          ${trafficCard("Users", fmtN(t.users), t.users_delta)}
+          ${trafficCard("Avg duration", fmtDur(t.avg_session_duration_s), null)}
+        </div>
+        <div class="card">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+            <div>
+              <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:#6B7280;font-weight:600;margin-bottom:6px;">Top pages</div>
+              ${pagesHtml}
+            </div>
+            <div>
+              <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:#6B7280;font-weight:600;margin-bottom:6px;">Top sources</div>
+              ${sourcesHtml}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>`;
 }
 
 // Build a one-line bottom-line headline from the deltas. Falls back to a
@@ -415,6 +529,8 @@ export function renderMonthlyReportHtml(d: MonthlyReportData): string {
         ${sparkRow("Desktop", "lighthouse_desktop", "#7C3AED", d.current.lighthouse_desktop)}
       </div>
     </div>
+
+    ${renderTrafficSection(d)}
 
     <!-- Top issues — title + first issue glued so the header never orphans -->
     <div class="section">

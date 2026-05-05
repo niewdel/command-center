@@ -102,6 +102,17 @@ export async function GET(
     .order("search_volume", { ascending: false, nullsFirst: false })
     .limit(200);
 
+  // GA4 traffic snapshots — most recent first, capped at 12 (covers ~3 months
+  // at weekly cadence). Used by the traffic card + history sparklines.
+  const { data: traffic } = await sb
+    .from("seo_traffic_snapshots")
+    .select(
+      "id, period_start, period_end, sessions, users, page_views, organic_sessions, avg_session_duration_s, bounce_rate, top_pages, top_sources, captured_at"
+    )
+    .eq("client_id", id)
+    .order("captured_at", { ascending: false })
+    .limit(12);
+
   return NextResponse.json({
     client,
     checks: checks ?? [],
@@ -109,6 +120,7 @@ export async function GET(
     jobs: jobs ?? [],
     keyword_ranks,
     competitor_gaps: gaps ?? [],
+    traffic: traffic ?? [],
   });
 }
 

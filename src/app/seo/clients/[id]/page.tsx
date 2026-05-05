@@ -135,6 +135,21 @@ type CompetitorGap = {
   captured_at: string;
 };
 
+type TrafficSnapshot = {
+  id: string;
+  period_start: string;
+  period_end: string;
+  sessions: number;
+  users: number;
+  page_views: number;
+  organic_sessions: number;
+  avg_session_duration_s: number | null;
+  bounce_rate: number | null;
+  top_pages: Array<{ path: string; sessions: number; users: number }> | null;
+  top_sources: Array<{ source: string; medium: string; sessions: number }> | null;
+  captured_at: string;
+};
+
 type Job = {
   id: string;
   type: string;
@@ -204,6 +219,7 @@ export default function SeoClientDetailPage({
   const [jobs, setJobs] = useState<Job[]>([]);
   const [keywordRanks, setKeywordRanks] = useState<KeywordRank[]>([]);
   const [competitorGaps, setCompetitorGaps] = useState<CompetitorGap[]>([]);
+  const [traffic, setTraffic] = useState<TrafficSnapshot[]>([]);
   const [runningKw, setRunningKw] = useState(false);
   const [runningComp, setRunningComp] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -226,6 +242,7 @@ export default function SeoClientDetailPage({
       setJobs(res.jobs ?? []);
       setKeywordRanks(res.keyword_ranks ?? []);
       setCompetitorGaps(res.competitor_gaps ?? []);
+      setTraffic(res.traffic ?? []);
     }
     setLoading(false);
   }, [id]);
@@ -287,6 +304,11 @@ export default function SeoClientDetailPage({
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "seo_competitor_gaps", filter: `client_id=eq.${id}` },
+        () => fetchAll()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "seo_traffic_snapshots", filter: `client_id=eq.${id}` },
         () => fetchAll()
       )
       .subscribe();
@@ -626,6 +648,9 @@ export default function SeoClientDetailPage({
             )}
           </Card>
         )}
+
+      {/* GA4 traffic snapshot */}
+      {cfg.ga4_property_id && <TrafficCard snapshots={traffic} />}
 
       {/* Open issues — grouped by page */}
       <div className="space-y-2">
@@ -1204,6 +1229,177 @@ function ScoreCard({
         {score == null ? "Not yet measured" : "out of 100"}
       </div>
     </Card>
+  );
+}
+
+// Traffic card — shows the latest GA4 snapshot with WoW deltas and the top
+// pages + sources for the most recent week.
+function TrafficCard({ snapshots }: { snapshots: TrafficSnapshot[] }) {
+  if (snapshots.length === 0) {
+    return (
+      <Card className="p-4 space-y-2">
+        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+          Traffic (Google Analytics)
+        </div>
+        <p className="text-xs text-muted-foreground">
+          No traffic data yet. The next weekly check will pull a snapshot.
+          Make sure the gtag.js measurement code is installed on the site
+          and that traffic is flowing in GA4.
+        </p>
+      </Card>
+    );
+  }
+
+  const latest = snapshots[0];
+  const prior = snapshots[1] ?? null;
+  const delta = (current: number, p: number | null) =>
+    p == null ? null : current - p;
+
+  const sessionsDelta = delta(latest.sessions, prior?.sessions ?? null);
+  const usersDelta = delta(latest.users, prior?.users ?? null);
+  const organicDelta = delta(
+    latest.organic_sessions,
+    prior?.organic_sessions ?? null
+  );
+
+  const fmtDuration = (s: number | null) => {
+    if (s == null) return "n/a";
+    const m = Math.floor(s / 60);
+    const sec = Math.round(s % 60);
+    return m > 0 ? `${m}m ${sec}s` : `${sec}s`;
+  };
+
+  const fmtDate = (iso: string) => {
+    return new Date(iso).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold font-heading">Traffic</h2>
+        <span className="text-[10px] text-muted-foreground">
+          {fmtDate(latest.period_start)} to {fmtDate(latest.period_end)}
+        </span>
+      </div>
+      <Card className="p-4 space-y-4">
+        {/* Top-line metrics */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <TrafficMetric
+            label="Sessions"
+            value={latest.sessions}
+            delta={sessionsDelta}
+          />
+          <TrafficMetric
+            label="Organic"
+            value={latest.organic_sessions}
+            delta={organicDelta}
+          />
+          <TrafficMetric
+            label="Users"
+            value={latest.users}
+            delta={usersDelta}
+          />
+          <TrafficMetric
+            label="Avg duration"
+            value={fmtDuration(latest.avg_session_duration_s)}
+            delta={null}
+            literal
+          />
+        </div>
+
+        {/* Top pages + sources */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-border">
+          <div className="space-y-1.5">
+            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+              Top pages
+            </div>
+            {(latest.top_pages ?? []).length === 0 ? (
+              <p className="text-xs text-muted-foreground">No data yet.</p>
+            ) : (
+              <div className="space-y-1">
+                {(latest.top_pages ?? []).slice(0, 5).map((p, i) => (
+                  <div
+                    key={`${p.path}-${i}`}
+                    className="flex items-center justify-between gap-3 text-xs"
+                  >
+                    <span className="font-mono truncate text-foreground/90">
+                      {p.path}
+                    </span>
+                    <span className="font-mono tabular-nums text-muted-foreground shrink-0">
+                      {p.sessions.toLocaleString()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="space-y-1.5">
+            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+              Top sources
+            </div>
+            {(latest.top_sources ?? []).length === 0 ? (
+              <p className="text-xs text-muted-foreground">No data yet.</p>
+            ) : (
+              <div className="space-y-1">
+                {(latest.top_sources ?? []).slice(0, 5).map((s, i) => (
+                  <div
+                    key={`${s.source}-${s.medium}-${i}`}
+                    className="flex items-center justify-between gap-3 text-xs"
+                  >
+                    <span className="truncate text-foreground/90">
+                      {s.source} <span className="text-muted-foreground">/ {s.medium}</span>
+                    </span>
+                    <span className="font-mono tabular-nums text-muted-foreground shrink-0">
+                      {s.sessions.toLocaleString()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function TrafficMetric({
+  label,
+  value,
+  delta,
+  literal = false,
+}: {
+  label: string;
+  value: number | string;
+  delta: number | null;
+  literal?: boolean;
+}) {
+  const showDelta = delta != null && delta !== 0;
+  return (
+    <div className="space-y-1">
+      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+        {label}
+      </div>
+      <div className="flex items-baseline gap-1.5">
+        <div className="text-xl font-semibold tabular-nums font-heading">
+          {literal ? value : (value as number).toLocaleString()}
+        </div>
+        {showDelta && (
+          <span
+            className={cn(
+              "text-[11px] font-mono tabular-nums",
+              (delta as number) > 0 ? "text-emerald-400" : "text-rose-400"
+            )}
+          >
+            {(delta as number) > 0 ? "+" : ""}
+            {(delta as number).toLocaleString()}
+          </span>
+        )}
+      </div>
+    </div>
   );
 }
 
