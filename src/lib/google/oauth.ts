@@ -16,6 +16,12 @@ const REFRESH_SKEW_MS = 60_000;
 export const ANALYTICS_READONLY_SCOPE =
   "https://www.googleapis.com/auth/analytics.readonly";
 
+// Lets us send transactional email (monthly reports, weekly digests) from
+// the user's own Gmail/Workspace account. Replaces Resend for our use case
+// — emails come from the user's real address with no domain verification
+// needed since Workspace handles SPF/DKIM/DMARC.
+export const GMAIL_SEND_SCOPE = "https://www.googleapis.com/auth/gmail.send";
+
 // ----- Service-role Supabase client (bypasses RLS for token writes) -----
 let _service: SupabaseClient | null = null;
 function getService(): SupabaseClient {

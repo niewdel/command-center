@@ -5,6 +5,7 @@ import {
   buildAuthorizeUrl,
   generateState,
   ANALYTICS_READONLY_SCOPE,
+  GMAIL_SEND_SCOPE,
 } from "@/lib/google/oauth";
 
 export const dynamic = "force-dynamic";
@@ -35,7 +36,12 @@ export async function GET(_request: NextRequest) {
   });
 
   const url = buildAuthorizeUrl({
-    scopes: [ANALYTICS_READONLY_SCOPE, "openid", "email"],
+    scopes: [
+      ANALYTICS_READONLY_SCOPE,
+      GMAIL_SEND_SCOPE,
+      "openid",
+      "email",
+    ],
     state,
   });
   return NextResponse.redirect(url);

@@ -15,7 +15,7 @@ import {
   type ScoreHistoryPoint,
 } from "./monthly-report-html";
 import { renderMonthlyReportPdf } from "./monthly-report-pdf";
-import { sendEmail } from "@/lib/email/resend";
+import { sendReportEmail } from "./send-report";
 
 const REPORTS_BUCKET = "audit-reports"; // reuse existing public bucket
 
@@ -277,14 +277,16 @@ export async function runMonthlyReport(jobId: string): Promise<void> {
   // Email delivery — only if not dry_run AND we have a contact_email.
   let emailSent = false;
   let emailError: string | null = null;
+  let emailVia: string | null = null;
   const email = client.seo_config.contact_email;
   const dryRun = client.seo_config.dry_run === true;
   if (email && !dryRun) {
-    try {
-      await sendEmail({
-        to: email,
-        subject: `${client.name}: SEO report for ${data.period_label}`,
-        html: `<p>Hi${client.seo_config.contact_name ? ` ${client.seo_config.contact_name}` : ""},</p>
+    const result = await sendReportEmail({
+      workspace_id: job.workspace_id,
+      to: email,
+      subject: `${client.name}: SEO report for ${data.period_label}`,
+      from_name: "Niewdel",
+      html: `<p>Hi${client.seo_config.contact_name ? ` ${client.seo_config.contact_name}` : ""},</p>
 <p>Your SEO monthly report for ${data.period_label} is ready.</p>
 <ul>
   <li>Technical: ${latest.technical_score ?? "n/a"} ${data.deltas.technical != null && data.deltas.technical !== 0 ? `(${data.deltas.technical > 0 ? "+" : ""}${data.deltas.technical})` : ""}</li>
@@ -293,12 +295,14 @@ export async function runMonthlyReport(jobId: string): Promise<void> {
   <li>Desktop: ${latest.lighthouse_desktop ?? "n/a"}</li>
 </ul>
 <p><a href="${reportUrl}">Download the full PDF report</a></p>`,
-      });
+    });
+    if (result.ok) {
       emailSent = true;
-      log(`Emailed report to ${email}`);
-    } catch (err) {
-      emailError = err instanceof Error ? err.message : String(err);
-      log(`Email failed: ${emailError}`);
+      emailVia = result.via;
+      log(`Emailed report to ${email} via ${result.via}`);
+    } else {
+      emailError = result.error ?? "send failed";
+      log(`Email failed (${result.via}): ${emailError}`);
     }
   }
 
@@ -317,6 +321,7 @@ export async function runMonthlyReport(jobId: string): Promise<void> {
       report_path: reportPath,
       report_url: reportUrl,
       email_sent: emailSent,
+      email_via: emailVia,
       email_error: emailError,
       dry_run: dryRun,
       checks_used: checks.length,

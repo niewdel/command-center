@@ -12,7 +12,7 @@ import {
   getWorkspaceOwner,
   insertTrafficSnapshot,
 } from "./db";
-import { sendEmail, isEmailConfigured } from "@/lib/email/resend";
+import { sendReportEmail } from "./send-report";
 import { fetchTrafficSnapshot } from "@/lib/google/ga4";
 import { getConnection } from "@/lib/google/oauth";
 import {
@@ -340,36 +340,37 @@ export async function runWeeklyCheck(jobId: string): Promise<void> {
   const shouldDigest =
     !dryRun &&
     contactEmail &&
-    isEmailConfigured() &&
     (newSevereCount > 0 || hasRegression);
 
   if (shouldDigest && contactEmail) {
-    try {
-      const dashboardBase =
-        process.env.NEXT_PUBLIC_APP_URL ?? process.env.APP_URL ?? "";
-      const link = dashboardBase
-        ? `${dashboardBase.replace(/\/$/, "")}/seo/clients/${job.client_id}`
-        : null;
-      await sendEmail({
-        to: contactEmail,
-        subject: `${client.name}: ${newSevereCount} new SEO issue${newSevereCount === 1 ? "" : "s"}`,
-        html: buildDigestHtml({
-          clientName: client.name,
-          domain,
-          newCount: newSevereCount,
-          resolvedCount,
-          scores,
-          deltas: diff.score_deltas ?? {},
-          topIssues,
-          dashboardUrl: link,
-          contactName: client.seo_config.contact_name ?? null,
-        }),
-      });
+    const dashboardBase =
+      process.env.NEXT_PUBLIC_APP_URL ?? process.env.APP_URL ?? "";
+    const link = dashboardBase
+      ? `${dashboardBase.replace(/\/$/, "")}/seo/clients/${job.client_id}`
+      : null;
+    const result = await sendReportEmail({
+      workspace_id: job.workspace_id,
+      to: contactEmail,
+      subject: `${client.name}: ${newSevereCount} new SEO issue${newSevereCount === 1 ? "" : "s"}`,
+      html: buildDigestHtml({
+        clientName: client.name,
+        domain,
+        newCount: newSevereCount,
+        resolvedCount,
+        scores,
+        deltas: diff.score_deltas ?? {},
+        topIssues,
+        dashboardUrl: link,
+        contactName: client.seo_config.contact_name ?? null,
+      }),
+      from_name: "Niewdel",
+    });
+    if (result.ok) {
       digestSent = true;
-      log(`Sent weekly digest to ${contactEmail}`);
-    } catch (err) {
-      digestError = err instanceof Error ? err.message : String(err);
-      log(`Digest email failed: ${digestError}`);
+      log(`Sent weekly digest to ${contactEmail} via ${result.via}`);
+    } else {
+      digestError = result.error ?? "send failed";
+      log(`Digest email failed (${result.via}): ${digestError}`);
     }
   }
 
