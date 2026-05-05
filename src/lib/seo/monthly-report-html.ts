@@ -444,23 +444,25 @@ export function renderMonthlyReportFooterHtml(generatedAtIso: string): string {
   const dateLabel = new Date(generatedAtIso).toLocaleDateString("en-US", {
     dateStyle: "long",
   });
-  // Footer notes — hard-won from Playwright footerTemplate quirks:
-  // - Use Arial explicitly: -apple-system and system-ui aren't available in
-  //   Chromium's footer sandbox and silently fall back to a serif/mono.
-  // - Use em-based logo height tied to the text font-size so text and logo
-  //   stay visually proportional regardless of Playwright's internal scaling.
-  // - line-height:1 + flex align-items:center is the only combo that lands
-  //   the text baseline on the same axis as the image's geometric center.
-  // - The PNG has slight asymmetric internal padding (more space below the
-  //   letterforms than above); transform:translateY(-1px) nudges the visible
-  //   letters up so the visual centers truly align.
+  // Footer alignment — went back to inline + vertical-align:middle after flex
+  // kept drifting. This is the classic CSS trick for "text + image on the
+  // same baseline": both elements get vertical-align:middle which aligns the
+  // text's typographic middle (between baseline and x-height) with the
+  // image's geometric center. Inline-block on the img preserves the
+  // baseline interaction; setting line-height = logo height removes any
+  // line-box leading that would otherwise drift the text vertically.
+  // Arial is explicit because Chromium footer sandbox doesn't have system-ui.
   const baseFont =
-    "font-family:Arial,Helvetica,sans-serif;font-size:11pt;color:#6B7280;line-height:1;";
-  return `<div style="${baseFont}width:100%;padding:0 14mm;-webkit-print-color-adjust:exact;display:flex;align-items:center;justify-content:space-between;">
-  <span style="${baseFont}">Generated ${escapeHtml(dateLabel)}</span>
-  <span style="${baseFont}display:flex;align-items:center;gap:8px;">
-    <span style="${baseFont}">Delivered by</span>
-    ${logo ? `<img src="${logo}" style="height:1.4em;width:auto;display:block;filter:brightness(0);opacity:0.9;transform:translateY(-1px);" alt="Niewdel" />` : `<strong style="color:#111827;${baseFont}font-weight:700;">Niewdel</strong>`}
-  </span>
+    "font-family:Arial,Helvetica,sans-serif;font-size:11pt;color:#6B7280;";
+  const logoH = "1.5em";
+  return `<div style="${baseFont}width:100%;padding:0 14mm;line-height:${logoH};-webkit-print-color-adjust:exact;">
+  <table style="width:100%;border-collapse:collapse;">
+    <tr>
+      <td style="${baseFont}line-height:${logoH};text-align:left;vertical-align:middle;">Generated ${escapeHtml(dateLabel)}</td>
+      <td style="${baseFont}line-height:${logoH};text-align:right;vertical-align:middle;white-space:nowrap;">
+        <span style="${baseFont}vertical-align:middle;">Delivered by&nbsp;</span>${logo ? `<img src="${logo}" style="height:${logoH};width:auto;display:inline-block;vertical-align:middle;filter:brightness(0);opacity:0.9;transform:translateY(-2px);" alt="Niewdel" />` : `<strong style="color:#111827;${baseFont}font-weight:700;vertical-align:middle;">Niewdel</strong>`}
+      </td>
+    </tr>
+  </table>
 </div>`;
 }
