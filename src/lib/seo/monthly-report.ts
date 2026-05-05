@@ -203,11 +203,15 @@ export async function runMonthlyReport(jobId: string): Promise<void> {
     progress_pct: 85,
   });
 
-  const stamp = new Date(latest.created_at)
+  // Filename uses the GENERATION timestamp + job id suffix so every run
+  // produces a unique file. This avoids browser/CDN caching surprises and
+  // lets historical reports be re-opened from "Recent runs" without ever
+  // serving a stale render.
+  const stamp = new Date()
     .toISOString()
     .replace(/[:.]/g, "-")
     .slice(0, 19);
-  const reportPath = `seo/${job.client_id}/monthly-${stamp}.pdf`;
+  const reportPath = `seo/${job.client_id}/monthly-${stamp}-${jobId.slice(0, 8)}.pdf`;
 
   const { error: uploadErr } = await sb.storage
     .from(REPORTS_BUCKET)
