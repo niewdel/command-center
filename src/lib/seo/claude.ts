@@ -19,7 +19,9 @@ const MODEL = "claude-sonnet-4-6";
 // (~$0.001 per check) and prevents a giant site from blowing up the prompt.
 const MAX_TOP_ISSUES = 5;
 
-const SYSTEM = `You are an SEO analyst writing a 2-3 sentence weekly summary for a solo SEO operator. Write in plain English, no jargon. Be specific about what changed and what to prioritize. If everything is stable, say so plainly. Never recommend more than 1-2 actions. Never use lists or markdown — return prose only.`;
+const SYSTEM = `You are an SEO analyst writing a 2-3 sentence weekly summary for a solo SEO operator. Write in plain English, no jargon. Be specific about what changed and what to prioritize. If everything is stable, say so plainly. Never recommend more than 1-2 actions. Never use lists or markdown. Return prose only.
+
+CRITICAL FORMATTING RULE: Never use em dashes (—) or en dashes (–) anywhere in your output. Use periods, commas, colons, semicolons, parentheses, or restructured sentences instead. This rule has zero exceptions. If you are tempted to use an em dash, rewrite the sentence as two shorter sentences or use a comma.`;
 
 interface SummaryInput {
   domain: string;
@@ -98,5 +100,22 @@ export async function generateCheckSummary(input: SummaryInput): Promise<string>
 
   // Extract text from the first content block
   const textBlock = response.content.find((b) => b.type === "text");
-  return textBlock && "text" in textBlock ? textBlock.text.trim() : "";
+  const raw = textBlock && "text" in textBlock ? textBlock.text.trim() : "";
+  return stripDashes(raw);
+}
+
+// Belt-and-suspenders: even with the SYSTEM prompt forbidding em/en dashes,
+// Claude occasionally slips. Replace any that get through with sensible
+// fallbacks so the dashboard + PDF + email never show one.
+function stripDashes(s: string): string {
+  return s
+    // em dash with surrounding spaces -> period + space
+    .replace(/\s+—\s+/g, ". ")
+    // en dash with surrounding spaces -> period + space
+    .replace(/\s+–\s+/g, ". ")
+    // bare em/en dash with no spaces (e.g. range like "5–10") -> regular hyphen
+    .replace(/[—–]/g, "-")
+    // collapse any double-period that resulted from the replacement
+    .replace(/\.\s+\./g, ".")
+    .trim();
 }

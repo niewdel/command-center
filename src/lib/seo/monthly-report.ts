@@ -10,6 +10,7 @@ import {
 } from "./db";
 import {
   renderMonthlyReportHtml,
+  renderMonthlyReportFooterHtml,
   type MonthlyReportData,
   type ScoreHistoryPoint,
 } from "./monthly-report-html";
@@ -93,7 +94,7 @@ export async function runMonthlyReport(jobId: string): Promise<void> {
   if (checks.length === 0) {
     await updateSeoJob(jobId, {
       status: "failed",
-      error_message: "No seo_checks found — run a weekly check first.",
+      error_message: "No seo_checks found. Run a weekly check first.",
       completed_at: new Date().toISOString(),
     });
     return;
@@ -188,13 +189,14 @@ export async function runMonthlyReport(jobId: string): Promise<void> {
   };
 
   const html = renderMonthlyReportHtml(data);
+  const footerTemplate = renderMonthlyReportFooterHtml(data.generated_at);
 
   await updateSeoJob(jobId, {
     current_stage: "Generating PDF",
     progress_pct: 70,
   });
 
-  const pdfBytes = await renderMonthlyReportPdf(html);
+  const pdfBytes = await renderMonthlyReportPdf(html, { footerTemplate });
 
   await updateSeoJob(jobId, {
     current_stage: "Uploading to storage",
@@ -227,14 +229,14 @@ export async function runMonthlyReport(jobId: string): Promise<void> {
     try {
       await sendEmail({
         to: email,
-        subject: `${client.name} — SEO report for ${data.period_label}`,
+        subject: `${client.name}: SEO report for ${data.period_label}`,
         html: `<p>Hi${client.seo_config.contact_name ? ` ${client.seo_config.contact_name}` : ""},</p>
 <p>Your SEO monthly report for ${data.period_label} is ready.</p>
 <ul>
-  <li>Technical: ${latest.technical_score ?? "—"} ${data.deltas.technical != null && data.deltas.technical !== 0 ? `(${data.deltas.technical > 0 ? "+" : ""}${data.deltas.technical})` : ""}</li>
-  <li>On-page: ${latest.onpage_score ?? "—"}</li>
-  <li>Mobile: ${latest.lighthouse_mobile ?? "—"}</li>
-  <li>Desktop: ${latest.lighthouse_desktop ?? "—"}</li>
+  <li>Technical: ${latest.technical_score ?? "n/a"} ${data.deltas.technical != null && data.deltas.technical !== 0 ? `(${data.deltas.technical > 0 ? "+" : ""}${data.deltas.technical})` : ""}</li>
+  <li>On-page: ${latest.onpage_score ?? "n/a"}</li>
+  <li>Mobile: ${latest.lighthouse_mobile ?? "n/a"}</li>
+  <li>Desktop: ${latest.lighthouse_desktop ?? "n/a"}</li>
 </ul>
 <p><a href="${reportUrl}">Download the full PDF report</a></p>`,
       });
@@ -252,10 +254,10 @@ export async function runMonthlyReport(jobId: string): Promise<void> {
     current_stage: emailSent
       ? `Sent to ${email}`
       : dryRun
-        ? "Dry run — report stored, email suppressed"
+        ? "Dry run: report stored, email suppressed"
         : email
-          ? `Stored — email failed: ${emailError ?? "unknown"}`
-          : "Stored — no contact_email configured",
+          ? `Stored. Email failed: ${emailError ?? "unknown"}`
+          : "Stored. No contact_email configured.",
     completed_at: new Date().toISOString(),
     metadata: {
       report_path: reportPath,
@@ -268,5 +270,5 @@ export async function runMonthlyReport(jobId: string): Promise<void> {
     },
   });
 
-  log(`Done — report at ${reportPath}`);
+  log(`Done. Report at ${reportPath}`);
 }

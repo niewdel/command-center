@@ -110,9 +110,9 @@ export function renderFixPlanMarkdown(input: {
   const lines: string[] = [];
 
   // ----- Header / brief -----
-  lines.push(`# SEO Fix Plan — ${client.name}`);
+  lines.push(`# SEO Fix Plan: ${client.name}`);
   lines.push("");
-  lines.push(`**Domain:** ${domain || "—"}`);
+  lines.push(`**Domain:** ${domain || "n/a"}`);
   lines.push(`**Generated:** ${generatedAt}`);
   lines.push(`**Based on check:** ${shortDate(check.created_at)} (id \`${check.id}\`)`);
   lines.push("");
@@ -141,16 +141,16 @@ export function renderFixPlanMarkdown(input: {
   lines.push("");
   lines.push("| Metric | Score |");
   lines.push("| --- | --- |");
-  lines.push(`| Technical | ${check.technical_score ?? "—"}/100 |`);
-  lines.push(`| On-page | ${check.onpage_score ?? "—"}/100 |`);
-  lines.push(`| Lighthouse mobile | ${check.lighthouse_mobile ?? "—"}/100 |`);
+  lines.push(`| Technical | ${check.technical_score ?? "n/a"}/100 |`);
+  lines.push(`| On-page | ${check.onpage_score ?? "n/a"}/100 |`);
+  lines.push(`| Lighthouse mobile | ${check.lighthouse_mobile ?? "n/a"}/100 |`);
   if (check.lighthouse_desktop != null) {
     lines.push(`| Lighthouse desktop | ${check.lighthouse_desktop}/100 |`);
   }
   lines.push(`| Pages monitored | ${check.pages_crawled ?? 0} |`);
   lines.push("");
   lines.push(
-    `**Issue counts:** ${counts.critical} critical, ${counts.high} high, ${counts.medium} medium, ${counts.low} low — ${issues.length} total open issues.`
+    `**Issue counts:** ${counts.critical} critical, ${counts.high} high, ${counts.medium} medium, ${counts.low} low. ${issues.length} total open issues.`
   );
   lines.push("");
   if (check.ai_summary) {
@@ -200,7 +200,7 @@ export function renderFixPlanMarkdown(input: {
     }
 
     for (const i of pageIssues) {
-      lines.push(`#### ${severityBadge(i.severity)} — ${i.title}`);
+      lines.push(`#### ${severityBadge(i.severity)} ${i.title}`);
       lines.push("");
       lines.push(`- **Category:** \`${i.category}\` / \`${i.sub_type ?? "n/a"}\``);
       if (i.page_url && key !== "__site__") {
@@ -223,7 +223,7 @@ export function renderFixPlanMarkdown(input: {
   lines.push("## When you're done");
   lines.push("");
   lines.push(
-    "Reply with a short summary: which issues you fixed, which files changed, and any issues you deferred (with the reason). The next weekly SEO check will confirm the fixes — issues that disappear in the next crawl are auto-marked resolved in Command Center."
+    "Reply with a short summary: which issues you fixed, which files changed, and any issues you deferred (with the reason). The next weekly SEO check will confirm the fixes. Issues that disappear in the next crawl are auto-marked resolved in Command Center."
   );
   lines.push("");
 

@@ -162,21 +162,21 @@ function bottomLine(d: MonthlyReportData): string {
   const opened = d.top_issues.length;
 
   if (sum >= 5 && fixed > opened) {
-    return `Strong month — scores up ${sum} points overall and ${fixed} issues resolved.`;
+    return `Strong month. Scores up ${sum} points overall, with ${fixed} issues resolved.`;
   }
   if (sum >= 5) {
-    return `Scores trending up — ${sum} points gained overall this period.`;
+    return `Scores trending up. ${sum} points gained overall this period.`;
   }
   if (sum <= -5) {
-    return `Scores dipped this period — down ${Math.abs(sum)} points overall. ${opened} priority items below.`;
+    return `Scores dipped this period, down ${Math.abs(sum)} points overall. ${opened} priority items below.`;
   }
   if (fixed > 0 && opened === 0) {
     return `${fixed} issue${fixed === 1 ? "" : "s"} resolved this month with no new high-severity items detected.`;
   }
   if (opened > 0) {
-    return `${opened} priority item${opened === 1 ? "" : "s"} flagged this month — see action list below.`;
+    return `${opened} priority item${opened === 1 ? "" : "s"} flagged this month. See action list below.`;
   }
-  return "Site is holding steady this month — no major movement in scores or issues.";
+  return "Site is holding steady this month. No major movement in scores or issues.";
 }
 
 export function renderMonthlyReportHtml(d: MonthlyReportData): string {
@@ -194,7 +194,7 @@ export function renderMonthlyReportHtml(d: MonthlyReportData): string {
           .map((i, idx) => {
             const s = severityBg(i.severity);
             return `
-        <div style="display:flex;align-items:flex-start;gap:14px;padding:14px 0;border-bottom:1px solid #E5E7EB;">
+        <div class="issue-row" style="display:flex;align-items:flex-start;gap:14px;padding:14px 0;border-bottom:1px solid #E5E7EB;">
           <div style="width:24px;height:24px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#F3F4F6;border-radius:50%;font-size:11px;font-weight:600;color:#4B5563;">${idx + 1}</div>
           <div style="flex:1;min-width:0;">
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
@@ -240,7 +240,7 @@ export function renderMonthlyReportHtml(d: MonthlyReportData): string {
       <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:#6B7280;font-weight:600;">${label}</div>
       <div style="display:flex;align-items:baseline;gap:4px;margin-top:8px;">
         <span style="font-size:34px;font-weight:700;color:${scoreColor(score)};line-height:1;">${
-          score == null ? "&mdash;" : score
+          score == null ? "n/a" : score
         }</span>
         <span style="font-size:14px;color:#9CA3AF;font-weight:500;">/100</span>
       </div>
@@ -251,14 +251,14 @@ export function renderMonthlyReportHtml(d: MonthlyReportData): string {
     <div style="display:grid;grid-template-columns:96px 1fr 60px;gap:14px;align-items:center;padding:10px 0;border-bottom:1px solid #F3F4F6;">
       <div style="font-size:12px;color:#4B5563;font-weight:500;">${label}</div>
       ${sparkline(d.history, key, color)}
-      <div style="text-align:right;font-family:ui-monospace,Menlo,monospace;font-size:14px;font-weight:600;color:${scoreColor(current)};">${current == null ? "&mdash;" : current}</div>
+      <div style="text-align:right;font-family:ui-monospace,Menlo,monospace;font-size:14px;font-weight:600;color:${scoreColor(current)};">${current == null ? "n/a" : current}</div>
     </div>`;
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>${escapeHtml(d.client_name)} &mdash; SEO Report &mdash; ${escapeHtml(d.period_label)}</title>
+  <title>${escapeHtml(d.client_name)} | SEO Report | ${escapeHtml(d.period_label)}</title>
   <style>
     @page { size: letter; margin: 0; }
     * { box-sizing: border-box; }
@@ -298,10 +298,30 @@ export function renderMonthlyReportHtml(d: MonthlyReportData): string {
     /* Score cards */
     .score-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 28px; }
 
-    /* Sections */
-    .section { margin-top: 28px; page-break-inside: avoid; }
-    .section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #6B7280; margin-bottom: 12px; font-weight: 600; }
-    .card { background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 10px; padding: 18px; }
+    /* Sections — keep title attached to its content; prevent orphaned headers */
+    .section { margin-top: 28px; }
+    .section-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #6B7280;
+      margin-bottom: 12px;
+      font-weight: 600;
+      break-after: avoid-page;
+      page-break-after: avoid;
+    }
+    .card {
+      background: #FFFFFF;
+      border: 1px solid #E5E7EB;
+      border-radius: 10px;
+      padding: 18px;
+      break-inside: avoid-page;
+      page-break-inside: avoid;
+    }
+    /* Glue title + first card so we never split them across a page */
+    .section-keep-with-next { break-inside: avoid-page; page-break-inside: avoid; }
+    /* Each issue row stays whole even when the surrounding card breaks */
+    .issue-row { break-inside: avoid-page; page-break-inside: avoid; }
 
     /* What changed strip */
     .changed-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
@@ -309,10 +329,6 @@ export function renderMonthlyReportHtml(d: MonthlyReportData): string {
     .stat-tile .label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: #6B7280; font-weight: 600; }
     .stat-tile .value { font-size: 22px; font-weight: 700; color: #111827; margin-top: 4px; line-height: 1; }
     .stat-tile .help { font-size: 11px; color: #9CA3AF; margin-top: 4px; }
-
-    /* Footer */
-    .footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid #E5E7EB; display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: #9CA3AF; }
-    .footer-logo { height: 16px; width: auto; opacity: 0.7; }
   </style>
 </head>
 <body>
@@ -362,7 +378,7 @@ export function renderMonthlyReportHtml(d: MonthlyReportData): string {
         </div>
         <div class="stat-tile">
           <div class="label">Pages tracked</div>
-          <div class="value">${d.current.pages_crawled ?? "&mdash;"}</div>
+          <div class="value">${d.current.pages_crawled ?? "n/a"}</div>
           <div class="help">${d.current.freshness_days != null ? `${d.current.freshness_days}d median age` : "Crawled this run"}</div>
         </div>
       </div>
@@ -379,26 +395,39 @@ export function renderMonthlyReportHtml(d: MonthlyReportData): string {
       </div>
     </div>
 
-    <!-- Top issues -->
+    <!-- Top issues — title + first issue glued so the header never orphans -->
     <div class="section">
-      <div class="section-title">What needs attention</div>
-      <div class="card" style="padding: 0 18px;">
-        ${issuesHtml}
+      <div class="section-keep-with-next">
+        <div class="section-title">What needs attention</div>
+        <div class="card" style="padding: 0 18px;">
+          ${issuesHtml}
+        </div>
       </div>
     </div>
 
     ${resolvedHtml}
 
-    <!-- Footer -->
-    <div class="footer">
-      <div>Generated ${escapeHtml(generatedDate)}</div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span>Delivered by</span>
-        ${logo ? `<img src="${logo}" class="footer-logo" alt="Niewdel" />` : `<strong>Niewdel</strong>`}
-      </div>
-    </div>
-
   </div>
 </body>
 </html>`;
+}
+
+// ---------------------------------------------------------------------------
+// Per-page footer template — rendered by Playwright on EVERY printed page.
+// Lives in its own CSS context (Playwright restriction), so all styling is
+// inline. The wordmark is the same RGBA PNG as the body, but rendered black
+// via filter:brightness(0) since the PDF background is white.
+// ---------------------------------------------------------------------------
+export function renderMonthlyReportFooterHtml(generatedAtIso: string): string {
+  const logo = getLogoDataUri();
+  const dateLabel = new Date(generatedAtIso).toLocaleDateString("en-US", {
+    dateStyle: "long",
+  });
+  return `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Inter',system-ui,sans-serif;font-size:9pt;width:100%;padding:0 14mm;color:#6B7280;display:flex;justify-content:space-between;align-items:center;-webkit-print-color-adjust:exact;">
+  <span>Generated ${escapeHtml(dateLabel)}</span>
+  <span style="display:inline-flex;align-items:center;gap:6px;">
+    <span>Delivered by</span>
+    ${logo ? `<img src="${logo}" style="height:11px;width:auto;filter:brightness(0);opacity:0.8;vertical-align:middle;" alt="Niewdel" />` : `<strong style="color:#111827;">Niewdel</strong>`}
+  </span>
+</div>`;
 }

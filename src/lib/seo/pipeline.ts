@@ -303,7 +303,7 @@ export async function runWeeklyCheck(jobId: string): Promise<void> {
         : null;
       await sendEmail({
         to: contactEmail,
-        subject: `${client.name} — ${newSevereCount} new SEO issue${newSevereCount === 1 ? "" : "s"}`,
+        subject: `${client.name}: ${newSevereCount} new SEO issue${newSevereCount === 1 ? "" : "s"}`,
         html: buildDigestHtml({
           clientName: client.name,
           domain,
@@ -447,12 +447,12 @@ function buildDigestHtml(a: DigestArgs): string {
         <td style="width:6px;"></td>
         <td style="padding:10px;background:#F3F4F6;border-radius:6px;text-align:center;width:25%;">
           <div style="font-size:10px;color:#6B7280;text-transform:uppercase;letter-spacing:0.06em;">Mobile</div>
-          <div style="font-size:22px;font-weight:600;color:#111827;">${a.scores.lighthouse_mobile ?? "—"}${deltaSpan(a.deltas.lighthouse_mobile)}</div>
+          <div style="font-size:22px;font-weight:600;color:#111827;">${a.scores.lighthouse_mobile ?? "n/a"}${deltaSpan(a.deltas.lighthouse_mobile)}</div>
         </td>
         <td style="width:6px;"></td>
         <td style="padding:10px;background:#F3F4F6;border-radius:6px;text-align:center;width:25%;">
           <div style="font-size:10px;color:#6B7280;text-transform:uppercase;letter-spacing:0.06em;">Desktop</div>
-          <div style="font-size:22px;font-weight:600;color:#111827;">${a.scores.lighthouse_desktop ?? "—"}${deltaSpan(a.deltas.lighthouse_desktop)}</div>
+          <div style="font-size:22px;font-weight:600;color:#111827;">${a.scores.lighthouse_desktop ?? "n/a"}${deltaSpan(a.deltas.lighthouse_desktop)}</div>
         </td>
       </tr>
     </table>
