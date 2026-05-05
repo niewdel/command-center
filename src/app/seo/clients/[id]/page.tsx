@@ -201,18 +201,33 @@ export default function SeoClientDetailPage({
 
   useEffect(() => {
     fetchAll();
+    // No server-side filter clause: Supabase realtime applies postgres_changes
+    // filters alongside RLS evaluation and tends to throttle/drop UPDATEs on
+    // RLS-protected tables when filtered. The /seo overview page is reliable
+    // because it subscribes without a filter; we mirror that here and filter
+    // client-side. Volume is tiny — at most one in-flight job per workspace.
+    const matchesClient = (row: unknown): boolean => {
+      const r = row as { client_id?: string } | null;
+      return !!r && r.client_id === id;
+    };
     const ch = supabase
       .channel(`seo-client-${id}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "seo_jobs", filter: `client_id=eq.${id}` },
+        { event: "*", schema: "public", table: "seo_jobs" },
         (payload) => {
+          // Filter to this client client-side.
+          if (
+            !matchesClient(payload.new) &&
+            !matchesClient(payload.old)
+          ) {
+            return;
+          }
           // Apply seo_jobs changes from the realtime payload directly so the
-          // progress bar and stage label update instantly. Going through
-          // fetchAll() pulls the full ReportData (5 SQL queries) on every
-          // tick, which queues up and stalls progress updates behind heavy
-          // re-fetches. seo_checks/issues/etc still go through fetchAll()
-          // since they only fire at the end of a run.
+          // progress bar and stage label update instantly, instead of
+          // round-tripping through fetchAll() (which fires getReportData ->
+          // 5 SQL queries on every tick and queues up). seo_checks/issues
+          // still go through fetchAll() since they only fire at completion.
           setJobs((prev) => {
             if (payload.eventType === "DELETE") {
               const oldId = (payload.old as { id?: string } | null)?.id;
@@ -233,28 +248,48 @@ export default function SeoClientDetailPage({
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "seo_checks", filter: `client_id=eq.${id}` },
-        () => fetchAll()
+        { event: "*", schema: "public", table: "seo_checks" },
+        (payload) => {
+          if (matchesClient(payload.new) || matchesClient(payload.old)) {
+            fetchAll();
+          }
+        }
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "seo_issues", filter: `client_id=eq.${id}` },
-        () => fetchAll()
+        { event: "*", schema: "public", table: "seo_issues" },
+        (payload) => {
+          if (matchesClient(payload.new) || matchesClient(payload.old)) {
+            fetchAll();
+          }
+        }
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "seo_keyword_ranks", filter: `client_id=eq.${id}` },
-        () => fetchAll()
+        { event: "*", schema: "public", table: "seo_keyword_ranks" },
+        (payload) => {
+          if (matchesClient(payload.new) || matchesClient(payload.old)) {
+            fetchAll();
+          }
+        }
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "seo_competitor_gaps", filter: `client_id=eq.${id}` },
-        () => fetchAll()
+        { event: "*", schema: "public", table: "seo_competitor_gaps" },
+        (payload) => {
+          if (matchesClient(payload.new) || matchesClient(payload.old)) {
+            fetchAll();
+          }
+        }
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "seo_traffic_snapshots", filter: `client_id=eq.${id}` },
-        () => fetchAll()
+        { event: "*", schema: "public", table: "seo_traffic_snapshots" },
+        (payload) => {
+          if (matchesClient(payload.new) || matchesClient(payload.old)) {
+            fetchAll();
+          }
+        }
       )
       .subscribe();
     return () => {
