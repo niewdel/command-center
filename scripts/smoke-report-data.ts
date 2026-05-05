@@ -27,4 +27,12 @@ if (!CLIENT_ID) {
   }
   console.log("top_pages:", data.top_pages.length);
   data.top_pages.forEach((p) => console.log(`  ${p.path}: ${p.sessions} sessions (${p.pct_of_total}%)`));
+  console.log("keywords present:", !!data.keywords);
+  if (data.keywords) {
+    console.log(`  ${data.keywords.ranking_count} / ${data.keywords.tracked_count} ranking`);
+    console.log("  avg rank:", data.keywords.avg_rank);
+    console.log("  total search volume:", data.keywords.total_search_volume);
+    console.log("  movers up:", data.keywords.top_movers_up);
+    console.log("  movers down:", data.keywords.top_movers_down);
+  }
 })();

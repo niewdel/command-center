@@ -369,6 +369,73 @@ export async function getReportData(
     }));
   }
 
+  // ── Keyword rankings — latest two captures per keyword
+  const { data: kwRows } = await sb
+    .from("seo_keyword_ranks")
+    .select("keyword, rank, search_volume, captured_at")
+    .eq("client_id", clientId)
+    .order("captured_at", { ascending: false })
+    .limit(500);
+
+  type KwRow = {
+    keyword: string;
+    rank: number | null;
+    search_volume: number | null;
+    captured_at: string;
+  };
+  const kwAll = (kwRows ?? []) as KwRow[];
+
+  let keywords: ReportData["keywords"] = null;
+  if (kwAll.length > 0) {
+    // Group by keyword, keep the two most recent captures.
+    const byKeyword = new Map<string, KwRow[]>();
+    for (const r of kwAll) {
+      const arr = byKeyword.get(r.keyword) ?? [];
+      if (arr.length < 2) {
+        arr.push(r);
+        byKeyword.set(r.keyword, arr);
+      }
+    }
+    const movers: KeywordMover[] = [];
+    let totalVolume = 0;
+    let rankingCount = 0;
+    const ranks: number[] = [];
+    for (const [kw, hist] of byKeyword) {
+      const cur = hist[0];
+      const prior = hist[1] ?? null;
+      totalVolume += cur.search_volume ?? 0;
+      if (cur.rank != null) {
+        rankingCount++;
+        ranks.push(cur.rank);
+      }
+      // Negative delta means rank *improved* (lower is better in SERPs).
+      const delta =
+        cur.rank != null && prior?.rank != null ? cur.rank - prior.rank : null;
+      movers.push({
+        keyword: kw,
+        rank: cur.rank,
+        prior_rank: prior?.rank ?? null,
+        delta,
+      });
+    }
+    const movers_up = movers
+      .filter((m) => m.delta != null && m.delta < 0)
+      .sort((a, b) => (a.delta as number) - (b.delta as number))
+      .slice(0, 5);
+    const movers_down = movers
+      .filter((m) => m.delta != null && m.delta > 0)
+      .sort((a, b) => (b.delta as number) - (a.delta as number))
+      .slice(0, 5);
+    keywords = {
+      ranking_count: rankingCount,
+      tracked_count: byKeyword.size,
+      avg_rank: avg(ranks),
+      total_search_volume: totalVolume,
+      top_movers_up: movers_up,
+      top_movers_down: movers_down,
+    };
+  }
+
   // ── History for trend chart
   const history = checks
     .slice()
@@ -407,7 +474,7 @@ export async function getReportData(
       open_issues,
     },
     traffic,
-    keywords: null,   // filled in Task 5
+    keywords,
     top_pages,
     issues: { open_top, resolved },
     history,
