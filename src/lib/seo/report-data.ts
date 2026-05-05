@@ -147,6 +147,174 @@ export async function getReportData(
   clientId: string,
   range: ReportRange
 ): Promise<ReportData> {
-  // Filled in over Task 3 + Task 4 + Task 5.
-  throw new Error("Not implemented");
+  const sb = getServiceClient();
+
+  // ── Client row
+  const { data: clientRow, error: clientErr } = await sb
+    .from("clients")
+    .select("id, name, seo_config")
+    .eq("id", clientId)
+    .single();
+  if (clientErr || !clientRow) {
+    throw new Error(`Client not found: ${clientId}`);
+  }
+  const domain = (clientRow.seo_config as { domain?: string } | null)?.domain ?? "";
+
+  // ── Window bounds for time-filtered queries
+  const windowMs = rangeWindowMs(range);
+  const since = windowMs ? new Date(Date.now() - windowMs).toISOString() : null;
+
+  // ── seo_checks within the window (or all if life)
+  let q = sb
+    .from("seo_checks")
+    .select("id, technical_score, onpage_score, lighthouse_mobile, lighthouse_desktop, freshness_days, pages_crawled, ai_summary, created_at")
+    .eq("client_id", clientId)
+    .order("created_at", { ascending: false })
+    .limit(50);
+  if (since) q = q.gte("created_at", since);
+  const { data: rawChecks } = await q;
+
+  type CheckRow = {
+    id: string;
+    technical_score: number | null;
+    onpage_score: number | null;
+    lighthouse_mobile: number | null;
+    lighthouse_desktop: number | null;
+    freshness_days: number | null;
+    pages_crawled: number | null;
+    ai_summary: string | null;
+    created_at: string;
+  };
+  const checks = (rawChecks ?? []) as CheckRow[];
+  const latest = checks[0] ?? null;
+  const earliest = checks[checks.length - 1] ?? null;
+
+  function scoreCard(key: keyof CheckRow): ScoreCard {
+    const cur = (latest?.[key] as number | null) ?? null;
+    const prior = (earliest?.[key] as number | null) ?? null;
+    const history = checks
+      .slice()
+      .reverse()
+      .map((c) => (c[key] as number | null) ?? null)
+      .filter((n): n is number => n != null);
+    return { current: cur, delta: deltaOrNull(cur, prior), history };
+  }
+
+  const technical = scoreCard("technical_score");
+  const onpage = scoreCard("onpage_score");
+  const lighthouse_mobile = scoreCard("lighthouse_mobile");
+  const lighthouse_desktop = scoreCard("lighthouse_desktop");
+
+  // Overall = simple average of non-null current scores. When no scores at
+  // all, overall is null.
+  const overallNums = [
+    technical.current,
+    onpage.current,
+    lighthouse_mobile.current,
+    lighthouse_desktop.current,
+  ].filter((n): n is number => n != null);
+  const overall_score =
+    overallNums.length > 0
+      ? Math.round(overallNums.reduce((a, b) => a + b, 0) / overallNums.length)
+      : null;
+  const priorOverallNums = [
+    technical.current != null && technical.delta != null ? technical.current - technical.delta : null,
+    onpage.current != null && onpage.delta != null ? onpage.current - onpage.delta : null,
+    lighthouse_mobile.current != null && lighthouse_mobile.delta != null ? lighthouse_mobile.current - lighthouse_mobile.delta : null,
+    lighthouse_desktop.current != null && lighthouse_desktop.delta != null ? lighthouse_desktop.current - lighthouse_desktop.delta : null,
+  ].filter((n): n is number => n != null);
+  const prior_overall =
+    priorOverallNums.length > 0
+      ? Math.round(priorOverallNums.reduce((a, b) => a + b, 0) / priorOverallNums.length)
+      : null;
+  const overall_delta = deltaOrNull(overall_score, prior_overall);
+
+  // ── Open issues — count by severity (no window; "open" is a current state)
+  const { data: openIssuesAll } = await sb
+    .from("seo_issues")
+    .select("severity, title, page_url, category, status")
+    .eq("client_id", clientId)
+    .eq("status", "open");
+  const openIssues = (openIssuesAll ?? []) as Array<{
+    severity: "critical" | "high" | "medium" | "low";
+    title: string;
+    page_url: string | null;
+    category: string;
+    status: string;
+  }>;
+  const open_issues = {
+    total: openIssues.length,
+    critical: openIssues.filter((i) => i.severity === "critical").length,
+    high: openIssues.filter((i) => i.severity === "high").length,
+    medium: openIssues.filter((i) => i.severity === "medium").length,
+    low: openIssues.filter((i) => i.severity === "low").length,
+  };
+  const open_top = openIssues
+    .filter((i) => i.severity === "critical" || i.severity === "high")
+    .sort((a, b) => (a.severity === "critical" ? -1 : 1))
+    .slice(0, 10)
+    .map((i) => ({
+      severity: i.severity,
+      title: i.title,
+      page_url: i.page_url,
+      category: i.category,
+    }));
+
+  // ── Resolved in window
+  let resolvedQ = sb
+    .from("seo_issues")
+    .select("title, category")
+    .eq("client_id", clientId)
+    .eq("status", "fixed");
+  if (since) resolvedQ = resolvedQ.gte("resolved_at", since);
+  const { data: resolvedRows } = await resolvedQ;
+  const resolved = ((resolvedRows ?? []) as Array<{ title: string; category: string }>).map((r) => ({
+    title: r.title,
+    category: r.category,
+  }));
+
+  // ── History for trend chart
+  const history = checks
+    .slice()
+    .reverse()
+    .map((c) => ({
+      created_at: c.created_at,
+      technical_score: c.technical_score,
+      onpage_score: c.onpage_score,
+      lighthouse_mobile: c.lighthouse_mobile,
+      lighthouse_desktop: c.lighthouse_desktop,
+    }));
+
+  // ── Period label from the latest check (or now if no checks)
+  const periodAnchor = latest ? new Date(latest.created_at) : new Date();
+  const period_label = periodAnchor.toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
+
+  return {
+    client: {
+      id: clientRow.id as string,
+      name: clientRow.name as string,
+      domain,
+      period_label,
+      generated_at: new Date().toISOString(),
+    },
+    range,
+    health: {
+      overall_score,
+      overall_delta,
+      technical,
+      onpage,
+      lighthouse_mobile,
+      lighthouse_desktop,
+      open_issues,
+    },
+    traffic: null,    // filled in Task 4
+    keywords: null,   // filled in Task 5
+    top_pages: [],    // filled in Task 4
+    issues: { open_top, resolved },
+    history,
+    ai_summary: latest?.ai_summary ?? null,
+  };
 }
