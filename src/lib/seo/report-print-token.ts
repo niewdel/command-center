@@ -39,6 +39,8 @@ export function verifyPrintToken(
   const expected = signPrintToken(clientId, range, d);
   const a = Buffer.from(expected, "hex");
   const b = Buffer.from(token, "hex");
+  // Defensive: timingSafeEqual throws on length mismatch. The earlier
+  // length-64 check makes this unreachable in practice, but cheap insurance.
   if (a.length !== b.length) return false;
   return timingSafeEqual(a, b);
 }
