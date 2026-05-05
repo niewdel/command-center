@@ -444,18 +444,23 @@ export function renderMonthlyReportFooterHtml(generatedAtIso: string): string {
   const dateLabel = new Date(generatedAtIso).toLocaleDateString("en-US", {
     dateStyle: "long",
   });
-  // Footer layout: outer flex (date left, "delivered by + logo" right). Inner
-  // group is also flex with align-items:center so the text baseline and the
-  // logo's geometric center share a single axis. line-height:1 removes the
-  // text leading that would otherwise push the text below the image center.
-  // display:block on the img drops the baseline-gap that inline images get.
+  // Footer notes — hard-won from Playwright footerTemplate quirks:
+  // - Use Arial explicitly: -apple-system and system-ui aren't available in
+  //   Chromium's footer sandbox and silently fall back to a serif/mono.
+  // - Use em-based logo height tied to the text font-size so text and logo
+  //   stay visually proportional regardless of Playwright's internal scaling.
+  // - line-height:1 + flex align-items:center is the only combo that lands
+  //   the text baseline on the same axis as the image's geometric center.
+  // - The PNG has slight asymmetric internal padding (more space below the
+  //   letterforms than above); transform:translateY(-1px) nudges the visible
+  //   letters up so the visual centers truly align.
   const baseFont =
-    "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Inter',system-ui,sans-serif;font-size:9pt;color:#6B7280;line-height:1;";
+    "font-family:Arial,Helvetica,sans-serif;font-size:11pt;color:#6B7280;line-height:1;";
   return `<div style="${baseFont}width:100%;padding:0 14mm;-webkit-print-color-adjust:exact;display:flex;align-items:center;justify-content:space-between;">
   <span style="${baseFont}">Generated ${escapeHtml(dateLabel)}</span>
   <span style="${baseFont}display:flex;align-items:center;gap:8px;">
     <span style="${baseFont}">Delivered by</span>
-    ${logo ? `<img src="${logo}" style="height:20px;width:auto;display:block;filter:brightness(0);opacity:0.9;" alt="Niewdel" />` : `<strong style="color:#111827;${baseFont}font-weight:600;">Niewdel</strong>`}
+    ${logo ? `<img src="${logo}" style="height:1.4em;width:auto;display:block;filter:brightness(0);opacity:0.9;transform:translateY(-1px);" alt="Niewdel" />` : `<strong style="color:#111827;${baseFont}font-weight:700;">Niewdel</strong>`}
   </span>
 </div>`;
 }
