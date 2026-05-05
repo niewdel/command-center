@@ -16,4 +16,15 @@ if (!CLIENT_ID) {
   console.log("resolved count:", data.issues.resolved.length);
   console.log("history points:", data.history.length);
   console.log("ai_summary present:", !!data.ai_summary);
+  console.log("traffic present:", !!data.traffic);
+  if (data.traffic) {
+    console.log("  sessions:", data.traffic.sessions);
+    console.log("  organic:", data.traffic.organic_sessions);
+    console.log("  users:", data.traffic.users);
+    console.log("  pages/session:", data.traffic.pages_per_session);
+    console.log("  sources:", data.traffic.sources);
+    console.log("  period:", data.traffic.period_start, "→", data.traffic.period_end);
+  }
+  console.log("top_pages:", data.top_pages.length);
+  data.top_pages.forEach((p) => console.log(`  ${p.path}: ${p.sessions} sessions (${p.pct_of_total}%)`));
 })();

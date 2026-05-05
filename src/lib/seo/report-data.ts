@@ -273,6 +273,102 @@ export async function getReportData(
     category: r.category,
   }));
 
+  // ── GA4 traffic snapshots — most recent + prior
+  const { data: trafficRows } = await sb
+    .from("seo_traffic_snapshots")
+    .select(
+      "period_start, period_end, sessions, organic_sessions, users, page_views, avg_session_duration_s, bounce_rate, top_pages, top_sources, captured_at"
+    )
+    .eq("client_id", clientId)
+    .order("captured_at", { ascending: false })
+    .limit(2);
+
+  type TrafficRow = {
+    period_start: string;
+    period_end: string;
+    sessions: number;
+    organic_sessions: number;
+    users: number;
+    page_views: number;
+    avg_session_duration_s: number | null;
+    bounce_rate: number | null;
+    top_pages: Array<{ path: string; sessions: number; users: number }> | null;
+    top_sources: Array<{ source: string; medium: string; sessions: number }> | null;
+  };
+  const trafficCur = (trafficRows?.[0] ?? null) as TrafficRow | null;
+  const trafficPrior = (trafficRows?.[1] ?? null) as TrafficRow | null;
+
+  let traffic: ReportData["traffic"] = null;
+  let top_pages: ReportData["top_pages"] = [];
+
+  if (trafficCur) {
+    const ppsCurNum =
+      trafficCur.sessions > 0 ? trafficCur.page_views / trafficCur.sessions : 0;
+    const ppsPriorNum =
+      trafficPrior && trafficPrior.sessions > 0
+        ? trafficPrior.page_views / trafficPrior.sessions
+        : null;
+
+    // Bucket top_sources percentages
+    const totals = { search: 0, direct: 0, referral: 0, social: 0, other: 0 };
+    let totalSrc = 0;
+    for (const s of trafficCur.top_sources ?? []) {
+      const bucket = bucketSource(s.medium);
+      if (bucket) {
+        totals[bucket] += s.sessions;
+        totalSrc += s.sessions;
+      }
+    }
+    const sources =
+      totalSrc > 0
+        ? {
+            search: Math.round((totals.search / totalSrc) * 100),
+            direct: Math.round((totals.direct / totalSrc) * 100),
+            referral: Math.round((totals.referral / totalSrc) * 100),
+            social: Math.round((totals.social / totalSrc) * 100),
+            other: Math.round((totals.other / totalSrc) * 100),
+          }
+        : { search: 0, direct: 0, referral: 0, social: 0, other: 0 };
+
+    traffic = {
+      sessions: {
+        current: trafficCur.sessions,
+        delta: deltaOrNull(trafficCur.sessions, trafficPrior?.sessions ?? null),
+      },
+      organic_sessions: {
+        current: trafficCur.organic_sessions,
+        delta: deltaOrNull(trafficCur.organic_sessions, trafficPrior?.organic_sessions ?? null),
+      },
+      users: {
+        current: trafficCur.users,
+        delta: deltaOrNull(trafficCur.users, trafficPrior?.users ?? null),
+      },
+      pages_per_session: {
+        current: Math.round(ppsCurNum * 100) / 100,
+        delta:
+          ppsPriorNum != null
+            ? Math.round((ppsCurNum - ppsPriorNum) * 100) / 100
+            : null,
+      },
+      sources,
+      period_start: trafficCur.period_start,
+      period_end: trafficCur.period_end,
+    };
+
+    const totalPageSessions = (trafficCur.top_pages ?? []).reduce(
+      (a, p) => a + p.sessions,
+      0
+    );
+    top_pages = (trafficCur.top_pages ?? []).slice(0, 5).map((p) => ({
+      path: p.path,
+      sessions: p.sessions,
+      pct_of_total:
+        totalPageSessions > 0
+          ? Math.round((p.sessions / totalPageSessions) * 100)
+          : 0,
+    }));
+  }
+
   // ── History for trend chart
   const history = checks
     .slice()
@@ -310,9 +406,9 @@ export async function getReportData(
       lighthouse_desktop,
       open_issues,
     },
-    traffic: null,    // filled in Task 4
+    traffic,
     keywords: null,   // filled in Task 5
-    top_pages: [],    // filled in Task 4
+    top_pages,
     issues: { open_top, resolved },
     history,
     ai_summary: latest?.ai_summary ?? null,
