@@ -444,22 +444,18 @@ export function renderMonthlyReportFooterHtml(generatedAtIso: string): string {
   const dateLabel = new Date(generatedAtIso).toLocaleDateString("en-US", {
     dateStyle: "long",
   });
-  // Footer layout notes:
-  // - Outer div is the full-width container Playwright injects on every page.
-  // - Inner table guarantees vertical alignment of "Delivered by" text and the
-  //   wordmark (flex inside Playwright's footer template is unreliable across
-  //   chromium versions; table cells with vertical-align:middle always work).
-  // - Logo is height:18px (up from 11px) and display:block to drop the
-  //   baseline gap that was throwing off centering.
-  return `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Inter',system-ui,sans-serif;font-size:9pt;width:100%;padding:0 14mm;color:#6B7280;-webkit-print-color-adjust:exact;">
-  <table style="width:100%;border-collapse:collapse;">
-    <tr>
-      <td style="vertical-align:middle;text-align:left;font-size:9pt;color:#6B7280;">Generated ${escapeHtml(dateLabel)}</td>
-      <td style="vertical-align:middle;text-align:right;font-size:9pt;color:#6B7280;white-space:nowrap;">
-        <span style="vertical-align:middle;">Delivered by</span>
-        ${logo ? `<img src="${logo}" style="height:18px;width:auto;filter:brightness(0);opacity:0.85;vertical-align:middle;margin-left:6px;" alt="Niewdel" />` : `<strong style="color:#111827;vertical-align:middle;margin-left:6px;">Niewdel</strong>`}
-      </td>
-    </tr>
-  </table>
+  // Footer layout: outer flex (date left, "delivered by + logo" right). Inner
+  // group is also flex with align-items:center so the text baseline and the
+  // logo's geometric center share a single axis. line-height:1 removes the
+  // text leading that would otherwise push the text below the image center.
+  // display:block on the img drops the baseline-gap that inline images get.
+  const baseFont =
+    "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Inter',system-ui,sans-serif;font-size:9pt;color:#6B7280;line-height:1;";
+  return `<div style="${baseFont}width:100%;padding:0 14mm;-webkit-print-color-adjust:exact;display:flex;align-items:center;justify-content:space-between;">
+  <span style="${baseFont}">Generated ${escapeHtml(dateLabel)}</span>
+  <span style="${baseFont}display:flex;align-items:center;gap:8px;">
+    <span style="${baseFont}">Delivered by</span>
+    ${logo ? `<img src="${logo}" style="height:20px;width:auto;display:block;filter:brightness(0);opacity:0.9;" alt="Niewdel" />` : `<strong style="color:#111827;${baseFont}font-weight:600;">Niewdel</strong>`}
+  </span>
 </div>`;
 }
