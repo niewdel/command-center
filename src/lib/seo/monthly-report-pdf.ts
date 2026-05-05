@@ -1,10 +1,8 @@
-// Renders a monthly SEO report HTML string to PDF bytes via Playwright's
-// chromium print-to-PDF. Reuses the same chromium binary the audit crawler
-// already installs on Railway via railpack.json.
+// src/lib/seo/monthly-report-pdf.ts
 //
-// Footer: rendered on EVERY page via Playwright's footerTemplate option.
-// We reserve ~16mm of bottom margin so the footer has room to sit; the
-// remaining 3 sides stay edge-to-edge so the body content fills the page.
+// Navigates Playwright to a URL (the print-mode report route) and prints
+// the page to PDF bytes. Replaces the prior "render this HTML string"
+// approach now that the report is a real Next.js route.
 
 import { chromium, type LaunchOptions } from "playwright";
 
@@ -19,28 +17,23 @@ interface RenderOptions {
 }
 
 export async function renderMonthlyReportPdf(
-  html: string,
+  url: string,
   opts: RenderOptions = {}
 ): Promise<Buffer> {
   const browser = await chromium.launch(getLaunchOptions());
   try {
     const context = await browser.newContext();
     const page = await context.newPage();
-    await page.setContent(html, { waitUntil: "load", timeout: 30_000 });
+    await page.goto(url, { waitUntil: "networkidle", timeout: 60_000 });
 
     const pdfArgs: Parameters<typeof page.pdf>[0] = {
       format: "letter",
       printBackground: true,
-      // Top 14mm gives wrapped sections breathing room when they cross page
-       // boundaries. Bottom 16mm reserves space for the per-page footer
-       // template. Sides 0 so the body fills edge-to-edge.
       margin: { top: "14mm", right: "0", bottom: "16mm", left: "0" },
     };
 
     if (opts.footerTemplate) {
       pdfArgs.displayHeaderFooter = true;
-      // headerTemplate is required when displayHeaderFooter=true even if we
-      // only want a footer — empty span suppresses the default date/title.
       pdfArgs.headerTemplate = "<span></span>";
       pdfArgs.footerTemplate = opts.footerTemplate;
     }
