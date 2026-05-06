@@ -18,6 +18,7 @@ import { renderMonthlyReportEmail } from "./monthly-report-email";
 import { sendReportEmail } from "./send-report";
 import { generateEmailSummary } from "./claude";
 import { getReportData } from "./report-data";
+import { signViewToken } from "./report-print-token";
 
 export async function runMonthlyReport(jobId: string): Promise<void> {
   const log = (msg: string) => console.log(`[seo-month ${jobId}] ${msg}`);
@@ -155,7 +156,8 @@ export async function runMonthlyReport(jobId: string): Promise<void> {
   });
 
   // Render the full inline-HTML email body.
-  const reportHtml = renderMonthlyReportEmail(data, { baseUrl });
+  const viewToken = signViewToken(job.client_id);
+  const reportHtml = renderMonthlyReportEmail(data, { baseUrl, viewToken });
 
   // Prepend the AI prose summary as a greeting block above the report card.
   const FONT = "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;";

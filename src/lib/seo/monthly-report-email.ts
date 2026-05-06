@@ -13,10 +13,10 @@ import type { ReportData, SeoIssueRowOut } from "./report-data";
 
 export function renderMonthlyReportEmail(
   data: ReportData,
-  opts: { baseUrl: string }
+  opts: { baseUrl: string; viewToken: string }
 ): string {
-  const { baseUrl } = opts;
-  const dashboardUrl = `${baseUrl}/seo/clients/${data.client.id}/report?range=30d`;
+  const { baseUrl, viewToken } = opts;
+  const dashboardUrl = `${baseUrl}/seo/clients/${data.client.id}/report?view=1&token=${viewToken}`;
 
   const generatedDate = new Date(data.client.generated_at).toLocaleDateString(
     "en-US",
