@@ -19,20 +19,26 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/api/auth/") ||
     request.nextUrl.pathname.startsWith("/api/health");
 
-  // Print mode for the SEO client report — the route validates an HMAC
-  // token, so middleware lets it pass without session auth. Path shape:
-  //   /seo/clients/<uuid>/report?print=1&token=…
+  // Token-protected public access to the SEO client report — used for
+  // Playwright PDF generation (print=1) and client-facing magic links
+  // (view=1). The route re-validates the token; middleware just lets the
+  // request bypass PIN + Supabase auth when the params are present.
+  const reportPathMatches = /^\/seo\/clients\/[^/]+\/report\/?$/.test(
+    request.nextUrl.pathname
+  );
+  const hasToken = !!request.nextUrl.searchParams.get("token");
   const isReportPrint =
-    /^\/seo\/clients\/[^/]+\/report\/?$/.test(request.nextUrl.pathname) &&
-    request.nextUrl.searchParams.get("print") === "1" &&
-    !!request.nextUrl.searchParams.get("token");
+    reportPathMatches && request.nextUrl.searchParams.get("print") === "1" && hasToken;
+  const isReportView =
+    reportPathMatches && request.nextUrl.searchParams.get("view") === "1" && hasToken;
+  const isReportPublic = isReportPrint || isReportView;
 
   const hasPin = request.cookies.get("cc-auth")?.value === "authenticated";
   const authIsFresh =
     request.cookies.get(AUTH_FRESHNESS_COOKIE)?.value === "1";
 
   // PIN gate
-  if (!hasPin && !isAuthPage && !isPublicApi && !isReportPrint) {
+  if (!hasPin && !isAuthPage && !isPublicApi && !isReportPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
@@ -48,7 +54,7 @@ export async function middleware(request: NextRequest) {
   //   - authenticated requests with a fresh auth cookie skip it too
   // The /api/auth/pin route stamps the freshness cookie after a successful
   // sign-in, so the first navigation after PIN entry also skips this block.
-  if (!hasPin || isAuthPage || isPublicApi || isReportPrint || authIsFresh) {
+  if (!hasPin || isAuthPage || isPublicApi || isReportPublic || authIsFresh) {
     return NextResponse.next();
   }
 

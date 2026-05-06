@@ -11,7 +11,7 @@ import {
   REPORT_RANGES,
   type ReportRange,
 } from "@/lib/seo/report-data";
-import { verifyPrintToken } from "@/lib/seo/report-print-token";
+import { verifyPrintToken, verifyViewToken } from "@/lib/seo/report-print-token";
 import { ClientReport } from "@/components/seo/report";
 
 export const dynamic = "force-dynamic";
@@ -33,11 +33,17 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
   const sp = await searchParams;
   const range = parseRange(sp.range);
 
-  // Print mode: token must validate. Middleware already let us through.
+  // Token modes: middleware already let us through; we re-validate here.
+  // - print=1 (Playwright/PDF): scoped to (client_id, range, day) — 24h expiry
+  // - view=1 (client magic link): scoped to (client_id) — no expiry until secret rotates
   const isPrint = sp.print === "1";
-  if (isPrint) {
+  const isView = sp.view === "1";
+  if (isPrint || isView) {
     const token = typeof sp.token === "string" ? sp.token : "";
-    if (!verifyPrintToken(id, range, token)) {
+    const ok = isPrint
+      ? verifyPrintToken(id, range, token)
+      : verifyViewToken(id, token);
+    if (!ok) {
       notFound();
     }
   }
