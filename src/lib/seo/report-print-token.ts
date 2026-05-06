@@ -44,3 +44,26 @@ export function verifyPrintToken(
   if (a.length !== b.length) return false;
   return timingSafeEqual(a, b);
 }
+
+// ----------------------------------------------------------------------------
+// View tokens — client-facing magic links for the standalone live report.
+// Unlike print tokens (which auto-expire daily), view tokens have no time
+// bucket and never expire on their own. Revocation = rotate the env secret,
+// which invalidates ALL view + print tokens for all clients.
+// ----------------------------------------------------------------------------
+
+export function signViewToken(clientId: string): string {
+  const payload = `${clientId}|view`;
+  return createHmac("sha256", getSecret()).update(payload).digest("hex");
+}
+
+export function verifyViewToken(clientId: string, token: string): boolean {
+  if (typeof token !== "string" || token.length !== 64) return false;
+  const expected = signViewToken(clientId);
+  const a = Buffer.from(expected, "hex");
+  const b = Buffer.from(token, "hex");
+  // Defensive: timingSafeEqual throws on length mismatch. The earlier
+  // length-64 check makes this unreachable in practice, but cheap insurance.
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
+}
