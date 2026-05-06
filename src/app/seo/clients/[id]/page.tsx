@@ -11,6 +11,7 @@ import {
   Copy,
   Download,
   Check as CheckIcon,
+  Link2,
 } from "lucide-react";
 import { PageLayout } from "@/components/layout/page-layout";
 import { Card } from "@/components/ui/card";
@@ -143,6 +144,8 @@ export default function SeoClientDetailPage({
   const [fixPlanFilename, setFixPlanFilename] = useState<string | null>(null);
   const [fixPlanError, setFixPlanError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [magicLinkCopied, setMagicLinkCopied] = useState(false);
+  const [magicLinkLoading, setMagicLinkLoading] = useState(false);
 
   const fetchAll = useCallback(async () => {
     const [res, reportRes] = await Promise.all([
@@ -340,6 +343,28 @@ export default function SeoClientDetailPage({
     }
   };
 
+  const copyMagicLink = async () => {
+    setMagicLinkLoading(true);
+    try {
+      const res = await fetch(`/api/seo/clients/${id}/view-link`);
+      const json = await res.json();
+      if (!res.ok || !json.url) {
+        alert(json.error ?? "Failed to generate magic link");
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(json.url as string);
+        setMagicLinkCopied(true);
+        setTimeout(() => setMagicLinkCopied(false), 1800);
+      } catch {
+        // Clipboard denied — fall back to a prompt so the user can still grab it.
+        window.prompt("Copy this magic link:", json.url as string);
+      }
+    } finally {
+      setMagicLinkLoading(false);
+    }
+  };
+
   const openFixPlan = async () => {
     setFixPlanOpen(true);
     setFixPlanLoading(true);
@@ -453,6 +478,23 @@ export default function SeoClientDetailPage({
           >
             <FileText className="size-3.5" />
             Fix plan
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={copyMagicLink}
+            disabled={magicLinkLoading || !cfg.domain}
+            className="rounded gap-1.5"
+            title="Copy a permanent client-facing link to the live report (no login required)"
+          >
+            {magicLinkLoading ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : magicLinkCopied ? (
+              <CheckIcon className="size-3.5 text-emerald-400" />
+            ) : (
+              <Link2 className="size-3.5" />
+            )}
+            {magicLinkCopied ? "Copied" : "Magic link"}
           </Button>
           <Button
             size="sm"
