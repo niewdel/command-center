@@ -241,8 +241,9 @@ export type ContentDigest = {
   id: string;
   user_id: string;
   url: string;
-  source: "youtube" | "instagram" | "unknown";
+  source: "youtube" | "instagram" | "tiktok" | "unknown";
   status: "queued" | "processing" | "completed" | "failed";
+  kind: "digest" | "inspiration";
   title: string | null;
   thumbnail_url: string | null;
   duration_seconds: number | null;

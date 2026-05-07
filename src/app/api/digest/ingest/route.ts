@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { detectSource } from "@/lib/digest/extract";
+import { fetchLightMetadata } from "@/lib/digest/metadata";
 
 function getSupabaseAdmin() {
   return createClient(
@@ -20,20 +21,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { url } = await request.json();
+    const { url, kind: rawKind } = await request.json();
     if (!url) {
       return NextResponse.json({ error: "URL is required" }, { status: 400 });
     }
 
+    const kind: "digest" | "inspiration" = rawKind === "inspiration" ? "inspiration" : "digest";
+
     const { source } = detectSource(url);
     if (source === "unknown") {
       return NextResponse.json(
-        { error: "URL must be a YouTube or Instagram video link" },
+        { error: "URL must be a YouTube, Instagram, or TikTok video link" },
         { status: 400 }
       );
     }
 
-    // Check for duplicate
     const { data: existing } = await supabase
       .from("content_digests")
       .select("id")
@@ -47,13 +49,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Queue the digest
+    if (kind === "inspiration") {
+      const meta = await fetchLightMetadata(url, source).catch(() => ({
+        title: null,
+        thumbnail_url: null,
+      }));
+
+      const { data: digest, error } = await supabase
+        .from("content_digests")
+        .insert({
+          user_id: userId,
+          url,
+          source,
+          kind: "inspiration",
+          status: "completed",
+          title: meta.title,
+          thumbnail_url: meta.thumbnail_url,
+          processed_at: new Date().toISOString(),
+        })
+        .select("id")
+        .single();
+
+      if (error) throw error;
+      return NextResponse.json({ success: true, digestId: digest.id });
+    }
+
     const { data: digest, error } = await supabase
       .from("content_digests")
       .insert({
         user_id: userId,
         url,
         source,
+        kind: "digest",
         status: "queued",
       })
       .select("id")
@@ -61,7 +88,6 @@ export async function POST(request: NextRequest) {
 
     if (error) throw error;
 
-    // Trigger async processing
     const processUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/digest/process`;
     fetch(processUrl, {
       method: "POST",

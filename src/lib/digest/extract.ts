@@ -6,9 +6,11 @@ const YOUTUBE_REGEX =
   /(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
 const INSTAGRAM_REGEX =
   /(?:instagram\.com\/(?:reel|p|reels)\/)([\w-]+)/;
+const TIKTOK_REGEX =
+  /(?:tiktok\.com\/(?:@[\w.-]+\/video\/|t\/|v\/)|vm\.tiktok\.com\/)([\w-]+)/;
 
 export function detectSource(url: string): {
-  source: "youtube" | "instagram" | "unknown";
+  source: "youtube" | "instagram" | "tiktok" | "unknown";
   videoId: string | null;
 } {
   const ytMatch = url.match(YOUTUBE_REGEX);
@@ -16,6 +18,9 @@ export function detectSource(url: string): {
 
   const igMatch = url.match(INSTAGRAM_REGEX);
   if (igMatch) return { source: "instagram", videoId: igMatch[1] };
+
+  const ttMatch = url.match(TIKTOK_REGEX);
+  if (ttMatch) return { source: "tiktok", videoId: ttMatch[1] };
 
   return { source: "unknown", videoId: null };
 }

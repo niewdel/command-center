@@ -124,6 +124,7 @@ Verify signatures for every provider: HubSpot (`X-HubSpot-Signature-v3`), Micros
 ## Skills
 
 - Command Center master skill: `.claude/skills/command-center/SKILL.md`
+- Leddy AI / LettyAI content engine skill: `.claude/skills/leddy-ai/SKILL.md` (load when working on short-form content under the LettyAI brand)
 - Frontend design patterns: `skills/frontend-design/SKILL.md`
 
 For any UI work, read both skills before writing component code.
