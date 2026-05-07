@@ -1,29 +1,36 @@
 # LettyAI — Niche Keywords
 
-Editable keyword list for the trend scraper. The `/api/digest/scrape-trends` endpoint reads this file at scrape time, runs each keyword against YouTube / TikTok / Instagram, and saves the **top 10 most-viewed** survivors that exceed the platform-specific viral threshold.
+Editable list. Scraper reads at runtime. Keywords work across all 3 platforms (YouTube/TikTok/Instagram). Hashtag-style single-words tend to work better on TT/IG; multi-word phrases work on YouTube.
 
-**Format:** one keyword per line. Lines starting with `#` are comments, blank lines ignored. Quoted phrases are treated as exact-match search.
+**Angle:** roasts of vibe coders, AI bros, "I built this in a weekend" content. Doomer humor. Claude/Cursor catchphrase memes. NOT corny dad-joke "programmer humor". English-only.
 
-**Focus:** AI / automation / website / coding space, leaning toward comedy, skits, memes, and "vibe coding" parody — Justin's content angle is making fun of Claude Code users and AI-bro slop.
+## Vibe-coder / AI-bro roast
 
-## Comedy / skit angle (primary)
-
+vibe coder
 vibe coding
-"vibe coding" skit
-claude code meme
+vibecoder cringe
 ai bro
+"I built this in a weekend"
+
+## Claude/Cursor catchphrase memes
+
 "you're absolutely right" claude
-claude cope
-ai automation parody
-programmer humor 2026
-dev humor
+"i apologize for the confusion"
+claude code rage
+cursor rage
 
-## Niche subjects (broader, scraper still filters by view threshold)
+## Doomer / cope / layoff humor
 
-claude code
-mcp server
-ai agent
-cursor
+ai doomer
+"we're so cooked"
+ai layoffs comedy
+"skill issue" coding
+agi cope
+
+## Real-dev vs AI bro
+
+real developer vs ai
+chatgpt cope
 
 ## Skip list (negative match — not yet implemented)
 

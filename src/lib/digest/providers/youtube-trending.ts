@@ -27,6 +27,8 @@ export async function fetchYouTubeTrending(keywords: string[]): Promise<Provider
       order: "viewCount",
       publishedAfter,
       maxResults: String(PER_KEYWORD_LIMIT),
+      relevanceLanguage: "en",
+      regionCode: "US",
       key: apiKey,
     });
     try {

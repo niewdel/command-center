@@ -48,11 +48,13 @@ export async function POST(_request: NextRequest) {
 
   const allErrors = [...youtube.errors, ...tiktok.errors, ...instagram.errors];
 
-  // Apply viral threshold: drop candidates with no view data or views below platform threshold.
+  // Apply viral threshold AND English-language filter.
   const beforeFilter = allCandidates.length;
   const viral = allCandidates.filter((c) => {
     if (c.views == null) return false;
-    return c.views >= MIN_VIEWS[c.source];
+    if (c.views < MIN_VIEWS[c.source]) return false;
+    if (!isLikelyEnglish(c.title)) return false;
+    return true;
   });
 
   // Dedupe by URL (some providers might return same URL via different keywords)
@@ -64,16 +66,18 @@ export async function POST(_request: NextRequest) {
   const top = uniqueViral.slice(0, TOP_N);
 
   if (top.length === 0) {
+    const platformBreakdown = countByPlatform(allCandidates);
     return NextResponse.json({
       success: true,
       saved: 0,
       total_candidates: beforeFilter,
       passed_threshold: 0,
-      errors: allErrors,
+      candidates_by_platform_pre_filter: platformBreakdown,
+      errors: allErrors.slice(0, 5),
       message:
         beforeFilter > 0
-          ? `${beforeFilter} candidates fetched but none hit the viral threshold (TT ≥100k, YT/IG ≥50k views in 48h). Try again later, broaden the keyword list, or your niche may genuinely be quiet right now.`
-          : "No candidates returned by any provider. Check API keys and provider host configuration.",
+          ? `${beforeFilter} candidates fetched (YT ${platformBreakdown.youtube || 0}, TT ${platformBreakdown.tiktok || 0}, IG ${platformBreakdown.instagram || 0}) but none passed both thresholds (viral + English). ${allErrors.length > 0 ? `${allErrors.length} provider errors — first: "${allErrors[0]}"` : "Niche may be quiet right now."}`
+          : `No candidates from any provider.${allErrors.length > 0 ? ` First error: "${allErrors[0]}"` : " Check API keys and host config."}`,
     });
   }
 
@@ -147,4 +151,19 @@ function formatViews(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(0)}k`;
   return String(n);
+}
+
+// Heuristic English filter — drops content with non-Latin scripts (Hangul, Hiragana,
+// Katakana, CJK, Cyrillic, Hebrew, Arabic, Thai, Devanagari) and content that has no
+// recognizable English stopwords.
+function isLikelyEnglish(text: string | null): boolean {
+  if (!text) return true; // can't tell, allow it through and rely on other signals
+  if (/[\u3040-\u309f\u30a0-\u30ff\u4e00-\u9faf\uac00-\ud7af\u0400-\u04ff\u0590-\u05ff\u0600-\u06ff\u0e00-\u0e7f\u0900-\u097f]/.test(text)) {
+    return false;
+  }
+  const lower = text.toLowerCase();
+  const englishMarkers = /\b(the|a|an|and|or|but|to|of|in|for|with|on|at|from|by|is|are|was|were|be|been|have|has|had|do|does|did|will|would|could|should|may|might|can|i|you|he|she|it|we|they|this|that|these|those|what|why|how|when|where|who|which|my|your|our|their|me|us|him|her|im|youre|its|dont|cant|wont|ai|like|just|now|new|claude|cursor|coding|code|dev)\b/;
+  if (englishMarkers.test(lower)) return true;
+  if (text.length < 25) return true; // very short titles get benefit of the doubt
+  return false;
 }
