@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { PageLayout } from "@/components/layout/page-layout";
 import { SkeletonPage } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { Play, Plus, Search, ExternalLink, Clock, CheckCircle2, XCircle, Loader2, Camera, RefreshCw, Copy, Check, Trash2, Pencil, Lightbulb, BookOpen, Music2, Sparkles } from "lucide-react";
+import { Play, Plus, Search, ExternalLink, Clock, CheckCircle2, XCircle, Loader2, Camera, RefreshCw, Copy, Check, Trash2, Pencil, Lightbulb, BookOpen, Music2, Sparkles, Radar } from "lucide-react";
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
@@ -113,6 +113,8 @@ function VideosContent() {
   const [editingTitleValue, setEditingTitleValue] = useState("");
   const [viewMode, setViewMode] = useState<"digest" | "inspiration">("digest");
   const [addKind, setAddKind] = useState<"digest" | "inspiration">("digest");
+  const [scrapeBusy, setScrapeBusy] = useState(false);
+  const [scrapeResult, setScrapeResult] = useState<string | null>(null);
 
   const fetchDigests = useCallback(async () => {
     const { data } = await supabase.from("content_digests").select("*").order("created_at", { ascending: false }).limit(100);
@@ -155,6 +157,28 @@ function VideosContent() {
     if (selectedDigest?.id === digestId) setSelectedDigest(null);
   };
 
+  const handleScrapeTrends = async () => {
+    setScrapeBusy(true);
+    setScrapeResult(null);
+    try {
+      const res = await fetch("/api/digest/scrape-trends", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        setScrapeResult(`Error: ${data.error || "Scrape failed"}`);
+      } else if (data.saved === 0) {
+        setScrapeResult(data.message || "No new trends found.");
+      } else {
+        const breakdown = data.by_platform ? ` (YT ${data.by_platform.youtube}, TT ${data.by_platform.tiktok}, IG ${data.by_platform.instagram})` : "";
+        setScrapeResult(`Saved ${data.saved} new inspirations${breakdown}.${data.errors?.length ? ` ${data.errors.length} provider warning(s).` : ""}`);
+      }
+      fetchDigests();
+    } catch (err) {
+      setScrapeResult(`Failed: ${err instanceof Error ? err.message : "unknown"}`);
+    }
+    setScrapeBusy(false);
+    setTimeout(() => setScrapeResult(null), 8000);
+  };
+
   const handleRetry = async (digestId: string) => {
     await supabase.from("content_digests").update({ status: "queued", error_message: null, updated_at: new Date().toISOString() }).eq("id", digestId);
     fetchDigests();
@@ -193,7 +217,15 @@ function VideosContent() {
           <div className="flex gap-2 flex-wrap">{["all", "completed", "processing", "queued", "failed"].map((s) => (<button key={s} onClick={() => setFilterStatus(s)} className={cn("px-3 py-1.5 rounded text-xs font-medium transition-colors", filterStatus === s ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground")}>{s.charAt(0).toUpperCase() + s.slice(1)}</button>))}</div>
         )}
         {viewMode === "inspiration" && (
-          <p className="text-xs text-muted-foreground text-pretty">Dump for videos worth saving — formats, hooks, trends. No analysis runs; just thumbnail + link. Promote to a digest anytime.</p>
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground text-pretty">Dump for videos worth saving — formats, hooks, trends. No analysis runs; just thumbnail + link. Promote to a digest anytime.</p>
+            <div className="flex items-center gap-2">
+              <Button onClick={handleScrapeTrends} disabled={scrapeBusy} variant="outline" size="sm" className="gap-1.5 h-8">
+                {scrapeBusy ? <><Loader2 className="size-3.5 animate-spin" />Scraping…</> : <><Radar className="size-3.5" />Scrape current trends</>}
+              </Button>
+              {scrapeResult && <p className="text-[11px] text-muted-foreground tabular-nums">{scrapeResult}</p>}
+            </div>
+          </div>
         )}
       </div>
 

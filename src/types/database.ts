@@ -287,6 +287,7 @@ export type ContentDigest = {
   source: "youtube" | "instagram" | "tiktok" | "unknown";
   status: "queued" | "processing" | "completed" | "failed";
   kind: "digest" | "inspiration";
+  source_pull: "telegram" | "manual_url" | "trend_scrape";
   title: string | null;
   thumbnail_url: string | null;
   duration_seconds: number | null;
