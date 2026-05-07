@@ -21,6 +21,7 @@ import {
   Users,
   Gauge,
   TrendingUp,
+  Clapperboard,
 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -46,6 +47,7 @@ const toolsNav = [
   { name: "Lead Gen", href: "/leads", icon: Users },
   { name: "Website Scoring", href: "/audits", icon: Gauge },
   { name: "Expenses", href: "/expenses", icon: DollarSign },
+  { name: "Creator Hub", href: "/creator", icon: Clapperboard },
   { name: "Video Digests", href: "/videos", icon: Play },
   { name: "Bug Reports", href: "/issues", icon: Bug },
   { name: "Settings", href: "/settings", icon: Settings },

@@ -237,6 +237,49 @@ export type RoutineBlock = {
   created_at: string;
 };
 
+export type CreatorIdea = {
+  id: string;
+  user_id: string;
+  title: string;
+  hook: string | null;
+  pillar: "build_breakdown" | "slop_callout" | "tactical_tip" | "trend_reaction" | null;
+  status: "idea" | "scripted" | "recorded" | "edited" | "posted" | "archived";
+  script: string | null;
+  notes: string | null;
+  inspiration_ids: string[];
+  posted_at: string | null;
+  posted_url_tiktok: string | null;
+  posted_url_instagram: string | null;
+  posted_url_youtube: string | null;
+  views_tiktok: number | null;
+  views_instagram: number | null;
+  views_youtube: number | null;
+  position: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CreatorHook = {
+  id: string;
+  user_id: string;
+  pattern: string;
+  example: string | null;
+  category:
+    | "cognitive_dissonance"
+    | "pattern_interrupt"
+    | "curiosity_gap"
+    | "authority_flex"
+    | "controversy"
+    | "list_promise"
+    | "other"
+    | null;
+  tested: boolean;
+  performance_notes: string | null;
+  position: number;
+  created_at: string;
+  updated_at: string;
+};
+
 export type ContentDigest = {
   id: string;
   user_id: string;

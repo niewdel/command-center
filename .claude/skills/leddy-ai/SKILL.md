@@ -46,7 +46,7 @@ Stays manual:
 - Hook engineering (taste-driven)
 - Script writing (voice-driven)
 - On-camera production
-- Editing in DaVinci Resolve
+- Editing in CapCut (iPad)
 - Final posting
 
 ## Voice Rules (do not violate)
@@ -101,7 +101,7 @@ Do not start building Cowork jobs until Phase 1 wraps. Document them, design for
 - Not long-form YouTube (yet).
 - Not AI voiceover.
 - Not generic Claude prompt content.
-- Not Premiere / CapCut. DaVinci Resolve.
+- Not Premiere or DaVinci. CapCut on iPad.
 - Not Google Drive automation. Local-first, Command Center where it makes sense.
 
 ## Operating Notes for Claude

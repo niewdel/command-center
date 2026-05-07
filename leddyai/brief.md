@@ -74,7 +74,7 @@ I have the operational substance (Niewdel, HD Operations Platform, i10 Solutions
 ## What Already Exists
 
 - Brand: Leddy AI, accounts created on Instagram and TikTok
-- Production setup direction: face-front, screen-recording backdrop, DaVinci Resolve for editing, my own voice (no AI voice)
+- Production setup direction: face-front, screen-recording backdrop, **CapCut on iPad** for editing (flipped from DaVinci 2026-05-06 — iteration speed > polish for shorts; revisit if/when longer-form starts), my own voice (no AI voice)
 - Existing content reservoir: HD Operations Platform, Command Center video digest feature, custom Claude Code skills, MCP integrations, sitework estimating reference, sales training content skill, Sandler training builds
 - Stack familiarity: Next.js, React, Supabase, Railway, Claude Code, Cursor, Wispr for voice input
 
@@ -92,7 +92,7 @@ Daily output rotates across:
 1. **Content ideation engine**: Repeatable way to generate video ideas across the 4 pillars. Phase 2 candidate.
 2. **Hook library**: Tested and untested hook patterns specifically engineered for shorts (not long-form), with cognitive dissonance and pattern interrupts as the core mechanic. Stays manual, taste-driven.
 3. **Shorts-specific script framework**: Adapted from PAS (Problem, Agitation, Solution) with rehook every 5-7 seconds for shorts. NOT MrBeast 90-second rehooks. Stays manual.
-4. **Production workflow**: Batch recording system, screen capture pipeline, DaVinci Resolve project template, caption workflow. Stays manual.
+4. **Production workflow**: Batch recording system, screen capture pipeline, CapCut iPad project template, caption workflow. Stays manual.
 5. **Posting calendar and tracker**: What's scheduled, what's posted, what performed, what to iterate on. Phase 2 candidate for the tracking and reporting parts.
 6. **Competitive intelligence**: Recurring analysis of what's working in the AI creator space. Phase 2 candidate.
 7. **Performance feedback loop**: Track which hooks, topics, and formats win, feed insights back. Phase 2 candidate for the data pull and reporting.
@@ -115,7 +115,7 @@ I was given 5 prompts from a creator claiming 15.4M views and $32K revenue from 
 - Not AI voiceover. My voice, my face, my brand.
 - Not Pika/Sora-driven b-roll generation. Real screen recordings of real builds.
 - Not Google Drive automation. Local-first storage, Command Center integration where it makes sense.
-- Not Premiere/CapCut. DaVinci Resolve.
+- Not Premiere or DaVinci Resolve. CapCut on iPad — fast iteration, decent auto-captions, finished video in under 20 minutes.
 - Not generic Claude prompt content. The differentiator is operational substance from real client work.
 - Not Phase 2 yet. Do not start building Cowork jobs until Phase 1 wraps. Document them, design for them, don't build them.
 
