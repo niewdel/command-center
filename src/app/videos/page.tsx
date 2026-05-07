@@ -251,43 +251,49 @@ function VideosContent() {
           </div>
         ))}</div>
       ) : (
-        <div className="grid gap-3">{filtered.map((digest) => (
-          <div key={digest.id} className={cn("group rounded border border-border bg-card/50 p-4 hover:bg-card transition-colors cursor-pointer hud-glow-hover", highlightId === digest.id && "ring-2 ring-primary/50")} onClick={() => digest.status === "completed" && setSelectedDigest(digest)}>
-            <div className="flex items-start gap-4">
-              {digest.thumbnail_url ? (<div className="hidden sm:block shrink-0 w-24 h-16 rounded overflow-hidden bg-muted"><img src={digest.thumbnail_url} alt="" className="w-full h-full object-cover" /></div>) : (<div className="hidden sm:flex shrink-0 w-24 h-16 rounded bg-muted/50 items-center justify-center">{sourceIcon(digest.source)}</div>)}
-              <div className="flex-1 min-w-0 space-y-1.5">
-                <div className="flex items-center gap-2">
-                  {statusIcon(digest.status)}{sourceIcon(digest.source)}
-                  {editingTitleId === digest.id ? (
-                    <input
-                      autoFocus
-                      value={editingTitleValue}
-                      onChange={(e) => setEditingTitleValue(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter") handleSaveTitle(digest.id); if (e.key === "Escape") setEditingTitleId(null); }}
-                      onBlur={() => handleSaveTitle(digest.id)}
-                      onClick={(e) => e.stopPropagation()}
-                      className="text-sm font-semibold flex-1 bg-background/50 border border-border rounded px-2 py-0.5 outline-none focus:ring-1 focus:ring-primary"
-                    />
-                  ) : (
-                    <h3 className="text-sm font-semibold truncate flex-1">{digest.title || digest.url}</h3>
-                  )}
-                  {editingTitleId !== digest.id && (
-                    <button onClick={(e) => { e.stopPropagation(); setEditingTitleId(digest.id); setEditingTitleValue(digest.title || ""); }} className="shrink-0 p-1 rounded text-muted-foreground hover:text-foreground transition-colors opacity-0 group-hover:opacity-100" aria-label="Edit title"><Pencil className="size-3" /></button>
-                  )}
-                  {getVerdictBadge(digest.guide)}
-                </div>
-                <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                  <span className="font-mono">{new Date(digest.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</span>
-                  {digest.status === "failed" && digest.error_message && (<><span className="text-border">|</span><span className="text-red-400 truncate max-w-[200px]">{digest.error_message}</span><button onClick={(e) => { e.stopPropagation(); handleRetry(digest.id); }} className="ml-1 text-primary hover:text-primary/80 flex items-center gap-1"><RefreshCw className="h-3 w-3" />Retry</button><button onClick={(e) => { e.stopPropagation(); handleDiscard(digest.id); }} className="ml-1 text-red-400 hover:text-red-300 flex items-center gap-1"><XCircle className="h-3 w-3" />Discard</button></>)}
-                  {digest.status === "processing" && (<><span className="text-border">|</span><span className="text-primary">Processing...</span></>)}
-                  {digest.status === "queued" && (<><span className="text-border">|</span><span className="text-yellow-400">In queue</span><button onClick={(e) => { e.stopPropagation(); handleDiscard(digest.id); }} className="ml-1 text-red-400 hover:text-red-300 flex items-center gap-1"><XCircle className="h-3 w-3" />Discard</button></>)}
-                  {(digest.status === "completed" || digest.status === "queued") && (<><span className="text-border">|</span><button onClick={(e) => { e.stopPropagation(); handleReclassify(digest.id, "inspiration"); }} className="text-muted-foreground hover:text-foreground flex items-center gap-1"><Lightbulb className="h-3 w-3" />Move to inspiration</button><span className="text-border">|</span><button onClick={(e) => { e.stopPropagation(); handleDiscard(digest.id); }} className="text-red-400 hover:text-red-300 flex items-center gap-1"><Trash2 className="h-3 w-3" />Delete</button></>)}
-                </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">{filtered.map((digest) => {
+          const verdictBadge = getVerdictBadge(digest.guide);
+          const isClickable = digest.status === "completed";
+          return (
+            <div
+              key={digest.id}
+              onClick={() => isClickable && setSelectedDigest(digest)}
+              className={cn(
+                "group relative rounded border border-border bg-card/50 overflow-hidden hover:bg-card transition-colors",
+                isClickable ? "cursor-pointer" : "cursor-default",
+                highlightId === digest.id && "ring-2 ring-primary/50"
+              )}
+            >
+              <div className="aspect-[9/16] bg-muted relative">
+                {digest.thumbnail_url ? (<img src={digest.thumbnail_url} alt="" className="w-full h-full object-cover" />) : (<div className="w-full h-full flex items-center justify-center">{sourceIcon(digest.source)}</div>)}
+                <div className="absolute top-2 left-2 size-6 rounded bg-background/80 flex items-center justify-center">{sourceIcon(digest.source)}</div>
+                {digest.status !== "completed" && (
+                  <div className="absolute top-2 right-2 size-6 rounded bg-background/80 flex items-center justify-center" title={digest.status}>
+                    {statusIcon(digest.status)}
+                  </div>
+                )}
+                {verdictBadge && digest.status === "completed" && (
+                  <div className="absolute top-2 right-2">{verdictBadge}</div>
+                )}
+                {digest.status === "failed" && digest.error_message && (
+                  <div className="absolute bottom-0 inset-x-0 bg-background/90 px-2 py-1 text-[10px] text-red-400 truncate" title={digest.error_message}>{digest.error_message}</div>
+                )}
               </div>
-              <a href={digest.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="shrink-0 p-2 rounded text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors opacity-0 group-hover:opacity-100"><ExternalLink className="size-4" /></a>
+              <div className="p-2 space-y-0.5">
+                <p className="text-xs font-medium truncate text-foreground">{digest.title || new URL(digest.url).hostname}</p>
+                <p className="text-[10px] text-muted-foreground font-mono">{new Date(digest.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
+              </div>
+              <div className="absolute top-9 right-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                {digest.status === "failed" && (
+                  <button onClick={(e) => { e.stopPropagation(); handleRetry(digest.id); }} className="size-6 rounded bg-background/80 hover:bg-primary hover:text-primary-foreground flex items-center justify-center" aria-label="Retry" title="Retry"><RefreshCw className="size-3" /></button>
+                )}
+                <button onClick={(e) => { e.stopPropagation(); handleReclassify(digest.id, "inspiration"); }} className="size-6 rounded bg-background/80 hover:bg-yellow-500 hover:text-white flex items-center justify-center" aria-label="Move to inspiration" title="Move to inspiration"><Lightbulb className="size-3" /></button>
+                <a href={digest.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="size-6 rounded bg-background/80 hover:bg-foreground hover:text-background flex items-center justify-center" aria-label="Open original" title="Open original"><ExternalLink className="size-3" /></a>
+                <button onClick={(e) => { e.stopPropagation(); handleDiscard(digest.id); }} className="size-6 rounded bg-background/80 hover:bg-red-500 hover:text-white flex items-center justify-center" aria-label="Delete" title="Delete"><Trash2 className="size-3" /></button>
+              </div>
             </div>
-          </div>
-        ))}</div>
+          );
+        })}</div>
       )}
 
       <Dialog open={!!selectedDigest} onOpenChange={() => setSelectedDigest(null)}>
