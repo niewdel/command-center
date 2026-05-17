@@ -33,6 +33,15 @@ export async function middleware(request: NextRequest) {
     reportPathMatches && request.nextUrl.searchParams.get("view") === "1" && hasToken;
   const isReportPublic = isReportPrint || isReportView;
 
+  // Signal to the root layout (server component) to strip ALL operator chrome
+  // for token-protected views, so the client-facing magic link page renders
+  // standalone with no sidebar, bottom nav, or command palette leaking your
+  // other tools.
+  const propagatedHeaders = new Headers(request.headers);
+  if (isReportPublic) {
+    propagatedHeaders.set("x-cc-bare-shell", "1");
+  }
+
   const hasPin = request.cookies.get("cc-auth")?.value === "authenticated";
   const authIsFresh =
     request.cookies.get(AUTH_FRESHNESS_COOKIE)?.value === "1";
@@ -55,10 +64,10 @@ export async function middleware(request: NextRequest) {
   // The /api/auth/pin route stamps the freshness cookie after a successful
   // sign-in, so the first navigation after PIN entry also skips this block.
   if (!hasPin || isAuthPage || isPublicApi || isReportPublic || authIsFresh) {
-    return NextResponse.next();
+    return NextResponse.next({ request: { headers: propagatedHeaders } });
   }
 
-  let response = NextResponse.next({ request });
+  let response = NextResponse.next({ request: { headers: propagatedHeaders } });
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -71,7 +80,9 @@ export async function middleware(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           );
-          response = NextResponse.next({ request });
+          response = NextResponse.next({
+            request: { headers: propagatedHeaders },
+          });
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options)
           );

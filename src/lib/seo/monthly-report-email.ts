@@ -13,11 +13,8 @@ import type { ReportData, SeoIssueRowOut } from "./report-data";
 
 export function renderMonthlyReportEmail(
   data: ReportData,
-  opts: { baseUrl: string; viewToken: string }
+  opts: { intro?: string } = {}
 ): string {
-  const { baseUrl, viewToken } = opts;
-  const dashboardUrl = `${baseUrl}/seo/clients/${data.client.id}/report?view=1&token=${viewToken}`;
-
   const generatedDate = new Date(data.client.generated_at).toLocaleDateString(
     "en-US",
     { month: "long", day: "numeric", year: "numeric" }
@@ -524,23 +521,6 @@ export function renderMonthlyReportEmail(
 </table>`;
   }
 
-  function buildCtaButton(): string {
-    return `
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
-  <tr>
-    <td style="padding:0 32px 32px 32px;text-align:center;">
-      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
-        <tr>
-          <td style="background:#06b6d4;border-radius:8px;">
-            <a href="${escapeHtml(dashboardUrl)}" style="${FONT}display:inline-block;padding:12px 24px;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:8px;">View live dashboard</a>
-          </td>
-        </tr>
-      </table>
-    </td>
-  </tr>
-</table>`;
-  }
-
   function buildFooter(): string {
     return `
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
@@ -556,6 +536,7 @@ export function renderMonthlyReportEmail(
   // ── Assemble ──────────────────────────────────────────────────────────────
 
   const body = [
+    opts.intro ?? "",
     buildHeader(),
     buildOverallScoreHero(),
     buildScoreCards(),
@@ -566,7 +547,6 @@ export function renderMonthlyReportEmail(
     buildWhatNeedsAttention(),
     buildResolved(),
     buildAiSummary(),
-    buildCtaButton(),
     buildFooter(),
   ]
     .filter(Boolean)

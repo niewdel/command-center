@@ -5,9 +5,11 @@ import { runMonthlyReport } from "@/lib/seo/monthly-report";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-// Manual trigger for a monthly_report job on a single client. Useful for
-// previewing the PDF before the 1st-of-month cron, or re-sending after
-// fixing issues.
+// Manual trigger for a monthly_report job. The "Email preview" button on the
+// client page always routes the email to the operator (PREVIEW_RECIPIENT),
+// never the client — the 1st-of-month cron is what delivers to the client.
+const PREVIEW_RECIPIENT = "justin.ledwein@niewdel.com";
+
 export async function POST(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -32,7 +34,7 @@ export async function POST(
   });
 
   setImmediate(() => {
-    runMonthlyReport(job.id).catch(async (err) => {
+    runMonthlyReport(job.id, { overrideEmail: PREVIEW_RECIPIENT }).catch(async (err) => {
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`[seo:run-monthly] job ${job.id} threw:`, msg);
       try {

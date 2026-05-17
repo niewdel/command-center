@@ -10,6 +10,7 @@ import {
   FileText,
   Copy,
   Download,
+  Mail,
   Check as CheckIcon,
   Link2,
 } from "lucide-react";
@@ -452,15 +453,15 @@ export default function SeoClientDetailPage({
             title={
               !latest
                 ? "Run a weekly check first"
-                : "Generate + email monthly PDF report"
+                : "Send a preview of the monthly report to justin.ledwein@niewdel.com (the client never receives this)"
             }
           >
             {runningReport ? (
               <Loader2 className="size-3.5 animate-spin" />
             ) : (
-              <Download className="size-3.5" />
+              <Mail className="size-3.5" />
             )}
-            Monthly report
+            Email preview
           </Button>
           <Button
             size="sm"

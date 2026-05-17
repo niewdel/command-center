@@ -18,9 +18,11 @@ import { renderMonthlyReportEmail } from "./monthly-report-email";
 import { sendReportEmail } from "./send-report";
 import { generateEmailSummary } from "./claude";
 import { getReportData } from "./report-data";
-import { signViewToken } from "./report-print-token";
 
-export async function runMonthlyReport(jobId: string): Promise<void> {
+export async function runMonthlyReport(
+  jobId: string,
+  options: { overrideEmail?: string } = {}
+): Promise<void> {
   const log = (msg: string) => console.log(`[seo-month ${jobId}] ${msg}`);
   const job = await getSeoJob(jobId);
   if (!job) throw new Error(`SEO job not found: ${jobId}`);
@@ -64,10 +66,13 @@ export async function runMonthlyReport(jobId: string): Promise<void> {
     "http://localhost:3000";
 
   const dryRun = client.seo_config.dry_run === true;
-  const email = client.seo_config.contact_email;
+  const email = options.overrideEmail ?? client.seo_config.contact_email;
+  const isOverride = !!options.overrideEmail;
 
   // Dry-run: nothing to send. The in-app /seo/clients/<id>/report IS the preview.
-  if (dryRun) {
+  // An explicit overrideEmail (manual "Email preview" button) bypasses dry-run
+  // because the recipient is the operator, not the client.
+  if (dryRun && !isOverride) {
     const previewUrl = `${baseUrl}/seo/clients/${job.client_id}/report?range=30d`;
     await updateSeoJob(jobId, {
       status: "complete",
@@ -155,46 +160,38 @@ export async function runMonthlyReport(jobId: string): Promise<void> {
     progress_pct: 60,
   });
 
-  // Render the full inline-HTML email body.
-  const viewToken = signViewToken(job.client_id);
-  const reportHtml = renderMonthlyReportEmail(data, { baseUrl, viewToken });
-
-  // Prepend the AI prose summary as a greeting block above the report card.
+  // Build the greeting + AI-prose intro block. Lives inside the white card as
+  // the first section, so the buildHeader title is the second visual element.
+  // Top padding (32px) provides breathing room above "Hi {name},".
   const FONT = "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;";
   const greeting = client.seo_config.contact_name
     ? `Hi ${client.seo_config.contact_name},`
     : "Hi,";
 
   const introProse = summaryProse
-    ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;">
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
   <tr>
-    <td style="padding:0 32px 0 32px;">
-      <p style="${FONT}font-size:14px;color:#0f172a;margin:0 0 8px 0;">${greeting}</p>
-      <p style="${FONT}font-size:14px;color:#334155;line-height:1.6;margin:0 0 24px 0;">${summaryProse.replace(/\n\n+/g, '</p><p style="font-size:14px;color:#334155;line-height:1.6;margin:12px 0;">').replace(/\n/g, "<br/>")}</p>
+    <td style="padding:32px 32px 0 32px;">
+      <p style="${FONT}font-size:14px;color:#0f172a;margin:0 0 12px 0;">${greeting}</p>
+      <p style="${FONT}font-size:14px;color:#334155;line-height:1.6;margin:0;">${summaryProse.replace(/\n\n+/g, `</p><p style="${FONT}font-size:14px;color:#334155;line-height:1.6;margin:12px 0 0 0;">`).replace(/\n/g, "<br/>")}</p>
     </td>
   </tr>
 </table>`
     : "";
 
-  // Inject intro prose into the email body right after the <body> opening.
-  // The renderMonthlyReportEmail output starts with <!doctype html>...<body ...><table...>.
-  // We insert the intro block before the outer wrapper table.
-  const bodyHtml = introProse
-    ? reportHtml.replace(
-        /(<body[^>]*>)/,
-        `$1\n${introProse}`
-      )
-    : reportHtml;
+  // Render the full inline-HTML email body with the intro as the leading section.
+  const bodyHtml = renderMonthlyReportEmail(data, { intro: introProse });
 
   await updateSeoJob(jobId, {
     current_stage: "Sending email",
     progress_pct: 80,
   });
 
+  const subjectPrefix = isOverride ? "[Preview] " : "";
   const result = await sendReportEmail({
     workspace_id: job.workspace_id,
     to: email,
-    subject: `${client.name}: SEO report for ${data.client.period_label}`,
+    subject: `${subjectPrefix}${client.name}: SEO report for ${data.client.period_label}`,
     from_name: "Niewdel",
     html: bodyHtml,
   });
@@ -224,8 +221,9 @@ export async function runMonthlyReport(jobId: string): Promise<void> {
       email_via: emailVia,
       email_error: emailError,
       dry_run: false,
+      preview: isOverride,
     },
   });
 
-  log(`Done. email_sent=${emailSent}, via=${emailVia}`);
+  log(`Done. email_sent=${emailSent}, via=${emailVia}, preview=${isOverride}`);
 }

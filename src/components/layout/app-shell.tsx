@@ -11,11 +11,23 @@ import { useNotifications, getNotificationStatus } from "@/lib/hooks/use-notific
 
 const AUTH_PAGES = ["/login", "/signup"];
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({
+  children,
+  bareShell = false,
+}: {
+  children: React.ReactNode;
+  // Token-protected, client-facing renders of the SEO report (magic link or
+  // Playwright print) set this via middleware → root layout. Strips ALL
+  // operator chrome — sidebar, bottom nav, command palette, recent items —
+  // so the recipient sees only the scoped report.
+  bareShell?: boolean;
+}) {
   const pathname = usePathname();
   const isAuthPage = AUTH_PAGES.includes(pathname);
 
-  useNotifications(!isAuthPage && getNotificationStatus() === "granted");
+  useNotifications(
+    !isAuthPage && !bareShell && getNotificationStatus() === "granted"
+  );
 
   if (isAuthPage) {
     return (
@@ -24,6 +36,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="relative z-10">{children}</div>
       </main>
     );
+  }
+
+  if (bareShell) {
+    return <main className="min-h-dvh">{children}</main>;
   }
 
   return (
