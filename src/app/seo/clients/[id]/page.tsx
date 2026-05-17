@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, use } from "react";
+import { useEffect, useState, useCallback, useRef, use } from "react";
 import {
   TrendingUp,
   Loader2,
@@ -203,13 +203,31 @@ export default function SeoClientDetailPage({
     }
   };
 
+  // Lightweight refresh for jobs/issues/checks state — skips the heavy
+  // report-data query. Used by the polling fallback below so we don't hammer
+  // getReportData (5 SQL queries) every 2 seconds.
+  const refreshClient = useCallback(async () => {
+    const res = await fetch(`/api/seo/clients/${id}`).then((r) => r.json());
+    if (res.client) {
+      setClient(res.client);
+      setChecks(res.checks ?? []);
+      setIssues(res.issues ?? []);
+      setJobs(res.jobs ?? []);
+      setKeywordRanks(res.keyword_ranks ?? []);
+      setCompetitorGaps(res.competitor_gaps ?? []);
+    }
+  }, [id]);
+
   useEffect(() => {
     fetchAll();
     // No server-side filter clause: Supabase realtime applies postgres_changes
     // filters alongside RLS evaluation and tends to throttle/drop UPDATEs on
-    // RLS-protected tables when filtered. The /seo overview page is reliable
-    // because it subscribes without a filter; we mirror that here and filter
-    // client-side. Volume is tiny — at most one in-flight job per workspace.
+    // RLS-protected tables when filtered. We subscribe broadly and filter
+    // client-side. We also DON'T subscribe to seo_issues here because that
+    // table isn't in the supabase_realtime publication — events would never
+    // arrive, and a dead binding can put the whole channel in a bad state.
+    // seo_issues changes are caught by the seo_checks completion event +
+    // the polling fallback below.
     const matchesClient = (row: unknown): boolean => {
       const r = row as { client_id?: string } | null;
       return !!r && r.client_id === id;
@@ -230,8 +248,8 @@ export default function SeoClientDetailPage({
           // Apply seo_jobs changes from the realtime payload directly so the
           // progress bar and stage label update instantly, instead of
           // round-tripping through fetchAll() (which fires getReportData ->
-          // 5 SQL queries on every tick and queues up). seo_checks/issues
-          // still go through fetchAll() since they only fire at completion.
+          // 5 SQL queries on every tick and queues up). seo_checks still
+          // goes through fetchAll() since it only fires at completion.
           setJobs((prev) => {
             if (payload.eventType === "DELETE") {
               const oldId = (payload.old as { id?: string } | null)?.id;
@@ -253,15 +271,6 @@ export default function SeoClientDetailPage({
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "seo_checks" },
-        (payload) => {
-          if (matchesClient(payload.new) || matchesClient(payload.old)) {
-            fetchAll();
-          }
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "seo_issues" },
         (payload) => {
           if (matchesClient(payload.new) || matchesClient(payload.old)) {
             fetchAll();
@@ -295,7 +304,18 @@ export default function SeoClientDetailPage({
           }
         }
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        if (
+          status === "CHANNEL_ERROR" ||
+          status === "TIMED_OUT" ||
+          status === "CLOSED"
+        ) {
+          // Realtime delivery has failed for this channel. Polling below keeps
+          // the UI in sync regardless; surface this in the console for future
+          // debugging.
+          console.warn(`[seo-client-${id}] realtime ${status}`, err);
+        }
+      });
     return () => {
       supabase.removeChannel(ch);
     };
@@ -303,6 +323,36 @@ export default function SeoClientDetailPage({
 
   const activeJob = jobs.find((j) => j.status === "queued" || j.status === "running");
   const latest = checks[0] ?? null;
+
+  // Polling fallback for active-job progress. Realtime is best-effort: RLS +
+  // REPLICA IDENTITY quirks have silently dropped UPDATEs on this page
+  // before, leaving the progress bar frozen. Polling every 2s while a job is
+  // running guarantees the bar advances regardless of realtime health.
+  // Only the lightweight client endpoint is refetched (no getReportData), so
+  // the cost is one cheap query every 2s for the lifetime of a single check.
+  const activeJobId = activeJob?.id ?? null;
+  useEffect(() => {
+    if (!activeJobId) return;
+    const interval = setInterval(() => {
+      refreshClient().catch(() => {
+        // ignore — next tick will retry
+      });
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [activeJobId, refreshClient]);
+
+  // When a job transitions from active → done, do one final full fetch so the
+  // embedded report and recent-runs reflect the new check. Realtime usually
+  // catches this via seo_checks INSERT, but if realtime is dead this ensures
+  // the page still updates within ~2s of completion. useRef avoids triggering
+  // the "setState in effect" lint by not creating an extra render.
+  const lastActiveJobIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (lastActiveJobIdRef.current && !activeJobId) {
+      fetchAll();
+    }
+    lastActiveJobIdRef.current = activeJobId;
+  }, [activeJobId, fetchAll]);
 
   const handleRun = async () => {
     setRunning(true);
