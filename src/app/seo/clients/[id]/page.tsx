@@ -862,8 +862,8 @@ export default function SeoClientDetailPage({
 
       {/* Settings drawer */}
       <Sheet open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
-          <SheetHeader>
+        <SheetContent className="w-full sm:max-w-lg overflow-y-auto gap-0">
+          <SheetHeader className="px-6 pt-5 pb-4 border-b border-border">
             <SheetTitle>SEO settings</SheetTitle>
           </SheetHeader>
           {client && (
@@ -988,21 +988,21 @@ function SettingsForm({
   };
 
   return (
-    <div className="space-y-4 py-2">
-      <div className="space-y-1.5">
+    <div className="space-y-5 px-6 py-5 pb-8">
+      <div className="space-y-2">
         <Label>Domain</Label>
         <Input
           value={domain}
           onChange={(e) => setDomain(e.target.value)}
           placeholder="niewdel.com"
         />
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-[11px] text-muted-foreground pt-0.5">
           No protocol — just the domain. The agent crawls https:// by default.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="space-y-1.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
           <Label>Contact email</Label>
           <Input
             type="email"
@@ -1011,7 +1011,7 @@ function SettingsForm({
             placeholder="client@example.com"
           />
         </div>
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <Label>Contact name</Label>
           <Input
             value={contactName}
@@ -1021,7 +1021,7 @@ function SettingsForm({
         </div>
       </div>
 
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         <Label>Target keywords</Label>
         <Textarea
           rows={3}
@@ -1029,12 +1029,12 @@ function SettingsForm({
           onChange={(e) => setKeywords(e.target.value)}
           placeholder="One keyword per line"
         />
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-[11px] text-muted-foreground pt-0.5">
           Used in paid keyword check. One per line or comma-separated.
         </p>
       </div>
 
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         <Label>Competitor domains</Label>
         <Textarea
           rows={2}
@@ -1044,7 +1044,7 @@ function SettingsForm({
         />
       </div>
 
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         <Label>Max pages per crawl</Label>
         <Input
           type="number"
@@ -1055,8 +1055,8 @@ function SettingsForm({
         />
       </div>
 
-      <div className="space-y-1.5">
-        <label className="flex items-center gap-2 text-sm cursor-pointer">
+      <div className="space-y-2.5 pt-1">
+        <label className="flex items-center gap-2.5 text-sm cursor-pointer">
           <input
             type="checkbox"
             checked={enabled}
@@ -1065,7 +1065,7 @@ function SettingsForm({
           />
           Enabled (run weekly automatically)
         </label>
-        <label className="flex items-center gap-2 text-sm cursor-pointer">
+        <label className="flex items-center gap-2.5 text-sm cursor-pointer">
           <input
             type="checkbox"
             checked={dryRun}
@@ -1077,9 +1077,9 @@ function SettingsForm({
       </div>
 
       {/* Google Analytics integration */}
-      <div className="space-y-2 pt-3 border-t border-border">
+      <div className="space-y-3 pt-5 mt-2 border-t border-border">
         <div className="flex items-center justify-between">
-          <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+          <Label className="text-xs uppercase text-muted-foreground">
             Google Analytics
           </Label>
           {googleConnected === true ? (
@@ -1101,7 +1101,7 @@ function SettingsForm({
               Connected as{" "}
               <span className="font-mono text-foreground">{googleEmail}</span>
             </p>
-            <div className="space-y-1.5">
+            <div className="space-y-2 pt-1">
               <Label className="text-xs">GA4 property for this client</Label>
               {ga4Loading ? (
                 <div className="text-xs text-muted-foreground">
@@ -1123,8 +1123,8 @@ function SettingsForm({
                   ))}
                 </select>
               )}
-              <p className="text-[11px] text-muted-foreground">
-                Pick the GA4 property that tracks {domain || "this client&rsquo;s site"}.
+              <p className="text-[11px] text-muted-foreground pt-0.5">
+                Pick the GA4 property that tracks {domain || "this client's site"}.
                 Traffic data lands in the next weekly check.
               </p>
             </div>
@@ -1150,7 +1150,7 @@ function SettingsForm({
 
       {error && <p className="text-xs text-rose-400">{error}</p>}
 
-      <div className="flex justify-end gap-2 pt-2">
+      <div className="flex justify-end gap-2 pt-4 mt-2 border-t border-border">
         <Button onClick={handleSave} disabled={saving} className="rounded">
           {saving ? "Saving..." : "Save"}
         </Button>
