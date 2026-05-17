@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 
 export interface ScoreHistoryPoint {
@@ -41,8 +41,8 @@ export function ScoreHistoryChart({
 }: {
   points: ScoreHistoryPoint[];
 }) {
-  // Reverse: API gives newest-first; chart needs oldest-first.
-  const chrono = useMemo(() => [...points].reverse(), [points]);
+  // points arrives oldest → newest from getReportData; render in place.
+  const chrono = points;
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
 
   if (chrono.length < 2) {
