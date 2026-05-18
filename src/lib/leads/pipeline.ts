@@ -51,6 +51,32 @@ function isDecisionMaker(title: string | null, seniority: string | null): boolea
 }
 
 /**
+ * Heuristic 0-100 lead score, matching the niewdel.com /lab demo bands:
+ *   85+  = green/high-confidence
+ *   <85  = amber
+ *
+ * Breakdown (max 100):
+ *  - role_type == decision_maker → 40
+ *  - email verified              → 20
+ *  - company has a headcount     → 20
+ *  - company has tech / keywords → 20
+ */
+function computeLeadScore(args: {
+  roleType: string;
+  emailVerified: boolean;
+  headcount: number | null;
+  technologies: string[] | null;
+}): number {
+  let score = 0;
+  if (args.roleType === "decision_maker") score += 40;
+  else if (args.roleType === "influencer") score += 20;
+  if (args.emailVerified) score += 20;
+  if (typeof args.headcount === "number" && args.headcount > 0) score += 20;
+  if (args.technologies && args.technologies.length > 0) score += 20;
+  return Math.min(100, score);
+}
+
+/**
  * Run the full lead generation pipeline for a job.
  * Reports progress back to the lead_jobs row at every stage transition.
  * Returns when complete or throws on irrecoverable error.
@@ -129,8 +155,14 @@ export async function runPipeline(jobId: string): Promise<void> {
     return;
   }
 
-  // Upsert companies
-  const companyMap = new Map<string, { id: string }>();
+  // Upsert companies. Keep the mapped enrichment alongside the id so the
+  // contact-scoring pass below can reference headcount + technologies.
+  type CompanyEntry = {
+    id: string;
+    headcount: number | null;
+    technologies: string[];
+  };
+  const companyMap = new Map<string, CompanyEntry>();
   for (const apolloOrg of filtered) {
     const mapped = mapApolloOrg(apolloOrg);
     if (!mapped.domain) continue;
@@ -140,7 +172,11 @@ export async function runPipeline(jobId: string): Promise<void> {
         vertical_id: vertical.id,
         ...mapped,
       });
-      companyMap.set(mapped.domain, company as { id: string });
+      companyMap.set(mapped.domain, {
+        id: (company as { id: string }).id,
+        headcount: mapped.headcount,
+        technologies: mapped.technologies,
+      });
     } catch {
       // continue on per-row failure
     }
@@ -169,8 +205,16 @@ export async function runPipeline(jobId: string): Promise<void> {
     return;
   }
 
-  const seniority = ["senior", "executive", "director"];
-  const department = ["executive", "engineering", "operations"];
+  // Hunter filters: per-vertical override via scrape_params.hunter_filters, else
+  // a permissive default (seniority only). The previous hard-coded department
+  // list ("executive,engineering,operations") quietly returned zero contacts
+  // for SMB / trades verticals where Hunter has no department tagging.
+  const hunterFilters = (vertical.scrape_params?.hunter_filters ?? {}) as {
+    seniority?: string[];
+    department?: string[];
+  };
+  const seniority = hunterFilters.seniority ?? ["senior", "executive"];
+  const department = hunterFilters.department;
 
   const domainsToSearch = [...companyMap.keys()].slice(0, searchesLeft);
   let contactsCount = 0;
@@ -181,7 +225,11 @@ export async function runPipeline(jobId: string): Promise<void> {
     if (!company) continue;
 
     try {
-      const result = await domainSearch(domain, { limit: 10, seniority, department });
+      const result = await domainSearch(domain, {
+        limit: 10,
+        seniority,
+        ...(department && department.length ? { department } : {}),
+      });
 
       let isPrimarySet = false;
       for (const hunterEmail of result.emails) {
@@ -190,6 +238,12 @@ export async function runPipeline(jobId: string): Promise<void> {
         const roleType = isDecisionMaker(mapped.title, mapped.seniority)
           ? "decision_maker"
           : "influencer";
+        const lead_score = computeLeadScore({
+          roleType,
+          emailVerified: mapped.email_verified,
+          headcount: company.headcount,
+          technologies: company.technologies,
+        });
         await upsertContact({
           org_id: orgId,
           company_id: company.id,
@@ -200,10 +254,12 @@ export async function runPipeline(jobId: string): Promise<void> {
           email: mapped.email,
           email_verified: mapped.email_verified,
           linkedin_url: mapped.linkedin_url,
+          phone: mapped.phone,
           source: "hunter",
           source_id: mapped.source_id,
           role_type: roleType,
           is_primary: !isPrimarySet && roleType === "decision_maker",
+          lead_score,
         });
         if (!isPrimarySet && roleType === "decision_maker") isPrimarySet = true;
         contactsCount++;
@@ -213,6 +269,12 @@ export async function runPipeline(jobId: string): Promise<void> {
       if (!isPrimarySet && result.emails.length > 0) {
         const first = mapHunterContact(result.emails[0]);
         if (first.email) {
+          const lead_score = computeLeadScore({
+            roleType: "unknown",
+            emailVerified: first.email_verified,
+            headcount: company.headcount,
+            technologies: company.technologies,
+          });
           await upsertContact({
             org_id: orgId,
             company_id: company.id,
@@ -223,9 +285,11 @@ export async function runPipeline(jobId: string): Promise<void> {
             email: first.email,
             email_verified: first.email_verified,
             linkedin_url: first.linkedin_url,
+            phone: first.phone,
             source: "hunter",
             role_type: "unknown",
             is_primary: true,
+            lead_score,
           });
         }
       }

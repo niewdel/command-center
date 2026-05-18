@@ -40,6 +40,11 @@ export async function upsertCompany(company: {
   city?: string | null;
   state?: string | null;
   country?: string;
+  founded_year?: number | null;
+  latest_funding_stage?: string | null;
+  short_description?: string | null;
+  linkedin_url?: string | null;
+  technologies?: string[];
   source?: string;
   source_id?: string | null;
 }) {
@@ -98,10 +103,13 @@ export async function upsertContact(contact: {
   email: string | null;
   email_verified?: boolean;
   linkedin_url?: string | null;
+  phone?: string | null;
   role_type?: string;
   source?: string;
   source_id?: string | null;
   is_primary?: boolean;
+  lead_score?: number | null;
+  status?: "queued" | "sent" | "opened" | "replied" | "bounced";
 }) {
   const { data, error } = await getServiceClient()
     .from("contacts")

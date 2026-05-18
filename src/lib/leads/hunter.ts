@@ -82,6 +82,7 @@ export function mapHunterContact(email: HunterEmail) {
     email: email.value,
     email_verified: email.verification?.status === "valid",
     linkedin_url: email.linkedin ?? null,
+    phone: email.phone_number ?? null,
     source: "hunter" as const,
     source_id: null as string | null,
     confidence: email.confidence,

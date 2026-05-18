@@ -22,6 +22,13 @@ export type EmailStatus =
   | "bounced"
   | "failed";
 
+export type ContactStatus =
+  | "queued"
+  | "sent"
+  | "opened"
+  | "replied"
+  | "bounced";
+
 export type Organization = {
   id: string;
   user_id: string | null;
@@ -54,6 +61,11 @@ export type Company = {
   city: string | null;
   state: string | null;
   country: string | null;
+  founded_year: number | null;
+  latest_funding_stage: string | null;
+  technologies: string[];
+  short_description: string | null;
+  linkedin_url: string | null;
   source: string;
   source_id: string | null;
   research_profile: Record<string, unknown> | null;
@@ -75,10 +87,13 @@ export type Contact = {
   email: string | null;
   email_verified: boolean;
   linkedin_url: string | null;
+  phone: string | null;
   role_type: RoleType;
   source: string;
   source_id: string | null;
   is_primary: boolean;
+  lead_score: number | null;
+  status: ContactStatus;
   created_at: string;
   updated_at: string;
 };
