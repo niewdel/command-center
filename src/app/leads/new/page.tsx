@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Sparkles, ArrowLeft } from "lucide-react";
+import { Sparkles, ArrowLeft, Play } from "lucide-react";
 import Link from "next/link";
 import { PageLayout } from "@/components/layout/page-layout";
 import { LeadsTabs } from "@/components/leads/leads-tabs";
@@ -141,8 +141,8 @@ function NewLeadJobForm() {
 
   return (
     <PageLayout
-      title="Generate Leads"
-      description="Run the Apollo \u2192 Hunter \u2192 Claude pipeline against fresh criteria"
+      title="Launch Lead Gen Agent"
+      description="Configure the agent then launch — Apollo \u2192 Hunter \u2192 Claude runs autonomously"
       icon={Sparkles}
       maxWidth="lg"
       breadcrumbs={[{ label: "Leads", href: "/leads" }, { label: "New" }]}
@@ -314,13 +314,23 @@ function NewLeadJobForm() {
           </p>
         )}
 
-        <div className="flex items-center gap-2">
-          <Button type="submit" disabled={submitting} size="lg">
-            {submitting ? "Starting…" : "Generate Leads"}
-          </Button>
+        <div className="flex items-center gap-3 pt-2">
+          <button
+            type="submit"
+            disabled={submitting}
+            className="flex-1 py-4 rounded-xl text-sm font-bold uppercase tracking-wider flex items-center justify-center gap-3 transition-all duration-200 hover:scale-[1.005] active:scale-[0.995] disabled:opacity-60 disabled:cursor-not-allowed"
+            style={{
+              backgroundColor: "rgba(0,180,216,0.1)",
+              color: "#00B4D8",
+              border: "1px solid rgba(0,180,216,0.3)",
+            }}
+          >
+            <Play size={18} fill={submitting ? "transparent" : "#00B4D8"} />
+            {submitting ? "Starting Agent…" : "Launch Lead Gen Agent"}
+          </button>
           <Link
             href="/leads"
-            className="text-sm text-muted-foreground hover:text-foreground px-3"
+            className="text-xs uppercase tracking-wider px-3 py-2 rounded-md text-muted-foreground hover:text-foreground"
           >
             Cancel
           </Link>
