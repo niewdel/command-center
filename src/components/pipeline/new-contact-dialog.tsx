@@ -17,7 +17,9 @@ export function NewContactDialog({
 }: {
   open: boolean;
   onClose: () => void;
-  onCreated: () => void;
+  /** Called after a successful create/update. Receives the new record on create
+   *  so callers can chain (e.g. auto-attach to a deal). */
+  onCreated: (saved?: CrmContact) => void;
   /** When provided, the dialog acts as an edit form (PATCH) instead of create (POST). */
   contact?: CrmContact | null;
 }) {
@@ -82,7 +84,8 @@ export function NewContactDialog({
       setError(j.error ?? `Failed to ${isEdit ? "save" : "add"} contact`);
       return;
     }
-    onCreated();
+    const saved = (await res.json().catch(() => null))?.data as CrmContact | undefined;
+    onCreated(isEdit ? undefined : saved);
     onClose();
   };
 

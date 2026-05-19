@@ -17,7 +17,9 @@ export function NewCompanyDialog({
 }: {
   open: boolean;
   onClose: () => void;
-  onCreated: () => void;
+  /** Called after a successful create/update. Receives the new record on create
+   *  so callers can chain (e.g. auto-attach to a deal). */
+  onCreated: (saved?: CrmCompany) => void;
   /** When provided, the dialog acts as an edit form (PATCH) instead of create (POST). */
   company?: CrmCompany | null;
 }) {

@@ -126,9 +126,16 @@ export function ContactPickerDialog({
       <NewContactDialog
         open={newOpen}
         onClose={() => setNewOpen(false)}
-        onCreated={() => {
+        onCreated={async (saved) => {
           setNewOpen(false);
-          fetchContacts();
+          if (saved?.id) {
+            // Auto-attach the freshly-created contact to the deal so adding a
+            // brand-new client + linking it is one continuous action.
+            await onPick(saved.id);
+            onClose();
+          } else {
+            fetchContacts();
+          }
         }}
       />
     </>

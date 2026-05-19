@@ -141,9 +141,16 @@ export function CompanyPickerDialog({
       <NewCompanyDialog
         open={newOpen}
         onClose={() => setNewOpen(false)}
-        onCreated={() => {
+        onCreated={async (saved) => {
           setNewOpen(false);
-          fetchCompanies();
+          if (saved?.id) {
+            // Auto-attach the just-created company to the deal and close the
+            // picker — saves a "now click your new row" step.
+            await onPick(saved.id);
+            onClose();
+          } else {
+            fetchCompanies();
+          }
         }}
       />
     </>
