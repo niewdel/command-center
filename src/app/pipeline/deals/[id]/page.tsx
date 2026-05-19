@@ -8,6 +8,7 @@ import { PageLayout } from "@/components/layout/page-layout";
 import { PipelineTabs } from "@/components/pipeline/pipeline-tabs";
 import { supabase } from "@/lib/supabase";
 import { DEAL_STAGES, STAGE_LABEL, STAGE_COLOR, type DealStage, type CrmDeal, type CrmCompany, type CrmContact } from "@/types/pipeline";
+import { extractDriveFileId, getDriveThumbnailUrl } from "@/lib/google/drive-preview";
 
 const mono = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
 
@@ -90,7 +91,24 @@ export default function DealDetailPage() {
   const handleProposalLink = async () => {
     const url = proposalDraftUrl.trim();
     if (!url) return;
-    const filename = url.split("/").pop()?.split("?")[0] || "Proposal";
+
+    // If this looks like a Google Drive share link, try to resolve the real
+    // filename via the public preview page. Falls back gracefully.
+    let filename = url.split("/").pop()?.split("?")[0] || "Proposal";
+    if (extractDriveFileId(url)) {
+      try {
+        const res = await fetch("/api/integrations/google/drive/preview", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url }),
+        });
+        const json = await res.json();
+        if (json?.filename) filename = json.filename;
+      } catch {
+        // Network/parse error — keep the URL-derived fallback.
+      }
+    }
+
     await persistAttachments({ proposal_url: url, proposal_filename: filename });
     setProposalDraftUrl("");
   };
@@ -316,29 +334,77 @@ export default function DealDetailPage() {
                 <FileText size={11} /> Proposal
               </p>
               {proposalUrl ? (
-                <div
-                  className="flex items-center justify-between gap-2 rounded-md px-3 py-2"
-                  style={{ backgroundColor: "rgba(0,180,216,0.06)", border: "1px solid rgba(0,180,216,0.15)" }}
-                >
-                  <a
-                    href={proposalUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center gap-2 text-xs min-w-0 hover:underline"
-                    style={{ color: "#00B4D8" }}
-                  >
-                    <ExternalLink size={11} className="shrink-0" />
-                    <span className="truncate">{proposalFilename || proposalUrl}</span>
-                  </a>
-                  <button
-                    onClick={handleClearProposal}
-                    className="text-[10px] uppercase tracking-wider px-1.5 py-1 rounded hover:bg-[rgba(239,68,68,0.1)] transition-colors"
-                    style={{ color: "rgba(245,245,245,0.4)", fontFamily: mono }}
-                    aria-label="Remove proposal"
-                  >
-                    <XIcon size={11} />
-                  </button>
-                </div>
+                (() => {
+                  const driveId = extractDriveFileId(proposalUrl);
+                  if (driveId) {
+                    return (
+                      <div
+                        className="rounded-md overflow-hidden"
+                        style={{ backgroundColor: "rgba(0,180,216,0.04)", border: "1px solid rgba(0,180,216,0.15)" }}
+                      >
+                        <a
+                          href={proposalUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={getDriveThumbnailUrl(driveId, 800)}
+                            alt={proposalFilename || "Proposal preview"}
+                            className="w-full h-auto block"
+                            style={{ maxHeight: 280, objectFit: "cover", objectPosition: "top", backgroundColor: "rgba(13,13,13,0.6)" }}
+                          />
+                        </a>
+                        <div className="flex items-center justify-between gap-2 px-3 py-2">
+                          <a
+                            href={proposalUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex items-center gap-2 text-xs min-w-0 hover:underline"
+                            style={{ color: "#00B4D8" }}
+                          >
+                            <ExternalLink size={11} className="shrink-0" />
+                            <span className="truncate">{proposalFilename || "Google Drive"}</span>
+                          </a>
+                          <button
+                            onClick={handleClearProposal}
+                            className="px-1.5 py-1 rounded hover:bg-[rgba(239,68,68,0.1)] transition-colors"
+                            style={{ color: "rgba(245,245,245,0.4)" }}
+                            aria-label="Remove proposal"
+                          >
+                            <XIcon size={11} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div
+                      className="flex items-center justify-between gap-2 rounded-md px-3 py-2"
+                      style={{ backgroundColor: "rgba(0,180,216,0.06)", border: "1px solid rgba(0,180,216,0.15)" }}
+                    >
+                      <a
+                        href={proposalUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-2 text-xs min-w-0 hover:underline"
+                        style={{ color: "#00B4D8" }}
+                      >
+                        <ExternalLink size={11} className="shrink-0" />
+                        <span className="truncate">{proposalFilename || proposalUrl}</span>
+                      </a>
+                      <button
+                        onClick={handleClearProposal}
+                        className="text-[10px] uppercase tracking-wider px-1.5 py-1 rounded hover:bg-[rgba(239,68,68,0.1)] transition-colors"
+                        style={{ color: "rgba(245,245,245,0.4)", fontFamily: mono }}
+                        aria-label="Remove proposal"
+                      >
+                        <XIcon size={11} />
+                      </button>
+                    </div>
+                  );
+                })()
               ) : (
                 <div className="space-y-2">
                   <label
