@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Mail, Phone, ExternalLink, Trash2, Save, Upload, FileText, Video, X as XIcon, Star, UserPlus, Building, Repeat } from "lucide-react";
+import { ArrowLeft, Mail, Phone, ExternalLink, Trash2, Upload, FileText, Video, X as XIcon, Star, UserPlus, Building, Repeat, Check, Loader2 } from "lucide-react";
 import { PageLayout } from "@/components/layout/page-layout";
 import { PipelineTabs } from "@/components/pipeline/pipeline-tabs";
 import { supabase } from "@/lib/supabase";
@@ -41,8 +41,14 @@ export default function DealDetailPage() {
 
   const [deal, setDeal] = useState<DealDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // Auto-save state. saving = a PATCH is in flight; savedAt = last completed save
+  // timestamp (drives the "Saved 3s ago" indicator).
+  const [saving, setSaving] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const dirtyRef = useRef<Record<string, unknown>>({});
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Editable fields
   const [title, setTitle] = useState("");
@@ -84,6 +90,46 @@ export default function DealDetailPage() {
     }
     setLoading(false);
   }, [id]);
+
+  const flushSave = useCallback(async () => {
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    const patch = dirtyRef.current;
+    if (Object.keys(patch).length === 0) return;
+    dirtyRef.current = {};
+    setSaving(true);
+    try {
+      await fetch(`/api/pipeline/deals/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      });
+      setSavedAt(Date.now());
+    } finally {
+      setSaving(false);
+    }
+  }, [id]);
+
+  const queueSave = useCallback(
+    (patch: Record<string, unknown>, opts?: { immediate?: boolean }) => {
+      Object.assign(dirtyRef.current, patch);
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      const delay = opts?.immediate ? 0 : 600;
+      saveTimerRef.current = setTimeout(() => {
+        void flushSave();
+      }, delay);
+    },
+    [flushSave]
+  );
+
+  // Flush pending save on unmount so navigating away doesn't drop edits.
+  useEffect(() => {
+    return () => {
+      void flushSave();
+    };
+  }, [flushSave]);
 
   const persistAttachments = useCallback(
     async (patch: Partial<Pick<CrmDeal, "proposal_url" | "proposal_filename" | "fathom_url">>) => {
@@ -204,27 +250,13 @@ export default function DealDetailPage() {
     [id, fetchDeal]
   );
 
-  const handleSave = async () => {
-    setSaving(true);
-    const value_cents = valueDollars ? Math.round(parseFloat(valueDollars) * 100) : null;
-    await fetch(`/api/pipeline/deals/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: title.trim(),
-        stage,
-        value_cents,
-        close_date_est: closeDate || null,
-        notes: notes.trim() || null,
-        owner: owner.trim() || null,
-        lost_reason: stage === "lost" ? (lostReason.trim() || null) : null,
-      }),
-    });
-    setSaving(false);
-    await fetchDeal();
-  };
-
   const handleDelete = async () => {
+    // Cancel any pending save so it doesn't fire after the row is gone.
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    dirtyRef.current = {};
     await fetch(`/api/pipeline/deals/${id}`, { method: "DELETE" });
     router.push("/pipeline");
   };
@@ -268,7 +300,10 @@ export default function DealDetailPage() {
               <input
                 type="text"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={(e) => {
+                  setTitle(e.target.value);
+                  queueSave({ title: e.target.value.trim() });
+                }}
                 className="w-full bg-transparent text-sm font-semibold outline-none border-b border-transparent focus:border-[rgba(0,180,216,0.4)] transition-colors"
               />
             </div>
@@ -281,7 +316,10 @@ export default function DealDetailPage() {
                 {DEAL_STAGES.map((s) => (
                   <button
                     key={s}
-                    onClick={() => setStage(s)}
+                    onClick={() => {
+                      setStage(s);
+                      queueSave({ stage: s, lost_reason: s === "lost" ? lostReason.trim() || null : null }, { immediate: true });
+                    }}
                     className="px-2.5 py-1 text-[10px] uppercase tracking-wider rounded-md transition-colors"
                     style={{
                       fontFamily: mono,
@@ -304,7 +342,12 @@ export default function DealDetailPage() {
                 <input
                   type="number"
                   value={valueDollars}
-                  onChange={(e) => setValueDollars(e.target.value)}
+                  onChange={(e) => {
+                    setValueDollars(e.target.value);
+                    queueSave({
+                      value_cents: e.target.value ? Math.round(parseFloat(e.target.value) * 100) : null,
+                    });
+                  }}
                   placeholder="5000"
                   className="w-full text-sm bg-transparent outline-none border rounded-md px-2 py-1.5"
                   style={{ borderColor: "rgba(255,255,255,0.08)" }}
@@ -317,7 +360,10 @@ export default function DealDetailPage() {
                 <input
                   type="date"
                   value={closeDate}
-                  onChange={(e) => setCloseDate(e.target.value)}
+                  onChange={(e) => {
+                    setCloseDate(e.target.value);
+                    queueSave({ close_date_est: e.target.value || null }, { immediate: true });
+                  }}
                   className="w-full text-sm bg-transparent outline-none border rounded-md px-2 py-1.5"
                   style={{ borderColor: "rgba(255,255,255,0.08)" }}
                 />
@@ -329,7 +375,10 @@ export default function DealDetailPage() {
                 <input
                   type="text"
                   value={owner}
-                  onChange={(e) => setOwner(e.target.value)}
+                  onChange={(e) => {
+                    setOwner(e.target.value);
+                    queueSave({ owner: e.target.value.trim() || null });
+                  }}
                   placeholder="Justin"
                   className="w-full text-sm bg-transparent outline-none border rounded-md px-2 py-1.5"
                   style={{ borderColor: "rgba(255,255,255,0.08)" }}
@@ -345,7 +394,10 @@ export default function DealDetailPage() {
                 <input
                   type="text"
                   value={lostReason}
-                  onChange={(e) => setLostReason(e.target.value)}
+                  onChange={(e) => {
+                    setLostReason(e.target.value);
+                    queueSave({ lost_reason: e.target.value.trim() || null });
+                  }}
                   placeholder="Budget, timing, competitor..."
                   className="w-full text-sm bg-transparent outline-none border rounded-md px-2 py-1.5"
                   style={{ borderColor: "rgba(239,68,68,0.2)" }}
@@ -359,7 +411,10 @@ export default function DealDetailPage() {
               </p>
               <textarea
                 value={notes}
-                onChange={(e) => setNotes(e.target.value)}
+                onChange={(e) => {
+                  setNotes(e.target.value);
+                  queueSave({ notes: e.target.value.trim() || null });
+                }}
                 rows={6}
                 placeholder="Deal context, next steps, decisions made..."
                 className="w-full text-sm bg-transparent outline-none border rounded-md px-2 py-1.5 resize-vertical"
@@ -375,14 +430,7 @@ export default function DealDetailPage() {
               >
                 <Trash2 size={12} /> {confirmDelete ? "Confirm Delete" : "Delete Deal"}
               </button>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-wider rounded-md transition-colors hover:bg-[rgba(0,180,216,0.15)] disabled:opacity-50"
-                style={{ fontFamily: mono, color: "#00B4D8", border: "1px solid rgba(0,180,216,0.3)" }}
-              >
-                <Save size={12} /> {saving ? "Saving…" : "Save"}
-              </button>
+              <SaveStatus saving={saving} savedAt={savedAt} />
             </div>
           </div>
 
@@ -745,5 +793,41 @@ export default function DealDetailPage() {
         onCreated={fetchDeal}
       />
     </PageLayout>
+  );
+}
+
+function SaveStatus({ saving, savedAt }: { saving: boolean; savedAt: number | null }) {
+  const [tick, setTick] = useState(0);
+  // Re-render every 15s so "Saved Ns ago" stays fresh.
+  useEffect(() => {
+    if (!savedAt) return;
+    const t = setInterval(() => setTick((n) => n + 1), 15_000);
+    return () => clearInterval(t);
+  }, [savedAt, tick]);
+
+  if (saving) {
+    return (
+      <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider" style={{ color: "#00B4D8", fontFamily: mono }}>
+        <Loader2 size={11} className="animate-spin" /> Saving…
+      </span>
+    );
+  }
+  if (!savedAt) {
+    return (
+      <span className="text-[10px] uppercase tracking-wider" style={{ color: "rgba(245,245,245,0.35)", fontFamily: mono }}>
+        Auto-saved
+      </span>
+    );
+  }
+  const seconds = Math.max(1, Math.round((Date.now() - savedAt) / 1000));
+  const label = seconds < 60
+    ? `Saved ${seconds}s ago`
+    : seconds < 3600
+      ? `Saved ${Math.round(seconds / 60)}m ago`
+      : "Saved";
+  return (
+    <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider" style={{ color: "rgba(16,185,129,0.7)", fontFamily: mono }}>
+      <Check size={11} /> {label}
+    </span>
   );
 }
