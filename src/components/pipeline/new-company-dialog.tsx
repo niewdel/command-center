@@ -9,6 +9,26 @@ import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
 import type { CrmCompany } from "@/types/pipeline";
 
+/**
+ * Parse the registrable domain ("acme.com") from anything the user might
+ * paste — bare domain, full URL, or URL with a path. Returns null if we
+ * can't make sense of it. Both fields in the DB exist for lead-gen
+ * compatibility (Apollo returns them separately), but for manual entry
+ * we only ask for one input and derive the domain.
+ */
+function parseWebsiteAndDomain(input: string): { website: string | null; domain: string | null } {
+  const trimmed = input.trim();
+  if (!trimmed) return { website: null, domain: null };
+  const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  try {
+    const u = new URL(withScheme);
+    const domain = u.hostname.replace(/^www\./i, "").toLowerCase();
+    return { website: withScheme, domain };
+  } catch {
+    return { website: trimmed, domain: null };
+  }
+}
+
 export function NewCompanyDialog({
   open,
   onClose,
@@ -25,7 +45,6 @@ export function NewCompanyDialog({
 }) {
   const isEdit = !!company;
   const [name, setName] = useState("");
-  const [domain, setDomain] = useState("");
   const [website, setWebsite] = useState("");
   const [industry, setIndustry] = useState("");
   const [headcount, setHeadcount] = useState("");
@@ -38,8 +57,10 @@ export function NewCompanyDialog({
   useEffect(() => {
     if (open) {
       setName(company?.name ?? "");
-      setDomain(company?.domain ?? "");
-      setWebsite(company?.website ?? "");
+      // Pre-fill the single "Website" field from whichever is most useful:
+      // existing website URL preferred (it's the linkable form), falling
+      // back to the bare domain.
+      setWebsite(company?.website ?? company?.domain ?? "");
       setIndustry(company?.industry ?? "");
       setHeadcount(company?.headcount ? String(company.headcount) : "");
       setHq(company?.hq ?? "");
@@ -49,6 +70,8 @@ export function NewCompanyDialog({
     }
   }, [open, company]);
 
+  const { domain: previewDomain } = parseWebsiteAndDomain(website);
+
   const handleSubmit = async () => {
     if (!name.trim()) {
       setError("Name is required");
@@ -56,10 +79,11 @@ export function NewCompanyDialog({
     }
     setSubmitting(true);
     setError(null);
+    const { website: parsedWebsite, domain: parsedDomain } = parseWebsiteAndDomain(website);
     const payload = {
       name: name.trim(),
-      domain: domain.trim() || null,
-      website: website.trim() || null,
+      domain: parsedDomain,
+      website: parsedWebsite,
       industry: industry.trim() || null,
       headcount: headcount ? parseInt(headcount) : null,
       hq: hq.trim() || null,
@@ -102,15 +126,18 @@ export function NewCompanyDialog({
             <Label>Name *</Label>
             <Input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Acme Corp" />
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-1.5">
-              <Label>Domain</Label>
-              <Input value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="acme.com" />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Website</Label>
-              <Input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://acme.com" />
-            </div>
+          <div className="space-y-1.5">
+            <Label>Website</Label>
+            <Input
+              value={website}
+              onChange={(e) => setWebsite(e.target.value)}
+              placeholder="acme.com or https://acme.com"
+            />
+            {previewDomain && previewDomain !== website.trim() && (
+              <p className="text-[11px] text-muted-foreground">
+                Domain: <span className="font-mono">{previewDomain}</span>
+              </p>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1.5">
