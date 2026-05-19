@@ -187,11 +187,18 @@ export default function PipelinePage() {
                         {deal.company.name}
                       </p>
                     )}
-                    {deal.contact && (
-                      <p className="text-[10px] mt-0.5 truncate" style={{ color: "rgba(245,245,245,0.35)", fontFamily: mono }}>
-                        {deal.contact.full_name}
-                      </p>
-                    )}
+                    {deal.contact && (() => {
+                      const total = deal.contact_count?.[0]?.count ?? (deal.contact ? 1 : 0);
+                      const extras = Math.max(0, total - 1);
+                      return (
+                        <p className="text-[10px] mt-0.5 truncate" style={{ color: "rgba(245,245,245,0.35)", fontFamily: mono }}>
+                          {deal.contact.full_name}
+                          {extras > 0 && (
+                            <span style={{ color: "rgba(0,180,216,0.6)" }}> +{extras}</span>
+                          )}
+                        </p>
+                      );
+                    })()}
                     <div className="flex items-center justify-between mt-2 gap-2">
                       <span className="text-[10px] tabular-nums" style={{ color: "#00B4D8", fontFamily: mono }}>
                         {formatCurrency(deal.value_cents)}

@@ -78,4 +78,6 @@ export type CrmDeal = {
 export type DealWithLinks = CrmDeal & {
   company: Pick<CrmCompany, "id" | "name" | "domain" | "industry"> | null;
   contact: Pick<CrmContact, "id" | "full_name" | "title" | "email" | "phone"> | null;
+  /** PostgREST returns `[{ count: N }]` for the embedded count aggregate. */
+  contact_count?: { count: number }[];
 };

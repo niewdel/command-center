@@ -12,7 +12,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const { data, error } = await sb
     .from("crm_deals")
     .select(
-      "*, company:crm_companies(id, name, domain, website, industry, headcount, hq, notes), contact:crm_contacts(id, full_name, title, email, phone, linkedin_url, notes)"
+      `*,
+      company:crm_companies(id, name, domain, website, industry, headcount, hq, notes),
+      contact:crm_contacts!crm_deals_primary_contact_id_fkey(id, full_name, title, email, phone, linkedin_url, notes),
+      contacts:crm_deal_contacts(role, created_at, contact:crm_contacts(id, full_name, title, email, phone, linkedin_url, company:crm_companies(id, name)))`
     )
     .eq("workspace_id", workspace_id)
     .eq("id", id)

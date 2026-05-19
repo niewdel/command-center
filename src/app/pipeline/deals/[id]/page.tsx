@@ -3,18 +3,33 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Mail, Phone, ExternalLink, Trash2, Save, Upload, FileText, Video, X as XIcon } from "lucide-react";
+import { ArrowLeft, Mail, Phone, ExternalLink, Trash2, Save, Upload, FileText, Video, X as XIcon, Star, UserPlus } from "lucide-react";
 import { PageLayout } from "@/components/layout/page-layout";
 import { PipelineTabs } from "@/components/pipeline/pipeline-tabs";
 import { supabase } from "@/lib/supabase";
-import { DEAL_STAGES, STAGE_LABEL, STAGE_COLOR, type DealStage, type CrmDeal, type CrmCompany, type CrmContact } from "@/types/pipeline";
+import { DEAL_STAGES, STAGE_LABEL, STAGE_COLOR, type DealStage, type CrmDeal, type CrmCompany } from "@/types/pipeline";
 import { extractDriveFileId, getDriveThumbnailUrl } from "@/lib/google/drive-preview";
+import { ContactPickerDialog } from "@/components/pipeline/contact-picker-dialog";
 
 const mono = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
 
+type DealContactRow = {
+  role: string | null;
+  created_at: string;
+  contact: {
+    id: string;
+    full_name: string;
+    title: string | null;
+    email: string | null;
+    phone: string | null;
+    linkedin_url: string | null;
+    company: { id: string; name: string } | null;
+  };
+};
+
 type DealDetail = CrmDeal & {
   company: Pick<CrmCompany, "id" | "name" | "domain" | "website" | "industry" | "headcount" | "hq" | "notes"> | null;
-  contact: Pick<CrmContact, "id" | "full_name" | "title" | "email" | "phone" | "linkedin_url" | "notes"> | null;
+  contacts: DealContactRow[];
 };
 
 export default function DealDetailPage() {
@@ -42,6 +57,9 @@ export default function DealDetailPage() {
   const [proposalDraftUrl, setProposalDraftUrl] = useState("");
   const [fathomUrl, setFathomUrl] = useState("");
   const [uploadingProposal, setUploadingProposal] = useState(false);
+
+  // Contact picker
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const fetchDeal = useCallback(async () => {
     const res = await fetch(`/api/pipeline/deals/${id}`);
@@ -131,11 +149,44 @@ export default function DealDetailPage() {
     const ch = supabase
       .channel(`deal-${id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "crm_deals", filter: `id=eq.${id}` }, () => fetchDeal())
+      .on("postgres_changes", { event: "*", schema: "public", table: "crm_deal_contacts", filter: `deal_id=eq.${id}` }, () => fetchDeal())
       .subscribe();
     return () => {
       supabase.removeChannel(ch);
     };
   }, [id, fetchDeal]);
+
+  const handleAddContact = useCallback(
+    async (contactId: string) => {
+      await fetch(`/api/pipeline/deals/${id}/contacts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contact_id: contactId }),
+      });
+      await fetchDeal();
+    },
+    [id, fetchDeal]
+  );
+
+  const handleRemoveContact = useCallback(
+    async (contactId: string) => {
+      await fetch(`/api/pipeline/deals/${id}/contacts/${contactId}`, { method: "DELETE" });
+      await fetchDeal();
+    },
+    [id, fetchDeal]
+  );
+
+  const handleSetPrimary = useCallback(
+    async (contactId: string) => {
+      await fetch(`/api/pipeline/deals/${id}/contacts/${contactId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ set_primary: true }),
+      });
+      await fetchDeal();
+    },
+    [id, fetchDeal]
+  );
 
   const handleSave = async () => {
     setSaving(true);
@@ -505,42 +556,102 @@ export default function DealDetailPage() {
 
         {/* Right: linked entities */}
         <div className="space-y-3">
-          {deal.contact && (
-            <div
-              className="rounded-lg border p-4"
-              style={{ backgroundColor: "rgba(26,26,26,0.5)", borderColor: "rgba(255,255,255,0.06)" }}
-            >
-              <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: "rgba(0,180,216,0.5)", fontFamily: mono }}>
-                Primary Contact
+          <div
+            className="rounded-lg border p-4 space-y-3"
+            style={{ backgroundColor: "rgba(26,26,26,0.5)", borderColor: "rgba(255,255,255,0.06)" }}
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] uppercase tracking-wider" style={{ color: "rgba(0,180,216,0.5)", fontFamily: mono }}>
+                Contacts ({deal.contacts.length})
               </p>
-              <p className="text-sm font-semibold">{deal.contact.full_name}</p>
-              {deal.contact.title && (
-                <p className="text-[11px]" style={{ color: "rgba(245,245,245,0.5)" }}>{deal.contact.title}</p>
-              )}
-              <div className="mt-2 space-y-1 text-[11px]" style={{ color: "rgba(245,245,245,0.6)" }}>
-                {deal.contact.email && (
-                  <a href={`mailto:${deal.contact.email}`} className="flex items-center gap-2 hover:text-foreground">
-                    <Mail size={11} style={{ color: "#00B4D8" }} /> {deal.contact.email}
-                  </a>
-                )}
-                {deal.contact.phone && (
-                  <a href={`tel:${deal.contact.phone}`} className="flex items-center gap-2 hover:text-foreground">
-                    <Phone size={11} style={{ color: "#00B4D8" }} /> {deal.contact.phone}
-                  </a>
-                )}
-                {deal.contact.linkedin_url && (
-                  <a
-                    href={deal.contact.linkedin_url.startsWith("http") ? deal.contact.linkedin_url : `https://${deal.contact.linkedin_url}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center gap-2 hover:text-foreground"
-                  >
-                    <ExternalLink size={11} style={{ color: "#00B4D8" }} /> LinkedIn
-                  </a>
-                )}
-              </div>
+              <button
+                onClick={() => setPickerOpen(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1 text-[10px] uppercase tracking-wider rounded-md transition-colors hover:bg-[rgba(0,180,216,0.15)]"
+                style={{ fontFamily: mono, color: "#00B4D8", border: "1px solid rgba(0,180,216,0.3)" }}
+              >
+                <UserPlus size={11} /> Add
+              </button>
             </div>
-          )}
+
+            {deal.contacts.length === 0 ? (
+              <p className="text-[11px]" style={{ color: "rgba(245,245,245,0.4)", fontFamily: mono }}>
+                No contacts attached. Click Add to link a client to this deal.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {deal.contacts.map((dc) => {
+                  const c = dc.contact;
+                  const isPrimary = deal.primary_contact_id === c.id;
+                  return (
+                    <div
+                      key={c.id}
+                      className="rounded-md border p-2.5 group"
+                      style={{
+                        backgroundColor: isPrimary ? "rgba(0,180,216,0.04)" : "rgba(13,13,13,0.5)",
+                        borderColor: isPrimary ? "rgba(0,180,216,0.2)" : "rgba(255,255,255,0.06)",
+                      }}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-sm font-semibold truncate">{c.full_name}</p>
+                            {isPrimary && (
+                              <Star size={11} fill="#00B4D8" style={{ color: "#00B4D8" }} aria-label="Primary contact" />
+                            )}
+                          </div>
+                          <p className="text-[11px] truncate" style={{ color: "rgba(245,245,245,0.5)" }}>
+                            {[c.title, c.company?.name].filter(Boolean).join(" · ") || "—"}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {!isPrimary && (
+                            <button
+                              onClick={() => handleSetPrimary(c.id)}
+                              className="p-1 rounded hover:bg-[rgba(0,180,216,0.1)] transition-colors"
+                              title="Set as primary"
+                              aria-label="Set as primary contact"
+                            >
+                              <Star size={11} style={{ color: "rgba(0,180,216,0.7)" }} />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleRemoveContact(c.id)}
+                            className="p-1 rounded hover:bg-[rgba(239,68,68,0.1)] transition-colors"
+                            title="Remove from deal"
+                            aria-label="Remove contact from deal"
+                          >
+                            <XIcon size={11} style={{ color: "rgba(245,245,245,0.5)" }} />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="mt-1.5 space-y-0.5 text-[11px]" style={{ color: "rgba(245,245,245,0.55)" }}>
+                        {c.email && (
+                          <a href={`mailto:${c.email}`} className="flex items-center gap-1.5 hover:text-foreground">
+                            <Mail size={10} style={{ color: "#00B4D8" }} /> {c.email}
+                          </a>
+                        )}
+                        {c.phone && (
+                          <a href={`tel:${c.phone}`} className="flex items-center gap-1.5 hover:text-foreground">
+                            <Phone size={10} style={{ color: "#00B4D8" }} /> {c.phone}
+                          </a>
+                        )}
+                        {c.linkedin_url && (
+                          <a
+                            href={c.linkedin_url.startsWith("http") ? c.linkedin_url : `https://${c.linkedin_url}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex items-center gap-1.5 hover:text-foreground"
+                          >
+                            <ExternalLink size={10} style={{ color: "#00B4D8" }} /> LinkedIn
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
           {deal.company && (
             <div
@@ -570,6 +681,13 @@ export default function DealDetailPage() {
           )}
         </div>
       </div>
+
+      <ContactPickerDialog
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        excludeContactIds={deal.contacts.map((dc) => dc.contact.id)}
+        onPick={handleAddContact}
+      />
     </PageLayout>
   );
 }

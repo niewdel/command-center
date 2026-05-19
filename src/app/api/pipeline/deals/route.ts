@@ -11,7 +11,10 @@ export async function GET() {
   const { data, error } = await sb
     .from("crm_deals")
     .select(
-      "*, company:crm_companies(id, name, domain, industry), contact:crm_contacts(id, full_name, title, email, phone)"
+      `*,
+      company:crm_companies(id, name, domain, industry),
+      contact:crm_contacts!crm_deals_primary_contact_id_fkey(id, full_name, title, email, phone),
+      contact_count:crm_deal_contacts(count)`
     )
     .eq("workspace_id", workspace_id)
     .order("position", { ascending: true })
@@ -48,10 +51,24 @@ export async function POST(req: NextRequest) {
       owner: body.owner ?? null,
     })
     .select(
-      "*, company:crm_companies(id, name, domain, industry), contact:crm_contacts(id, full_name, title, email, phone)"
+      `*,
+      company:crm_companies(id, name, domain, industry),
+      contact:crm_contacts!crm_deals_primary_contact_id_fkey(id, full_name, title, email, phone)`
     )
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Seed the join table with the primary contact so /api/pipeline/deals/[id]
+  // returns consistent contacts on first fetch.
+  if (data?.primary_contact_id) {
+    await sb
+      .from("crm_deal_contacts")
+      .upsert(
+        { deal_id: data.id, contact_id: data.primary_contact_id, role: "Primary" },
+        { onConflict: "deal_id,contact_id" }
+      );
+  }
+
   return NextResponse.json({ data });
 }
