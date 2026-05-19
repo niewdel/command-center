@@ -3,13 +3,15 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Mail, Phone, ExternalLink, Trash2, Save, Upload, FileText, Video, X as XIcon, Star, UserPlus } from "lucide-react";
+import { ArrowLeft, Mail, Phone, ExternalLink, Trash2, Save, Upload, FileText, Video, X as XIcon, Star, UserPlus, Building, Repeat } from "lucide-react";
 import { PageLayout } from "@/components/layout/page-layout";
 import { PipelineTabs } from "@/components/pipeline/pipeline-tabs";
 import { supabase } from "@/lib/supabase";
-import { DEAL_STAGES, STAGE_LABEL, STAGE_COLOR, type DealStage, type CrmDeal, type CrmCompany } from "@/types/pipeline";
+import { DEAL_STAGES, STAGE_LABEL, STAGE_COLOR, type DealStage, type CrmDeal, type CrmCompany, type CrmContact } from "@/types/pipeline";
 import { extractDriveFileId, getDriveThumbnailUrl } from "@/lib/google/drive-preview";
 import { ContactPickerDialog } from "@/components/pipeline/contact-picker-dialog";
+import { CompanyPickerDialog } from "@/components/pipeline/company-picker-dialog";
+import { NewContactDialog } from "@/components/pipeline/new-contact-dialog";
 
 const mono = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
 
@@ -58,8 +60,10 @@ export default function DealDetailPage() {
   const [fathomUrl, setFathomUrl] = useState("");
   const [uploadingProposal, setUploadingProposal] = useState(false);
 
-  // Contact picker
+  // Contact picker / company picker / inline contact edit
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [companyPickerOpen, setCompanyPickerOpen] = useState(false);
+  const [editingContact, setEditingContact] = useState<CrmContact | null>(null);
 
   const fetchDeal = useCallback(async () => {
     const res = await fetch(`/api/pipeline/deals/${id}`);
@@ -182,6 +186,18 @@ export default function DealDetailPage() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ set_primary: true }),
+      });
+      await fetchDeal();
+    },
+    [id, fetchDeal]
+  );
+
+  const handleChangeCompany = useCallback(
+    async (companyId: string | null) => {
+      await fetch(`/api/pipeline/deals/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ crm_company_id: companyId }),
       });
       await fetchDeal();
     },
@@ -585,10 +601,20 @@ export default function DealDetailPage() {
                   return (
                     <div
                       key={c.id}
-                      className="rounded-md border p-2.5 group"
+                      className="rounded-md border p-2.5 group cursor-pointer transition-colors"
                       style={{
                         backgroundColor: isPrimary ? "rgba(0,180,216,0.04)" : "rgba(13,13,13,0.5)",
                         borderColor: isPrimary ? "rgba(0,180,216,0.2)" : "rgba(255,255,255,0.06)",
+                      }}
+                      onClick={() => {
+                        // Fetch fresh contact details (so edit dialog has notes,
+                        // first_name, etc. not just the trimmed embed shape).
+                        fetch("/api/pipeline/contacts")
+                          .then((r) => r.json())
+                          .then((j) => {
+                            const full = (j.data ?? []).find((row: CrmContact) => row.id === c.id);
+                            if (full) setEditingContact(full);
+                          });
                       }}
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -606,7 +632,7 @@ export default function DealDetailPage() {
                         <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                           {!isPrimary && (
                             <button
-                              onClick={() => handleSetPrimary(c.id)}
+                              onClick={(e) => { e.stopPropagation(); handleSetPrimary(c.id); }}
                               className="p-1 rounded hover:bg-[rgba(0,180,216,0.1)] transition-colors"
                               title="Set as primary"
                               aria-label="Set as primary contact"
@@ -615,7 +641,7 @@ export default function DealDetailPage() {
                             </button>
                           )}
                           <button
-                            onClick={() => handleRemoveContact(c.id)}
+                            onClick={(e) => { e.stopPropagation(); handleRemoveContact(c.id); }}
                             className="p-1 rounded hover:bg-[rgba(239,68,68,0.1)] transition-colors"
                             title="Remove from deal"
                             aria-label="Remove contact from deal"
@@ -626,12 +652,12 @@ export default function DealDetailPage() {
                       </div>
                       <div className="mt-1.5 space-y-0.5 text-[11px]" style={{ color: "rgba(245,245,245,0.55)" }}>
                         {c.email && (
-                          <a href={`mailto:${c.email}`} className="flex items-center gap-1.5 hover:text-foreground">
+                          <a href={`mailto:${c.email}`} onClick={(e) => e.stopPropagation()} className="flex items-center gap-1.5 hover:text-foreground">
                             <Mail size={10} style={{ color: "#00B4D8" }} /> {c.email}
                           </a>
                         )}
                         {c.phone && (
-                          <a href={`tel:${c.phone}`} className="flex items-center gap-1.5 hover:text-foreground">
+                          <a href={`tel:${c.phone}`} onClick={(e) => e.stopPropagation()} className="flex items-center gap-1.5 hover:text-foreground">
                             <Phone size={10} style={{ color: "#00B4D8" }} /> {c.phone}
                           </a>
                         )}
@@ -640,6 +666,7 @@ export default function DealDetailPage() {
                             href={c.linkedin_url.startsWith("http") ? c.linkedin_url : `https://${c.linkedin_url}`}
                             target="_blank"
                             rel="noreferrer"
+                            onClick={(e) => e.stopPropagation()}
                             className="flex items-center gap-1.5 hover:text-foreground"
                           >
                             <ExternalLink size={10} style={{ color: "#00B4D8" }} /> LinkedIn
@@ -653,32 +680,47 @@ export default function DealDetailPage() {
             )}
           </div>
 
-          {deal.company && (
-            <div
-              className="rounded-lg border p-4"
-              style={{ backgroundColor: "rgba(26,26,26,0.5)", borderColor: "rgba(255,255,255,0.06)" }}
-            >
-              <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: "rgba(0,180,216,0.5)", fontFamily: mono }}>
+          <div
+            className="rounded-lg border p-4"
+            style={{ backgroundColor: "rgba(26,26,26,0.5)", borderColor: "rgba(255,255,255,0.06)" }}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[10px] uppercase tracking-wider" style={{ color: "rgba(0,180,216,0.5)", fontFamily: mono }}>
                 Company
               </p>
-              <p className="text-sm font-semibold">{deal.company.name}</p>
-              <div className="mt-1 space-y-0.5 text-[11px]" style={{ color: "rgba(245,245,245,0.5)" }}>
-                {deal.company.industry && <p>{deal.company.industry}</p>}
-                {deal.company.hq && <p>{deal.company.hq}</p>}
-                {deal.company.headcount && <p>{deal.company.headcount} employees</p>}
-                {deal.company.website && (
-                  <a
-                    href={deal.company.website.startsWith("http") ? deal.company.website : `https://${deal.company.website}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center gap-1 hover:text-foreground"
-                  >
-                    <ExternalLink size={10} style={{ color: "#00B4D8" }} /> {deal.company.domain ?? "Website"}
-                  </a>
-                )}
-              </div>
+              <button
+                onClick={() => setCompanyPickerOpen(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1 text-[10px] uppercase tracking-wider rounded-md transition-colors hover:bg-[rgba(0,180,216,0.15)]"
+                style={{ fontFamily: mono, color: "#00B4D8", border: "1px solid rgba(0,180,216,0.3)" }}
+              >
+                {deal.company ? <><Repeat size={11} /> Change</> : <><Building size={11} /> Set</>}
+              </button>
             </div>
-          )}
+            {deal.company ? (
+              <>
+                <p className="text-sm font-semibold">{deal.company.name}</p>
+                <div className="mt-1 space-y-0.5 text-[11px]" style={{ color: "rgba(245,245,245,0.5)" }}>
+                  {deal.company.industry && <p>{deal.company.industry}</p>}
+                  {deal.company.hq && <p>{deal.company.hq}</p>}
+                  {deal.company.headcount && <p>{deal.company.headcount} employees</p>}
+                  {deal.company.website && (
+                    <a
+                      href={deal.company.website.startsWith("http") ? deal.company.website : `https://${deal.company.website}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-1 hover:text-foreground"
+                    >
+                      <ExternalLink size={10} style={{ color: "#00B4D8" }} /> {deal.company.domain ?? "Website"}
+                    </a>
+                  )}
+                </div>
+              </>
+            ) : (
+              <p className="text-[11px]" style={{ color: "rgba(245,245,245,0.4)", fontFamily: mono }}>
+                No company linked. Click Set to attach one.
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
@@ -687,6 +729,20 @@ export default function DealDetailPage() {
         onClose={() => setPickerOpen(false)}
         excludeContactIds={deal.contacts.map((dc) => dc.contact.id)}
         onPick={handleAddContact}
+      />
+
+      <CompanyPickerDialog
+        open={companyPickerOpen}
+        onClose={() => setCompanyPickerOpen(false)}
+        currentCompanyId={deal.crm_company_id}
+        onPick={handleChangeCompany}
+      />
+
+      <NewContactDialog
+        open={!!editingContact}
+        contact={editingContact}
+        onClose={() => setEditingContact(null)}
+        onCreated={fetchDeal}
       />
     </PageLayout>
   );
