@@ -9,7 +9,9 @@ export async function GET() {
 
   const { data, error } = await sb
     .from("crm_contacts")
-    .select("*, company:crm_companies(id, name, domain, industry), deals:crm_deals(id, stage, value_cents)")
+    .select(
+      "*, company:crm_companies(id, name, domain, industry), deals:crm_deals!crm_deals_primary_contact_id_fkey(id, stage, value_cents)"
+    )
     .eq("workspace_id", workspace_id)
     .order("full_name", { ascending: true });
 

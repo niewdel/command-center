@@ -49,7 +49,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     .eq("workspace_id", workspace_id)
     .eq("id", id)
     .select(
-      "*, company:crm_companies(id, name, domain, industry), contact:crm_contacts(id, full_name, title, email, phone)"
+      "*, company:crm_companies(id, name, domain, industry), contact:crm_contacts!crm_deals_primary_contact_id_fkey(id, full_name, title, email, phone)"
     )
     .single();
 
