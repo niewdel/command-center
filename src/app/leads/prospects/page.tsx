@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Mail,
   CheckCircle,
@@ -14,6 +15,7 @@ import {
   Search,
   Sparkles,
   RefreshCw,
+  KanbanSquare,
 } from "lucide-react";
 import { PageLayout } from "@/components/layout/page-layout";
 import { LeadsTabs } from "@/components/leads/leads-tabs";
@@ -41,11 +43,27 @@ const STEP_LABEL: Record<string, string> = {
 const FILTERS: Array<Status | "all"> = ["all", "replied", "opened", "sent", "queued", "bounced"];
 
 export default function ProspectsPage() {
+  const router = useRouter();
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Status | "all">("all");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [activeEmail, setActiveEmail] = useState(0);
+  const [promotingId, setPromotingId] = useState<string | null>(null);
+
+  const handlePromote = useCallback(async (prospectId: string) => {
+    setPromotingId(prospectId);
+    const res = await fetch("/api/pipeline/promote", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prospect_contact_id: prospectId }),
+    });
+    const json = await res.json();
+    setPromotingId(null);
+    if (res.ok && json.deal_id) {
+      router.push(`/pipeline/deals/${json.deal_id}`);
+    }
+  }, [router]);
 
   const fetchProspects = useCallback(async () => {
     setLoading(true);
@@ -177,11 +195,13 @@ export default function ProspectsPage() {
               p={p}
               isExpanded={expanded === p.id}
               activeEmail={activeEmail}
+              promoting={promotingId === p.id}
               onToggle={() => {
                 setExpanded(expanded === p.id ? null : p.id);
                 setActiveEmail(0);
               }}
               onPickEmail={setActiveEmail}
+              onPromote={() => handlePromote(p.id)}
             />
           ))}
         </div>
@@ -194,14 +214,18 @@ function ProspectCard({
   p,
   isExpanded,
   activeEmail,
+  promoting,
   onToggle,
   onPickEmail,
+  onPromote,
 }: {
   p: Prospect;
   isExpanded: boolean;
   activeEmail: number;
+  promoting: boolean;
   onToggle: () => void;
   onPickEmail: (i: number) => void;
+  onPromote: () => void;
 }) {
   const st = statusConfig[p.status];
   const scoreColor = p.score >= 85 ? "#10B981" : p.score >= 60 ? "#F59E0B" : "rgba(245,245,245,0.4)";
@@ -257,6 +281,20 @@ function ProspectCard({
           className="rounded-b-lg border border-t-0 p-5"
           style={{ backgroundColor: "rgba(13,13,13,0.8)", borderColor: "rgba(0,180,216,0.2)" }}
         >
+          <div className="flex items-center justify-end mb-4">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onPromote();
+              }}
+              disabled={promoting}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-wider rounded-md transition-colors hover:bg-[rgba(0,180,216,0.15)] disabled:opacity-60 disabled:cursor-not-allowed"
+              style={{ fontFamily: mono, color: "#00B4D8", border: "1px solid rgba(0,180,216,0.3)" }}
+            >
+              <KanbanSquare size={12} />
+              {promoting ? "Adding…" : "Add to Pipeline"}
+            </button>
+          </div>
           <div className="grid md:grid-cols-2 gap-6">
             {/* Left: Contact + Company */}
             <div className="space-y-4">

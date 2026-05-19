@@ -22,6 +22,7 @@ import {
   Gauge,
   TrendingUp,
   Clapperboard,
+  KanbanSquare,
 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -45,6 +46,7 @@ const agentsNav = [
 
 const toolsNav = [
   { name: "Lead Gen", href: "/leads", icon: Users },
+  { name: "Pipeline", href: "/pipeline", icon: KanbanSquare },
   { name: "Website Scoring", href: "/audits", icon: Gauge },
   { name: "Expenses", href: "/expenses", icon: DollarSign },
   { name: "Creator Hub", href: "/creator", icon: Clapperboard },
