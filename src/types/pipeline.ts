@@ -1,4 +1,12 @@
-export const DEAL_STAGES = ["discovery", "scope", "proposal", "build", "live", "lost"] as const;
+export const DEAL_STAGES = [
+  "discovery",
+  "scope",
+  "proposal",
+  "build",
+  "live",
+  "lost",
+  "disqualified",
+] as const;
 export type DealStage = (typeof DEAL_STAGES)[number];
 
 export const STAGE_LABEL: Record<DealStage, string> = {
@@ -8,6 +16,7 @@ export const STAGE_LABEL: Record<DealStage, string> = {
   build: "Build",
   live: "Live",
   lost: "Lost",
+  disqualified: "Disqualified",
 };
 
 export const STAGE_COLOR: Record<DealStage, string> = {
@@ -17,6 +26,9 @@ export const STAGE_COLOR: Record<DealStage, string> = {
   build: "#3B82F6",
   live: "#10B981",
   lost: "#EF4444",
+  // Slate — distinct from lost's red because "we walked away (wrong fit)"
+  // is a different signal than "we lost the deal."
+  disqualified: "#71717A",
 };
 
 export const ACTIVE_STAGES: DealStage[] = ["discovery", "scope", "proposal", "build"];

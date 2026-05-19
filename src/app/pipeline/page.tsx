@@ -65,7 +65,7 @@ export default function PipelinePage() {
     : deals;
 
   const dealsByStage: Record<DealStage, DealWithLinks[]> = {
-    discovery: [], scope: [], proposal: [], build: [], live: [], lost: [],
+    discovery: [], scope: [], proposal: [], build: [], live: [], lost: [], disqualified: [],
   };
   for (const d of filtered) dealsByStage[d.stage].push(d);
 
@@ -126,7 +126,7 @@ export default function PipelinePage() {
       </div>
 
       {/* Kanban */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-2">
         {DEAL_STAGES.map((stage) => {
           const stageDeals = dealsByStage[stage];
           const stageTotal = stageDeals.reduce((s, d) => s + (d.value_cents ?? 0), 0);
