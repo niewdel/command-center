@@ -143,7 +143,7 @@ export default function PipelinePage() {
                   setDragId(null);
                 }
               }}
-              className="rounded-lg p-2 min-h-[200px]"
+              className="rounded-lg p-2 min-h-[60vh]"
               style={{
                 backgroundColor: "rgba(13,13,13,0.5)",
                 border: "1px solid rgba(255,255,255,0.04)",
