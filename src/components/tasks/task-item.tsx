@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Task, Workspace, Project } from "@/types/database";
-import { cn } from "@/lib/utils";
+import { cn, localDateString } from "@/lib/utils";
 import { MoreHorizontal, Pencil, Trash2, Star, ArrowRight, FolderKanban } from "lucide-react";
 import {
   DropdownMenu,
@@ -39,7 +39,7 @@ export function TaskItem({
   showWorkspace = true,
 }: TaskItemProps) {
   const isDone = task.status === "done";
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = localDateString();
   const isOverdue = task.due_date && task.due_date < todayStr && !isDone;
   const [completing, setCompleting] = useState(false);
   const [hidden, setHidden] = useState(false);

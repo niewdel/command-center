@@ -18,7 +18,7 @@ import { calculateCapacityWithEvents } from "@/lib/capacity";
 import { useTaskActions } from "@/lib/hooks/use-task-actions";
 import { KanbanBoard } from "@/components/tasks/kanban-board";
 import { ViewToggle } from "@/components/tasks/view-toggle";
-import { cn } from "@/lib/utils";
+import { cn, localDateString } from "@/lib/utils";
 import {
   Sunrise,
   Moon,
@@ -31,7 +31,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const today = () => new Date().toISOString().split("T")[0];
+const today = () => localDateString();
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -166,7 +166,7 @@ function DashboardContent() {
     setLoading(false);
 
     // Auto-expand backlog if nothing is planned for today
-    const todayDate = new Date().toISOString().split("T")[0];
+    const todayDate = localDateString();
     const hasPlanned = (t || []).some((task) => task.planned_date === todayDate && task.status !== "done");
     if (!hasPlanned) setShowBacklog(true);
   }, []);
@@ -248,7 +248,10 @@ function DashboardContent() {
   );
 
   const completedToday = filteredTasks.filter(
-    (t) => t.status === "done" && t.completed_at && t.completed_at.split("T")[0] === todayStr
+    (t) =>
+      t.status === "done" &&
+      t.completed_at &&
+      localDateString(new Date(t.completed_at)) === todayStr
   );
 
   const backlog = filteredTasks.filter(

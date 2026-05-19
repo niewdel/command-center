@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ESTIMATE_PRESETS } from "@/lib/capacity";
-import { cn } from "@/lib/utils";
+import { cn, localDateString } from "@/lib/utils";
 import { Zap } from "lucide-react";
 
 type QuickAddDialogProps = {
@@ -38,7 +38,7 @@ export function QuickAddDialog({ open, onClose }: QuickAddDialogProps) {
   const [estimateMinutes, setEstimateMinutes] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = localDateString();
 
   useEffect(() => {
     if (open && workspaces.length === 0) {

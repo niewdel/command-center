@@ -1,4 +1,5 @@
 import { Task, UserSettings, CalendarEvent } from "@/types/database";
+import { localDateString } from "@/lib/utils";
 
 export type CapacityLevel = "green" | "yellow" | "red";
 
@@ -35,7 +36,7 @@ export function calculateCapacity(
   date: Date,
   settings?: UserSettings | null
 ): CapacityInfo {
-  const todayStr = date.toISOString().split("T")[0];
+  const todayStr = localDateString(date);
   const plannedTasks = tasks.filter(
     (t) => t.planned_date === todayStr && t.status !== "done"
   );

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { localDateString } from "@/lib/utils";
 
 type NotificationCheck = {
   overdue: number;
@@ -16,7 +17,7 @@ export function useNotifications(enabled: boolean) {
     if (!enabled || Notification.permission !== "granted") return;
 
     const now = new Date();
-    const todayStr = now.toISOString().split("T")[0];
+    const todayStr = localDateString(now);
     const checkKey = `${todayStr}-${now.getHours()}`;
 
     // Don't spam — only check once per hour-block

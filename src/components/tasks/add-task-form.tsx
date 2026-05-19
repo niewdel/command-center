@@ -13,7 +13,7 @@ import {
 import { Plus, Zap } from "lucide-react";
 import { Workspace } from "@/types/database";
 import { ESTIMATE_PRESETS } from "@/lib/capacity";
-import { cn } from "@/lib/utils";
+import { cn, localDateString } from "@/lib/utils";
 
 type AddTaskFormProps = {
   workspaces: Workspace[];
@@ -44,7 +44,7 @@ export function AddTaskForm({
   const [estimateMinutes, setEstimateMinutes] = useState<number | null>(null);
   const [expanded, setExpanded] = useState(false);
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = localDateString();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

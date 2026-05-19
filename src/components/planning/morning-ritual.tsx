@@ -8,7 +8,7 @@ import { CapacityBar } from "@/components/dashboard/capacity-bar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { cn } from "@/lib/utils";
+import { cn, localDateString } from "@/lib/utils";
 import {
   AlertCircle,
   ArrowRight,
@@ -31,7 +31,7 @@ type MorningRitualProps = {
   onCancel: () => void;
 };
 
-const todayStr = () => new Date().toISOString().split("T")[0];
+const todayStr = () => localDateString();
 
 type TriageAction = "today" | "reschedule" | "drop";
 
@@ -876,7 +876,7 @@ function TriageCard({
         <Input
           type="date"
           autoFocus
-          min={new Date().toISOString().split("T")[0]}
+          min={localDateString()}
           onChange={(e) => onAction("reschedule", e.target.value)}
           className="w-[180px] bg-background/50 border-border/50 rounded-lg h-9 text-xs"
         />

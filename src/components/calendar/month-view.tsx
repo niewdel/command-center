@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { CalendarEvent } from "@/types/database";
-import { cn } from "@/lib/utils";
+import { cn, localDateString } from "@/lib/utils";
 
 type MonthViewProps = {
   events: CalendarEvent[];
@@ -47,9 +47,9 @@ function getMonthGrid(year: number, month: number) {
 }
 
 function getDayEvents(events: CalendarEvent[], date: Date) {
-  const dayStr = date.toISOString().split("T")[0];
+  const dayStr = localDateString(date);
   return events.filter((e) => {
-    const eventDate = new Date(e.start_time).toISOString().split("T")[0];
+    const eventDate = localDateString(new Date(e.start_time));
     return eventDate === dayStr;
   });
 }
@@ -67,8 +67,8 @@ export function MonthView({
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const todayStr = today.toISOString().split("T")[0];
-  const selectedStr = selectedDate.toISOString().split("T")[0];
+  const todayStr = localDateString(today);
+  const selectedStr = localDateString(selectedDate);
 
   return (
     <div className="rounded-lg border border-border/40 overflow-hidden">
@@ -89,7 +89,7 @@ export function MonthView({
         <div key={wi} className="grid grid-cols-7 border-b border-border/10 last:border-b-0">
           {week.map((date) => {
             if (!date) return <div key="null" />;
-            const dateStr = date.toISOString().split("T")[0];
+            const dateStr = localDateString(date);
             const isToday = dateStr === todayStr;
             const isSelected = dateStr === selectedStr;
             const isCurrentMonth = date.getMonth() === month;

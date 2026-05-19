@@ -1,4 +1,5 @@
 import { RoutineTemplate, RoutineBlock, CalendarEvent } from "@/types/database";
+import { localDateString } from "@/lib/utils";
 
 export function getRoutineForDate(
   _date: Date,
@@ -12,7 +13,7 @@ export function routineBlocksToEvents(
   blocks: RoutineBlock[],
   date: Date
 ): CalendarEvent[] {
-  const dateStr = date.toISOString().split("T")[0];
+  const dateStr = localDateString(date);
 
   return blocks.map((block) => {
     const [startH, startM] = block.start_time.split(":").map(Number);

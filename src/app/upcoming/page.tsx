@@ -6,14 +6,14 @@ import { Task, Workspace, Project, CalendarEvent } from "@/types/database";
 import { TaskItem } from "@/components/tasks/task-item";
 import { EditTaskDialog } from "@/components/tasks/edit-task-dialog";
 import { EventDetail } from "@/components/calendar/event-detail";
-import { cn } from "@/lib/utils";
+import { cn, localDateString } from "@/lib/utils";
 import { PageLayout } from "@/components/layout/page-layout";
 import { CalendarDays, Video, MapPin, Clock } from "lucide-react";
 
 function getDateStr(offset: number) {
   const d = new Date();
   d.setDate(d.getDate() + offset);
-  return d.toISOString().split("T")[0];
+  return localDateString(d);
 }
 
 function formatDayLabel(dateStr: string) {
@@ -179,7 +179,7 @@ export default function UpcomingPage() {
     eventsByDay.set(day, []);
   }
   for (const event of calendarEvents) {
-    const eventDate = new Date(event.start_time).toISOString().split("T")[0];
+    const eventDate = localDateString(new Date(event.start_time));
     if (eventsByDay.has(eventDate)) {
       eventsByDay.get(eventDate)!.push(event);
     }

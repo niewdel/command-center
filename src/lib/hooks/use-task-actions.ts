@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { Task } from "@/types/database";
 import { parseRecurrenceRule, computeNextOccurrence } from "@/lib/recurrence";
+import { localDateString } from "@/lib/utils";
 
 export function useTaskActions(
   tasks: Task[],
@@ -23,7 +24,7 @@ export function useTaskActions(
       if (done && task?.is_recurring && task.recurrence_rule) {
         const rule = parseRecurrenceRule(task.recurrence_rule);
         if (rule) {
-          const todayStr = new Date().toISOString().split("T")[0];
+          const todayStr = localDateString();
           const nextDate = computeNextOccurrence(todayStr, rule);
 
           await supabase.from("tasks").insert({

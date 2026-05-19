@@ -16,7 +16,7 @@ import { useDroppable } from "@dnd-kit/core";
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { Task, Workspace } from "@/types/database";
-import { cn } from "@/lib/utils";
+import { cn, localDateString } from "@/lib/utils";
 import { formatMinutes } from "@/lib/capacity";
 import { GripVertical, Clock, Repeat } from "lucide-react";
 
@@ -113,7 +113,7 @@ function KanbanCard({
           <span
             className={cn(
               "text-[10px]",
-              task.due_date < new Date().toISOString().split("T")[0]
+              task.due_date < localDateString()
                 ? "text-red-400"
                 : "text-muted-foreground/60"
             )}

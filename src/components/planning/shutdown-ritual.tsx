@@ -6,7 +6,7 @@ import { Task, Workspace, UserSettings } from "@/types/database";
 import { formatMinutes } from "@/lib/capacity";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+import { cn, localDateString } from "@/lib/utils";
 import {
   ArrowRight,
   ArrowLeft,
@@ -27,7 +27,7 @@ type ShutdownRitualProps = {
   onCancel: () => void;
 };
 
-const todayStr = () => new Date().toISOString().split("T")[0];
+const todayStr = () => localDateString();
 
 type CarryAction = "tomorrow" | "reschedule" | "drop";
 
@@ -48,13 +48,13 @@ export function ShutdownRitual({
   const [saving, setSaving] = useState(false);
 
   const td = todayStr();
-  const tomorrowStr = new Date(Date.now() + 86400000).toISOString().split("T")[0];
+  const tomorrowStr = localDateString(new Date(Date.now() + 86400000));
   const workspaceMap = Object.fromEntries(workspaces.map((w) => [w.id, w]));
 
   const completedToday = useMemo(
     () =>
       tasks.filter(
-        (t) => t.status === "done" && t.completed_at && t.completed_at.split("T")[0] === td
+        (t) => t.status === "done" && t.completed_at && localDateString(new Date(t.completed_at)) === td
       ),
     [tasks, td]
   );
