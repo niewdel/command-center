@@ -1,12 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Building, ExternalLink, Plus } from "lucide-react";
+import { Building, ExternalLink, Plus, Pencil } from "lucide-react";
 import { PageLayout } from "@/components/layout/page-layout";
 import { PipelineTabs } from "@/components/pipeline/pipeline-tabs";
 import { supabase } from "@/lib/supabase";
 import { NewCompanyDialog } from "@/components/pipeline/new-company-dialog";
-import { STAGE_COLOR, type DealStage } from "@/types/pipeline";
+import { STAGE_COLOR, type DealStage, type CrmCompany } from "@/types/pipeline";
 
 const mono = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
 
@@ -15,14 +15,7 @@ function formatCurrency(cents: number | null): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(cents / 100);
 }
 
-type CompanyRow = {
-  id: string;
-  name: string;
-  domain: string | null;
-  website: string | null;
-  industry: string | null;
-  headcount: number | null;
-  hq: string | null;
+type CompanyRow = CrmCompany & {
   contacts: { count: number }[];
   deals: { id: string; stage: DealStage; value_cents: number | null }[];
 };
@@ -32,6 +25,7 @@ export default function CompaniesPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [addOpen, setAddOpen] = useState(false);
+  const [editing, setEditing] = useState<CrmCompany | null>(null);
 
   const fetchCompanies = useCallback(async () => {
     const res = await fetch("/api/pipeline/companies");
@@ -100,8 +94,9 @@ export default function CompaniesPage() {
             return (
               <li
                 key={c.id}
-                className="p-3 rounded-lg border"
+                className="p-3 rounded-lg border group transition-colors hover:border-[rgba(0,180,216,0.25)] cursor-pointer"
                 style={{ backgroundColor: "rgba(26,26,26,0.5)", borderColor: "rgba(255,255,255,0.06)" }}
+                onClick={() => setEditing(c)}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
@@ -115,6 +110,7 @@ export default function CompaniesPage() {
                           href={c.website.startsWith("http") ? c.website : `https://${c.website}`}
                           target="_blank"
                           rel="noreferrer"
+                          onClick={(e) => e.stopPropagation()}
                           className="flex items-center gap-1 hover:text-foreground"
                         >
                           <ExternalLink size={10} style={{ color: "#00B4D8" }} />
@@ -123,18 +119,26 @@ export default function CompaniesPage() {
                       )}
                     </div>
                   </div>
-                  <div className="text-right shrink-0 space-y-0.5">
-                    <p className="text-[10px] uppercase tracking-wider" style={{ color: "rgba(245,245,245,0.4)", fontFamily: mono }}>
-                      {contactCount} contact{contactCount === 1 ? "" : "s"}
-                    </p>
-                    <p className="text-[10px] uppercase tracking-wider" style={{ color: "#00B4D8", fontFamily: mono }}>
-                      {activeDeals.length} deal{activeDeals.length === 1 ? "" : "s"}
-                    </p>
-                    {totalValue > 0 && (
-                      <p className="text-[10px] tabular-nums" style={{ color: STAGE_COLOR.live, fontFamily: mono }}>
-                        {formatCurrency(totalValue)}
+                  <div className="flex items-start gap-2 shrink-0">
+                    <div className="text-right space-y-0.5">
+                      <p className="text-[10px] uppercase tracking-wider" style={{ color: "rgba(245,245,245,0.4)", fontFamily: mono }}>
+                        {contactCount} contact{contactCount === 1 ? "" : "s"}
                       </p>
-                    )}
+                      <p className="text-[10px] uppercase tracking-wider" style={{ color: "#00B4D8", fontFamily: mono }}>
+                        {activeDeals.length} deal{activeDeals.length === 1 ? "" : "s"}
+                      </p>
+                      {totalValue > 0 && (
+                        <p className="text-[10px] tabular-nums" style={{ color: STAGE_COLOR.live, fontFamily: mono }}>
+                          {formatCurrency(totalValue)}
+                        </p>
+                      )}
+                    </div>
+                    <Pencil
+                      size={12}
+                      className="opacity-0 group-hover:opacity-60 transition-opacity mt-0.5"
+                      style={{ color: "rgba(245,245,245,0.7)" }}
+                      aria-hidden
+                    />
                   </div>
                 </div>
               </li>
@@ -144,6 +148,12 @@ export default function CompaniesPage() {
       )}
 
       <NewCompanyDialog open={addOpen} onClose={() => setAddOpen(false)} onCreated={fetchCompanies} />
+      <NewCompanyDialog
+        open={!!editing}
+        company={editing}
+        onClose={() => setEditing(null)}
+        onCreated={fetchCompanies}
+      />
     </PageLayout>
   );
 }

@@ -1,21 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Trash2 } from "lucide-react";
+import type { CrmCompany } from "@/types/pipeline";
 
 export function NewCompanyDialog({
   open,
   onClose,
   onCreated,
+  company,
 }: {
   open: boolean;
   onClose: () => void;
   onCreated: () => void;
+  /** When provided, the dialog acts as an edit form (PATCH) instead of create (POST). */
+  company?: CrmCompany | null;
 }) {
+  const isEdit = !!company;
   const [name, setName] = useState("");
   const [domain, setDomain] = useState("");
   const [website, setWebsite] = useState("");
@@ -25,6 +31,21 @@ export function NewCompanyDialog({
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setName(company?.name ?? "");
+      setDomain(company?.domain ?? "");
+      setWebsite(company?.website ?? "");
+      setIndustry(company?.industry ?? "");
+      setHeadcount(company?.headcount ? String(company.headcount) : "");
+      setHq(company?.hq ?? "");
+      setNotes(company?.notes ?? "");
+      setError(null);
+      setConfirmDelete(false);
+    }
+  }, [open, company]);
 
   const handleSubmit = async () => {
     if (!name.trim()) {
@@ -33,35 +54,46 @@ export function NewCompanyDialog({
     }
     setSubmitting(true);
     setError(null);
-    const res = await fetch("/api/pipeline/companies", {
-      method: "POST",
+    const payload = {
+      name: name.trim(),
+      domain: domain.trim() || null,
+      website: website.trim() || null,
+      industry: industry.trim() || null,
+      headcount: headcount ? parseInt(headcount) : null,
+      hq: hq.trim() || null,
+      notes: notes.trim() || null,
+    };
+    const url = isEdit ? `/api/pipeline/companies/${company!.id}` : "/api/pipeline/companies";
+    const method = isEdit ? "PATCH" : "POST";
+    const res = await fetch(url, {
+      method,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: name.trim(),
-        domain: domain.trim() || null,
-        website: website.trim() || null,
-        industry: industry.trim() || null,
-        headcount: headcount ? parseInt(headcount) : null,
-        hq: hq.trim() || null,
-        notes: notes.trim() || null,
-      }),
+      body: JSON.stringify(payload),
     });
     setSubmitting(false);
     if (!res.ok) {
-      const j = await res.json();
-      setError(j.error ?? "Failed to add company");
+      const j = await res.json().catch(() => ({}));
+      setError(j.error ?? `Failed to ${isEdit ? "save" : "add"} company`);
       return;
     }
-    setName(""); setDomain(""); setWebsite(""); setIndustry(""); setHeadcount(""); setHq(""); setNotes("");
     onCreated();
     onClose();
+  };
+
+  const handleDelete = async () => {
+    if (!company) return;
+    const res = await fetch(`/api/pipeline/companies/${company.id}`, { method: "DELETE" });
+    if (res.ok) {
+      onCreated();
+      onClose();
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[440px]">
         <DialogHeader>
-          <DialogTitle>Add Company</DialogTitle>
+          <DialogTitle>{isEdit ? "Edit Company" : "Add Company"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3 py-2">
           <div className="space-y-1.5">
@@ -98,10 +130,40 @@ export function NewCompanyDialog({
           </div>
           {error && <p className="text-xs text-red-400">{error}</p>}
         </div>
-        <DialogFooter>
+        <DialogFooter className="gap-2">
+          {isEdit && (
+            <div className="mr-auto">
+              {confirmDelete ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-red-400">Delete?</span>
+                  <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(false)} className="h-7 text-xs">
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleDelete}
+                    className="h-7 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                  >
+                    Confirm
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setConfirmDelete(true)}
+                  className="h-7 text-xs text-muted-foreground hover:text-red-400 gap-1"
+                >
+                  <Trash2 className="size-3" />
+                  Delete
+                </Button>
+              )}
+            </div>
+          )}
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
           <Button onClick={handleSubmit} disabled={submitting || !name.trim()}>
-            {submitting ? "Adding…" : "Add Company"}
+            {submitting ? (isEdit ? "Saving…" : "Adding…") : isEdit ? "Save" : "Add Company"}
           </Button>
         </DialogFooter>
       </DialogContent>

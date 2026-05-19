@@ -1,22 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Mail, Phone, ExternalLink, UserPlus, Users as UsersIcon } from "lucide-react";
+import { Mail, Phone, ExternalLink, UserPlus, Users as UsersIcon, Pencil } from "lucide-react";
 import { PageLayout } from "@/components/layout/page-layout";
 import { PipelineTabs } from "@/components/pipeline/pipeline-tabs";
 import { supabase } from "@/lib/supabase";
 import { NewContactDialog } from "@/components/pipeline/new-contact-dialog";
-import { STAGE_LABEL, STAGE_COLOR, type DealStage } from "@/types/pipeline";
+import { STAGE_LABEL, STAGE_COLOR, type DealStage, type CrmContact } from "@/types/pipeline";
 
 const mono = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
 
-type ClientRow = {
-  id: string;
-  full_name: string;
-  title: string | null;
-  email: string | null;
-  phone: string | null;
-  linkedin_url: string | null;
+type ClientRow = CrmContact & {
   company: { id: string; name: string; domain: string | null; industry: string | null } | null;
   deals: { id: string; stage: DealStage; value_cents: number | null }[];
 };
@@ -26,6 +20,7 @@ export default function ClientsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [addOpen, setAddOpen] = useState(false);
+  const [editing, setEditing] = useState<CrmContact | null>(null);
 
   const fetchContacts = useCallback(async () => {
     const res = await fetch("/api/pipeline/contacts");
@@ -93,8 +88,9 @@ export default function ClientsPage() {
             return (
               <li
                 key={c.id}
-                className="p-3 rounded-lg border"
+                className="p-3 rounded-lg border group transition-colors hover:border-[rgba(0,180,216,0.25)] cursor-pointer"
                 style={{ backgroundColor: "rgba(26,26,26,0.5)", borderColor: "rgba(255,255,255,0.06)" }}
+                onClick={() => setEditing(c)}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
@@ -114,12 +110,12 @@ export default function ClientsPage() {
                     )}
                     <div className="flex flex-wrap items-center gap-3 mt-1.5 text-[11px]" style={{ color: "rgba(245,245,245,0.5)" }}>
                       {c.email && (
-                        <a href={`mailto:${c.email}`} className="flex items-center gap-1 hover:text-foreground">
+                        <a href={`mailto:${c.email}`} onClick={(e) => e.stopPropagation()} className="flex items-center gap-1 hover:text-foreground">
                           <Mail size={10} style={{ color: "#00B4D8" }} /> {c.email}
                         </a>
                       )}
                       {c.phone && (
-                        <a href={`tel:${c.phone}`} className="flex items-center gap-1 hover:text-foreground">
+                        <a href={`tel:${c.phone}`} onClick={(e) => e.stopPropagation()} className="flex items-center gap-1 hover:text-foreground">
                           <Phone size={10} style={{ color: "#00B4D8" }} /> {c.phone}
                         </a>
                       )}
@@ -128,6 +124,7 @@ export default function ClientsPage() {
                           href={c.linkedin_url.startsWith("http") ? c.linkedin_url : `https://${c.linkedin_url}`}
                           target="_blank"
                           rel="noreferrer"
+                          onClick={(e) => e.stopPropagation()}
                           className="flex items-center gap-1 hover:text-foreground"
                         >
                           <ExternalLink size={10} style={{ color: "#00B4D8" }} /> LinkedIn
@@ -135,17 +132,25 @@ export default function ClientsPage() {
                       )}
                     </div>
                   </div>
-                  <div className="text-right shrink-0 space-y-0.5">
-                    {activeDeals.length > 0 && (
-                      <p className="text-[10px] uppercase tracking-wider" style={{ color: "#00B4D8", fontFamily: mono }}>
-                        {activeDeals.length} active
-                      </p>
-                    )}
-                    {liveDeals.length > 0 && (
-                      <p className="text-[10px] uppercase tracking-wider" style={{ color: STAGE_COLOR.live, fontFamily: mono }}>
-                        {liveDeals.length} live
-                      </p>
-                    )}
+                  <div className="flex items-start gap-2 shrink-0">
+                    <div className="text-right space-y-0.5">
+                      {activeDeals.length > 0 && (
+                        <p className="text-[10px] uppercase tracking-wider" style={{ color: "#00B4D8", fontFamily: mono }}>
+                          {activeDeals.length} active
+                        </p>
+                      )}
+                      {liveDeals.length > 0 && (
+                        <p className="text-[10px] uppercase tracking-wider" style={{ color: STAGE_COLOR.live, fontFamily: mono }}>
+                          {liveDeals.length} live
+                        </p>
+                      )}
+                    </div>
+                    <Pencil
+                      size={12}
+                      className="opacity-0 group-hover:opacity-60 transition-opacity mt-0.5"
+                      style={{ color: "rgba(245,245,245,0.7)" }}
+                      aria-hidden
+                    />
                   </div>
                 </div>
                 {c.deals.length > 0 && (
@@ -168,6 +173,12 @@ export default function ClientsPage() {
       )}
 
       <NewContactDialog open={addOpen} onClose={() => setAddOpen(false)} onCreated={fetchContacts} />
+      <NewContactDialog
+        open={!!editing}
+        contact={editing}
+        onClose={() => setEditing(null)}
+        onCreated={fetchContacts}
+      />
     </PageLayout>
   );
 }
