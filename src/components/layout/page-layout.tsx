@@ -14,7 +14,7 @@ type PageLayoutProps = {
   iconColor?: string;
   actions?: React.ReactNode;
   breadcrumbs?: BreadcrumbItem[];
-  maxWidth?: "sm" | "md" | "lg" | "xl";
+  maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl" | "full";
   loading?: boolean;
   children: React.ReactNode;
 };
@@ -24,6 +24,8 @@ const maxWidthMap = {
   md: "max-w-3xl",
   lg: "max-w-4xl",
   xl: "max-w-5xl",
+  "2xl": "max-w-7xl",
+  full: "max-w-none",
 };
 
 export function PageLayout({

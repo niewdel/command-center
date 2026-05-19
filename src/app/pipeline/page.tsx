@@ -75,7 +75,7 @@ export default function PipelinePage() {
   const liveValue = live.reduce((s, d) => s + (d.value_cents ?? 0), 0);
 
   return (
-    <PageLayout title="Pipeline" description="Niewdel deals — discovery to live" icon={KanbanSquare} maxWidth="xl" loading={loading}>
+    <PageLayout title="Pipeline" description="Niewdel deals — discovery to live" icon={KanbanSquare} maxWidth="2xl" loading={loading}>
       <PipelineTabs />
 
       <style>{`
