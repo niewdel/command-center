@@ -67,6 +67,9 @@ export type CrmDeal = {
   owner: string | null;
   lost_reason: string | null;
   position: number;
+  proposal_url: string | null;
+  proposal_filename: string | null;
+  fathom_url: string | null;
   created_at: string;
   updated_at: string;
   closed_at: string | null;

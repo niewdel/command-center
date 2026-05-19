@@ -30,7 +30,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const body = await req.json();
 
   const patch: Record<string, unknown> = {};
-  for (const k of ["title", "value_cents", "close_date_est", "notes", "owner", "lost_reason", "position", "crm_company_id", "primary_contact_id"] as const) {
+  for (const k of ["title", "value_cents", "close_date_est", "notes", "owner", "lost_reason", "position", "crm_company_id", "primary_contact_id", "proposal_url", "proposal_filename", "fathom_url"] as const) {
     if (k in body) patch[k] = body[k];
   }
   if ("stage" in body) {

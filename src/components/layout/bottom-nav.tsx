@@ -18,6 +18,7 @@ import {
   Users,
   Gauge,
   TrendingUp,
+  KanbanSquare,
 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
@@ -26,6 +27,7 @@ import { Workspace } from "@/types/database";
 const mainTabs = [
   { name: "Today", href: "/dashboard", icon: LayoutDashboard },
   { name: "This Week", href: "/upcoming", icon: CalendarDays },
+  { name: "Pipeline", href: "/pipeline", icon: KanbanSquare },
   { name: "Calendar", href: "/calendar", icon: Calendar },
   { name: "Task Dump", href: "/dump", icon: Zap },
 ];

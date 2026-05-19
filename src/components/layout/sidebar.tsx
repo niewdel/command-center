@@ -46,7 +46,6 @@ const agentsNav = [
 
 const toolsNav = [
   { name: "Lead Gen", href: "/leads", icon: Users },
-  { name: "Pipeline", href: "/pipeline", icon: KanbanSquare },
   { name: "Website Scoring", href: "/audits", icon: Gauge },
   { name: "Expenses", href: "/expenses", icon: DollarSign },
   { name: "Creator Hub", href: "/creator", icon: Clapperboard },
@@ -154,6 +153,20 @@ export function Sidebar() {
           >
             <CalendarDays className="size-4 shrink-0" />
             <span>This Week</span>
+          </Link>
+
+          {/* Pipeline */}
+          <Link
+            href="/pipeline"
+            className={cn(
+              "flex items-center gap-2.5 rounded px-2.5 py-2 text-sm font-medium transition-colors",
+              pathname === "/pipeline" || pathname.startsWith("/pipeline/")
+                ? "border-l-2 border-l-primary bg-primary/5 text-foreground"
+                : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+            )}
+          >
+            <KanbanSquare className="size-4 shrink-0" />
+            <span>Pipeline</span>
           </Link>
 
           {/* Calendar */}

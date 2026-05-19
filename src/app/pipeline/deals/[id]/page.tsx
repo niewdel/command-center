@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Mail, Phone, ExternalLink, Trash2, Save } from "lucide-react";
+import { ArrowLeft, Mail, Phone, ExternalLink, Trash2, Save, Upload, FileText, Video, X as XIcon } from "lucide-react";
 import { PageLayout } from "@/components/layout/page-layout";
 import { PipelineTabs } from "@/components/pipeline/pipeline-tabs";
 import { supabase } from "@/lib/supabase";
@@ -35,6 +35,13 @@ export default function DealDetailPage() {
   const [owner, setOwner] = useState("");
   const [lostReason, setLostReason] = useState("");
 
+  // Attachments
+  const [proposalUrl, setProposalUrl] = useState("");
+  const [proposalFilename, setProposalFilename] = useState("");
+  const [proposalDraftUrl, setProposalDraftUrl] = useState("");
+  const [fathomUrl, setFathomUrl] = useState("");
+  const [uploadingProposal, setUploadingProposal] = useState(false);
+
   const fetchDeal = useCallback(async () => {
     const res = await fetch(`/api/pipeline/deals/${id}`);
     const json = await res.json();
@@ -48,9 +55,58 @@ export default function DealDetailPage() {
       setNotes(d.notes ?? "");
       setOwner(d.owner ?? "");
       setLostReason(d.lost_reason ?? "");
+      setProposalUrl(d.proposal_url ?? "");
+      setProposalFilename(d.proposal_filename ?? "");
+      setFathomUrl(d.fathom_url ?? "");
     }
     setLoading(false);
   }, [id]);
+
+  const persistAttachments = useCallback(
+    async (patch: Partial<Pick<CrmDeal, "proposal_url" | "proposal_filename" | "fathom_url">>) => {
+      await fetch(`/api/pipeline/deals/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      });
+      await fetchDeal();
+    },
+    [id, fetchDeal]
+  );
+
+  const handleProposalUpload = async (file: File) => {
+    setUploadingProposal(true);
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("folder", `pipeline-proposals/${id}`);
+    const res = await fetch("/api/upload", { method: "POST", body: fd });
+    const json = await res.json();
+    setUploadingProposal(false);
+    if (res.ok && json.url) {
+      await persistAttachments({ proposal_url: json.url, proposal_filename: file.name });
+    }
+  };
+
+  const handleProposalLink = async () => {
+    const url = proposalDraftUrl.trim();
+    if (!url) return;
+    const filename = url.split("/").pop()?.split("?")[0] || "Proposal";
+    await persistAttachments({ proposal_url: url, proposal_filename: filename });
+    setProposalDraftUrl("");
+  };
+
+  const handleClearProposal = async () => {
+    await persistAttachments({ proposal_url: null, proposal_filename: null });
+  };
+
+  const handleFathomSave = async () => {
+    await persistAttachments({ fathom_url: fathomUrl.trim() || null });
+  };
+
+  const handleClearFathom = async () => {
+    setFathomUrl("");
+    await persistAttachments({ fathom_url: null });
+  };
 
   useEffect(() => {
     fetchDeal();
@@ -242,6 +298,141 @@ export default function DealDetailPage() {
               >
                 <Save size={12} /> {saving ? "Saving…" : "Save"}
               </button>
+            </div>
+          </div>
+
+          {/* Attachments */}
+          <div
+            className="rounded-lg border p-4 space-y-4"
+            style={{ backgroundColor: "rgba(26,26,26,0.5)", borderColor: "rgba(255,255,255,0.06)" }}
+          >
+            <p className="text-[10px] uppercase tracking-wider" style={{ color: "rgba(0,180,216,0.5)", fontFamily: mono }}>
+              Attachments
+            </p>
+
+            {/* Proposal */}
+            <div className="space-y-2">
+              <p className="text-[10px] uppercase tracking-wider flex items-center gap-1.5" style={{ color: "rgba(245,245,245,0.45)", fontFamily: mono }}>
+                <FileText size={11} /> Proposal
+              </p>
+              {proposalUrl ? (
+                <div
+                  className="flex items-center justify-between gap-2 rounded-md px-3 py-2"
+                  style={{ backgroundColor: "rgba(0,180,216,0.06)", border: "1px solid rgba(0,180,216,0.15)" }}
+                >
+                  <a
+                    href={proposalUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-2 text-xs min-w-0 hover:underline"
+                    style={{ color: "#00B4D8" }}
+                  >
+                    <ExternalLink size={11} className="shrink-0" />
+                    <span className="truncate">{proposalFilename || proposalUrl}</span>
+                  </a>
+                  <button
+                    onClick={handleClearProposal}
+                    className="text-[10px] uppercase tracking-wider px-1.5 py-1 rounded hover:bg-[rgba(239,68,68,0.1)] transition-colors"
+                    style={{ color: "rgba(245,245,245,0.4)", fontFamily: mono }}
+                    aria-label="Remove proposal"
+                  >
+                    <XIcon size={11} />
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <label
+                    className="flex items-center justify-center gap-2 py-2.5 rounded-md cursor-pointer transition-colors hover:bg-[rgba(0,180,216,0.08)]"
+                    style={{ border: "1px dashed rgba(0,180,216,0.25)", color: "#00B4D8", fontFamily: mono, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}
+                  >
+                    <Upload size={12} />
+                    {uploadingProposal ? "Uploading…" : "Upload PDF"}
+                    <input
+                      type="file"
+                      accept="application/pdf,.pdf"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) handleProposalUpload(f);
+                      }}
+                    />
+                  </label>
+                  <div className="flex items-center gap-1 text-[10px]" style={{ color: "rgba(245,245,245,0.3)", fontFamily: mono }}>
+                    <span className="h-px flex-1" style={{ backgroundColor: "rgba(255,255,255,0.06)" }} />
+                    OR PASTE LINK
+                    <span className="h-px flex-1" style={{ backgroundColor: "rgba(255,255,255,0.06)" }} />
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      value={proposalDraftUrl}
+                      onChange={(e) => setProposalDraftUrl(e.target.value)}
+                      placeholder="https://drive.google.com/..."
+                      className="flex-1 text-xs bg-transparent outline-none border rounded-md px-2 py-1.5"
+                      style={{ borderColor: "rgba(255,255,255,0.08)" }}
+                    />
+                    <button
+                      onClick={handleProposalLink}
+                      disabled={!proposalDraftUrl.trim()}
+                      className="px-3 py-1.5 text-[10px] uppercase tracking-wider rounded-md transition-colors hover:bg-[rgba(0,180,216,0.15)] disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{ fontFamily: mono, color: "#00B4D8", border: "1px solid rgba(0,180,216,0.3)" }}
+                    >
+                      Attach
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Fathom */}
+            <div className="space-y-2">
+              <p className="text-[10px] uppercase tracking-wider flex items-center gap-1.5" style={{ color: "rgba(245,245,245,0.45)", fontFamily: mono }}>
+                <Video size={11} /> Fathom recording
+              </p>
+              {deal.fathom_url ? (
+                <div
+                  className="flex items-center justify-between gap-2 rounded-md px-3 py-2"
+                  style={{ backgroundColor: "rgba(0,180,216,0.06)", border: "1px solid rgba(0,180,216,0.15)" }}
+                >
+                  <a
+                    href={deal.fathom_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-2 text-xs min-w-0 hover:underline"
+                    style={{ color: "#00B4D8" }}
+                  >
+                    <ExternalLink size={11} className="shrink-0" />
+                    <span className="truncate">{deal.fathom_url}</span>
+                  </a>
+                  <button
+                    onClick={handleClearFathom}
+                    className="text-[10px] uppercase tracking-wider px-1.5 py-1 rounded hover:bg-[rgba(239,68,68,0.1)] transition-colors"
+                    style={{ color: "rgba(245,245,245,0.4)", fontFamily: mono }}
+                    aria-label="Remove Fathom link"
+                  >
+                    <XIcon size={11} />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    value={fathomUrl}
+                    onChange={(e) => setFathomUrl(e.target.value)}
+                    placeholder="https://fathom.video/calls/..."
+                    className="flex-1 text-xs bg-transparent outline-none border rounded-md px-2 py-1.5"
+                    style={{ borderColor: "rgba(255,255,255,0.08)" }}
+                  />
+                  <button
+                    onClick={handleFathomSave}
+                    disabled={!fathomUrl.trim()}
+                    className="px-3 py-1.5 text-[10px] uppercase tracking-wider rounded-md transition-colors hover:bg-[rgba(0,180,216,0.15)] disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ fontFamily: mono, color: "#00B4D8", border: "1px solid rgba(0,180,216,0.3)" }}
+                  >
+                    Attach
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
