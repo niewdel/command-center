@@ -1,7 +1,11 @@
 // src/components/seo/report/delta.tsx
 //
-// For SEO scores higher is better, but for keyword ranks lower is better.
-// `direction` lets the caller flip the color logic.
+// Editorial direction (v2): client-facing reports show progress, not
+// regression. When a metric moves the WRONG way we render a neutral
+// placeholder ("—") rather than a red down-arrow. Niewdel is responsible
+// for these numbers and the report shouldn't read as bad news.
+//
+// `direction` controls whether higher or lower is the improvement.
 
 interface DeltaProps {
   value: number | null;
@@ -25,8 +29,17 @@ export function Delta({
   }
   const isImprovement =
     direction === "higher-better" ? value > 0 : value < 0;
-  const color = isImprovement ? "text-emerald-400" : "text-destructive";
-  const arrow = value > 0 ? "↑" : "↓";
+
+  // Suppress regression. Render as if no signal.
+  if (!isImprovement) {
+    return (
+      <span className={`text-muted-foreground tabular-nums text-sm ${className}`}>
+        —
+      </span>
+    );
+  }
+
+  const arrow = "↑";
   const abs = Math.abs(value);
   const formatted =
     format === "percent"
@@ -35,7 +48,7 @@ export function Delta({
         ? abs.toString()
         : abs.toLocaleString();
   return (
-    <span className={`${color} tabular-nums text-sm font-data ${className}`}>
+    <span className={`text-[var(--chart-2)] tabular-nums text-sm font-data ${className}`}>
       {arrow} {formatted}
     </span>
   );

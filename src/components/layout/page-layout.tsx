@@ -9,6 +9,9 @@ type BreadcrumbItem = { label: string; href?: string };
 
 type PageLayoutProps = {
   title: string;
+  /** Mono eyebrow label rendered above the title, matches brand "01 · LOGOS"
+   *  pattern. Opt-in: omit to skip, since most pages already have a clear title. */
+  eyebrow?: string | null;
   description?: string;
   icon?: LucideIcon;
   iconColor?: string;
@@ -30,6 +33,7 @@ const maxWidthMap = {
 
 export function PageLayout({
   title,
+  eyebrow,
   description,
   icon: Icon,
   actions,
@@ -43,23 +47,33 @@ export function PageLayout({
   }
 
   return (
-    <div className={cn("p-3 md:p-8 pb-24 md:pb-8 mx-auto space-y-5", maxWidthMap[maxWidth])}>
+    <div className={cn("p-4 md:p-10 pb-24 md:pb-10 mx-auto space-y-6", maxWidthMap[maxWidth])}>
       {breadcrumbs && breadcrumbs.length > 0 && (
         <Breadcrumb items={breadcrumbs} className="pt-1" />
       )}
 
-      <div className={cn("flex items-center justify-between gap-4", !breadcrumbs && "pt-1")}>
-        <div className="flex items-center gap-2 min-w-0">
-          {Icon && <Icon className="size-5 text-primary shrink-0" />}
-          <div className="min-w-0">
-            <h1 className="text-xl font-bold text-balance font-heading truncate tracking-tight">{title}</h1>
+      <header className={cn("space-y-3", !breadcrumbs && "pt-2")}>
+        <div className="flex items-end justify-between gap-6">
+          <div className="min-w-0 space-y-2">
+            {eyebrow && (
+              <span className="mono-tag block">{eyebrow}</span>
+            )}
+            <div className="flex items-center gap-3 min-w-0">
+              {Icon && <Icon className="size-7 md:size-8 text-foreground shrink-0" strokeWidth={1.75} />}
+              <h1 className="text-3xl md:text-[2.25rem] leading-[1.05] font-bold text-balance font-heading truncate">
+                {title}
+              </h1>
+            </div>
             {description && (
-              <p className="text-xs text-muted-foreground text-pretty mt-0.5">{description}</p>
+              <p className="text-sm text-muted-foreground text-pretty max-w-[60ch]">
+                {description}
+              </p>
             )}
           </div>
+          {actions && <div className="flex items-center gap-2 shrink-0 pb-1">{actions}</div>}
         </div>
-        {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
-      </div>
+        <hr className="border-t border-border" />
+      </header>
 
       {children}
     </div>

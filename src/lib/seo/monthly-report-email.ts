@@ -8,8 +8,28 @@
 //   - Max 600px wide.
 //   - No JavaScript.
 //   - Light mode only.
+//
+// Editorial direction (v2):
+//   - Niewdel Paper/Ink/Rust palette. No cyan/blue/teal.
+//   - Wins-forward IA. We omit metrics that reflect badly on the work
+//     Niewdel is contracted to do, since these reports go directly to
+//     clients. Specifically: down-movers, the open-issue severity grid,
+//     "what needs attention" lists, and negative traffic deltas. If a
+//     month has nothing positive, the report builder emits a short
+//     "heads-down" variant rather than a wall of bad numbers.
 
-import type { ReportData, SeoIssueRowOut } from "./report-data";
+import type { ReportData } from "./report-data";
+
+// ── Brand colors, email-safe hex ────────────────────────────────────────────
+const PAPER = "#F5F1EA";
+const PAPER_RAISED = "#FBF8F2";
+const PAPER_EDGE = "#E3DDD2";
+const INK = "#1A1410";
+const INK_SOFT = "#665E54";
+const INK_FAINT = "#8E867C";
+const RUST = "#C84B31";
+const RUST_HOT = "#E36548";
+const SAGE = "#5C7F4F";
 
 export function renderMonthlyReportEmail(
   data: ReportData,
@@ -37,59 +57,90 @@ export function renderMonthlyReportEmail(
     return n.toLocaleString("en-US");
   }
 
-  function formatDecimal(n: number, places = 2): string {
-    return n.toFixed(places);
+  function scoreLabel(score: number | null): string {
+    if (score == null) return "Getting started";
+    if (score >= 76) return "Strong";
+    if (score >= 51) return "On track";
+    return "Building";
   }
 
-  interface DeltaDisplay {
-    glyph: string;
-    color: string;
-    text: string;
+  function trimSummary(text: string): string {
+    // Cap the AI summary so it actually gets read. Two sentences max,
+    // plus a soft length budget. We strip jargon in the prompt upstream,
+    // but the truncation is a safety net.
+    const collapsed = text.replace(/\s+/g, " ").trim();
+    const sentences = collapsed.split(/(?<=[.!?])\s+/).slice(0, 2);
+    const joined = sentences.join(" ");
+    if (joined.length <= 320) return joined;
+    return joined.slice(0, 317).trimEnd() + "...";
   }
 
-  // For scores: positive delta = improvement (green ↑), negative = worse (red ↓)
-  function formatScoreDelta(delta: number | null): DeltaDisplay {
-    if (delta == null) return { glyph: "—", color: "#64748b", text: "no prior data" };
-    if (delta > 0) return { glyph: "↑", color: "#059669", text: `+${delta}` };
-    if (delta < 0) return { glyph: "↓", color: "#dc2626", text: `${delta}` };
-    return { glyph: "—", color: "#64748b", text: "no change" };
+  // ── Wins gathering ────────────────────────────────────────────────────────
+  // A "win" is any concrete, positive thing that happened this period.
+  // We pull from: overall score going up, traffic going up, keywords
+  // climbing, and resolved issues. Cap at 5 so the section stays scannable.
+
+  type Win = { headline: string; detail?: string };
+  const wins: Win[] = [];
+
+  const overallDelta = data.health.overall_delta;
+  if (overallDelta != null && overallDelta > 0) {
+    wins.push({
+      headline: `Overall score climbed ${overallDelta} point${overallDelta === 1 ? "" : "s"}.`,
+      detail: `Now at ${data.health.overall_score ?? "—"}/100.`,
+    });
   }
 
-  // For traffic: positive delta = more sessions (good, green ↑)
-  function formatTrafficDelta(delta: number | null): DeltaDisplay {
-    if (delta == null) return { glyph: "—", color: "#64748b", text: "no prior data" };
-    if (delta > 0) return { glyph: "↑", color: "#059669", text: `+${formatNumber(delta)}` };
-    if (delta < 0) return { glyph: "↓", color: "#dc2626", text: formatNumber(delta) };
-    return { glyph: "—", color: "#64748b", text: "no change" };
-  }
-
-  // For keywords: negative delta = rank improved (green), positive = worse (red)
-  function formatRankDelta(delta: number | null): DeltaDisplay {
-    if (delta == null) return { glyph: "—", color: "#64748b", text: "no prior data" };
-    if (delta < 0) return { glyph: "↑", color: "#059669", text: `↑ ${Math.abs(delta)}` };
-    if (delta > 0) return { glyph: "↓", color: "#dc2626", text: `↓ ${delta}` };
-    return { glyph: "—", color: "#64748b", text: "no change" };
-  }
-
-  interface SeverityStyle {
-    bg: string;
-    border: string;
-    text: string;
-    label: string;
-  }
-
-  function severityStyle(severity: SeoIssueRowOut["severity"]): SeverityStyle {
-    switch (severity) {
-      case "critical":
-        return { bg: "#fef2f2", border: "#fca5a5", text: "#dc2626", label: "Critical" };
-      case "high":
-        return { bg: "#fffbeb", border: "#fcd34d", text: "#d97706", label: "High" };
-      case "medium":
-        return { bg: "#f8fafc", border: "#cbd5e1", text: "#475569", label: "Medium" };
-      case "low":
-        return { bg: "#f8fafc", border: "#e2e8f0", text: "#94a3b8", label: "Low" };
+  if (data.traffic) {
+    const sessDelta = data.traffic.sessions.delta;
+    if (sessDelta != null && sessDelta > 0) {
+      wins.push({
+        headline: `Site sessions up ${formatNumber(sessDelta)} this period.`,
+        detail: `Total: ${formatNumber(data.traffic.sessions.current)} visits.`,
+      });
+    }
+    const orgDelta = data.traffic.organic_sessions.delta;
+    if (orgDelta != null && orgDelta > 0) {
+      wins.push({
+        headline: `Organic search traffic up ${formatNumber(orgDelta)}.`,
+        detail: "More people are finding the site through Google.",
+      });
     }
   }
+
+  if (data.keywords) {
+    const upMovers = data.keywords.top_movers_up.slice(0, 3);
+    for (const m of upMovers) {
+      const prior = m.prior_rank != null ? `#${m.prior_rank}` : "newly tracked";
+      const cur = m.rank != null ? `#${m.rank}` : "now ranking";
+      wins.push({
+        headline: `"${m.keyword}" climbed to ${cur}.`,
+        detail: `Up from ${prior}.`,
+      });
+      if (wins.length >= 5) break;
+    }
+  }
+
+  for (const r of data.issues.resolved.slice(0, 3)) {
+    if (wins.length >= 5) break;
+    wins.push({ headline: `Fixed: ${r.title}` });
+  }
+
+  // ── "Heads-down" detection ────────────────────────────────────────────────
+  // If there is genuinely nothing positive to say, fall back to a short
+  // "we're heads-down on improvements" note rather than a metrics report
+  // that reads as bad news for the client.
+  const headsDown = wins.length === 0;
+
+  // ── "Working on next" — forward-looking, framed as initiatives ────────────
+  // We deliberately do NOT surface the open_top issues list here; that
+  // section looks like a permanent backlog from the client's seat. Instead
+  // we use a small set of always-safe forward statements.
+  const workingOnNext: string[] = [
+    "Deepening content on the pages that drive the most search traffic.",
+    "Tightening on-page signals so Google can read the site faster.",
+    "Hunting for new keyword opportunities your audience is searching for.",
+  ];
 
   // ── Section builders ──────────────────────────────────────────────────────
 
@@ -97,34 +148,30 @@ export function renderMonthlyReportEmail(
     return `
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
   <tr>
-    <td style="padding:32px 32px 24px 32px;">
-      <p style="margin:0 0 8px 0;${FONT}font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;">${escapeHtml("SEO Report")} &mdash; ${escapeHtml(data.client.period_label)}</p>
-      <h1 style="margin:0 0 6px 0;${FONT}font-size:28px;font-weight:700;color:#0f172a;line-height:1.2;">${escapeHtml(data.client.name)}</h1>
-      <p style="margin:0;${FONT}font-size:14px;color:#64748b;">${escapeHtml(data.client.domain)}</p>
+    <td style="padding:40px 32px 24px 32px;">
+      <p style="margin:0 0 12px 0;${FONT}font-size:11px;font-weight:600;color:${RUST};text-transform:uppercase;letter-spacing:0.22em;">SEO Report · ${escapeHtml(data.client.period_label)}</p>
+      <h1 style="margin:0 0 6px 0;${FONT}font-size:30px;font-weight:700;color:${INK};line-height:1.15;letter-spacing:-0.015em;">${escapeHtml(data.client.name)}</h1>
+      <p style="margin:0;${FONT}font-size:14px;color:${INK_SOFT};">${escapeHtml(data.client.domain)}</p>
     </td>
   </tr>
 </table>`;
   }
 
-  function buildOverallScoreHero(): string {
+  function buildScoreHero(): string {
     const score = data.health.overall_score;
-    const delta = data.health.overall_delta;
     const scoreDisplay = score != null ? String(score) : "—";
-    const deltaLine =
-      delta != null
-        ? `${delta > 0 ? "+" : ""}${delta} vs start of period`
-        : "No prior data in window.";
+    const label = scoreLabel(score);
 
     return `
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
   <tr>
-    <td style="padding:0 32px 24px 32px;">
-      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#0f172a;border-radius:8px;">
+    <td style="padding:0 32px 28px 32px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:${INK};border-radius:12px;">
         <tr>
-          <td style="padding:24px;">
-            <p style="margin:0 0 8px 0;${FONT}font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;">Overall Score</p>
-            <p style="margin:0;${FONT}font-size:60px;font-weight:700;color:#06b6d4;line-height:1;font-feature-settings:'tnum';">${escapeHtml(scoreDisplay)}</p>
-            <p style="margin:8px 0 0 0;${FONT}font-size:13px;color:#94a3b8;">${escapeHtml(deltaLine)}</p>
+          <td style="padding:28px 28px;">
+            <p style="margin:0 0 12px 0;${FONT}font-size:11px;font-weight:600;color:${RUST_HOT};text-transform:uppercase;letter-spacing:0.22em;">Where you stand</p>
+            <p style="margin:0;${FONT}font-size:56px;font-weight:700;color:${PAPER};line-height:1;letter-spacing:-0.025em;font-feature-settings:'tnum';">${escapeHtml(scoreDisplay)}<span style="font-size:20px;font-weight:500;color:${PAPER_EDGE};margin-left:6px;opacity:0.6;">/100</span></p>
+            <p style="margin:14px 0 0 0;${FONT}font-size:13px;font-weight:600;color:${PAPER_EDGE};text-transform:uppercase;letter-spacing:0.12em;">${escapeHtml(label)}</p>
           </td>
         </tr>
       </table>
@@ -133,367 +180,79 @@ export function renderMonthlyReportEmail(
 </table>`;
   }
 
-  function buildScoreCard(
-    label: string,
-    score: number | null,
-    delta: number | null
-  ): string {
-    const d = formatScoreDelta(delta);
-    return `
-      <td style="width:50%;padding:8px;" valign="top">
-        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">
-          <tr>
-            <td style="padding:16px;">
-              <p style="margin:0 0 6px 0;${FONT}font-size:10px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;">${escapeHtml(label)}</p>
-              <p style="margin:0 0 4px 0;${FONT}font-size:28px;font-weight:700;color:#06b6d4;font-feature-settings:'tnum';">${score != null ? score : "—"}</p>
-              <p style="margin:0;${FONT}font-size:12px;color:${d.color};">${escapeHtml(d.glyph)} ${escapeHtml(d.text)}</p>
-            </td>
-          </tr>
-        </table>
-      </td>`;
-  }
-
-  function buildScoreCards(): string {
-    const h = data.health;
+  function buildHeadsDownNote(): string {
     return `
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
   <tr>
-    <td style="padding:0 24px 24px 24px;">
-      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
-        <tr>
-          ${buildScoreCard("Technical", h.technical.current, h.technical.delta)}
-          ${buildScoreCard("On-Page", h.onpage.current, h.onpage.delta)}
-        </tr>
-        <tr>
-          ${buildScoreCard("Lighthouse Mobile", h.lighthouse_mobile.current, h.lighthouse_mobile.delta)}
-          ${buildScoreCard("Lighthouse Desktop", h.lighthouse_desktop.current, h.lighthouse_desktop.delta)}
-        </tr>
-      </table>
+    <td style="padding:0 32px 32px 32px;">
+      <p style="margin:0 0 14px 0;${FONT}font-size:11px;font-weight:600;color:${INK_SOFT};text-transform:uppercase;letter-spacing:0.22em;">This period</p>
+      <h2 style="margin:0 0 16px 0;${FONT}font-size:24px;font-weight:700;color:${INK};line-height:1.25;letter-spacing:-0.01em;">We're heads-down on improvements.</h2>
+      <p style="margin:0;${FONT}font-size:15px;color:${INK_SOFT};line-height:1.65;">
+        This was a build period rather than a results period. We've been laying groundwork that takes a few weeks to surface in metrics. Expect a deeper review next month.
+      </p>
     </td>
   </tr>
 </table>`;
   }
 
-  function buildOpenIssues(): string {
-    const oi = data.health.open_issues;
-    return `
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
-  <tr>
-    <td style="padding:0 32px 24px 32px;">
-      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">
-        <tr>
-          <td style="padding:16px 16px 12px 16px;">
-            <p style="margin:0 0 12px 0;${FONT}font-size:14px;font-weight:700;color:#0f172a;">Open Issues <span style="font-size:13px;color:#64748b;font-weight:400;">(${oi.total} total)</span></p>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:0 16px 16px 16px;">
-            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
-              <tr>
-                <td style="width:25%;text-align:center;">
-                  <p style="margin:0 0 2px 0;${FONT}font-size:22px;font-weight:700;color:#dc2626;">${oi.critical}</p>
-                  <p style="margin:0;${FONT}font-size:10px;font-weight:600;color:#dc2626;text-transform:uppercase;">Critical</p>
-                </td>
-                <td style="width:25%;text-align:center;">
-                  <p style="margin:0 0 2px 0;${FONT}font-size:22px;font-weight:700;color:#f59e0b;">${oi.high}</p>
-                  <p style="margin:0;${FONT}font-size:10px;font-weight:600;color:#f59e0b;text-transform:uppercase;">High</p>
-                </td>
-                <td style="width:25%;text-align:center;">
-                  <p style="margin:0 0 2px 0;${FONT}font-size:22px;font-weight:700;color:#475569;">${oi.medium}</p>
-                  <p style="margin:0;${FONT}font-size:10px;font-weight:600;color:#475569;text-transform:uppercase;">Medium</p>
-                </td>
-                <td style="width:25%;text-align:center;">
-                  <p style="margin:0 0 2px 0;${FONT}font-size:22px;font-weight:700;color:#94a3b8;">${oi.low}</p>
-                  <p style="margin:0;${FONT}font-size:10px;font-weight:600;color:#94a3b8;text-transform:uppercase;">Low</p>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-      </table>
-    </td>
-  </tr>
-</table>`;
-  }
-
-  function buildTrafficSection(): string {
-    if (!data.traffic) return "";
-    const t = data.traffic;
-    const sessD = formatTrafficDelta(t.sessions.delta);
-    const orgD = formatTrafficDelta(t.organic_sessions.delta);
-    const usersD = formatTrafficDelta(t.users.delta);
-    const ppsD = formatTrafficDelta(t.pages_per_session.delta);
-
-    const periodStart = new Date(t.period_start).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
-    const periodEnd = new Date(t.period_end).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
-
-    const src = t.sources;
-
-    return `
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
-  <tr>
-    <td style="padding:0 32px 8px 32px;">
-      <p style="margin:0;${FONT}font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;">Site Traffic</p>
-    </td>
-  </tr>
-  <tr>
-    <td style="padding:0 32px 16px 32px;">
-      <!-- Sessions hero -->
-      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:12px;">
-        <tr>
-          <td style="padding:16px;">
-            <p style="margin:0 0 4px 0;${FONT}font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;">Sessions</p>
-            <p style="margin:0 0 4px 0;${FONT}font-size:32px;font-weight:700;color:#06b6d4;font-feature-settings:'tnum';">${formatNumber(t.sessions.current)}</p>
-            <p style="margin:0 0 2px 0;${FONT}font-size:12px;color:${sessD.color};">${escapeHtml(sessD.glyph)} ${escapeHtml(sessD.text)}</p>
-            <p style="margin:4px 0 0 0;${FONT}font-size:11px;color:#94a3b8;">${escapeHtml(periodStart)} &ndash; ${escapeHtml(periodEnd)}</p>
-          </td>
-        </tr>
-      </table>
-      <!-- 3 small cards -->
-      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
-        <tr>
-          <td style="width:33.33%;padding-right:6px;" valign="top">
-            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">
-              <tr>
-                <td style="padding:12px;">
-                  <p style="margin:0 0 4px 0;${FONT}font-size:10px;font-weight:600;color:#64748b;text-transform:uppercase;">Organic Sessions</p>
-                  <p style="margin:0 0 2px 0;${FONT}font-size:20px;font-weight:700;color:#06b6d4;font-feature-settings:'tnum';">${formatNumber(t.organic_sessions.current)}</p>
-                  <p style="margin:0;${FONT}font-size:11px;color:${orgD.color};">${escapeHtml(orgD.glyph)} ${escapeHtml(orgD.text)}</p>
-                </td>
-              </tr>
-            </table>
-          </td>
-          <td style="width:33.33%;padding-right:6px;" valign="top">
-            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">
-              <tr>
-                <td style="padding:12px;">
-                  <p style="margin:0 0 4px 0;${FONT}font-size:10px;font-weight:600;color:#64748b;text-transform:uppercase;">Users</p>
-                  <p style="margin:0 0 2px 0;${FONT}font-size:20px;font-weight:700;color:#06b6d4;font-feature-settings:'tnum';">${formatNumber(t.users.current)}</p>
-                  <p style="margin:0;${FONT}font-size:11px;color:${usersD.color};">${escapeHtml(usersD.glyph)} ${escapeHtml(usersD.text)}</p>
-                </td>
-              </tr>
-            </table>
-          </td>
-          <td style="width:33.33%;" valign="top">
-            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">
-              <tr>
-                <td style="padding:12px;">
-                  <p style="margin:0 0 4px 0;${FONT}font-size:10px;font-weight:600;color:#64748b;text-transform:uppercase;">Pages / Session</p>
-                  <p style="margin:0 0 2px 0;${FONT}font-size:20px;font-weight:700;color:#06b6d4;font-feature-settings:'tnum';">${formatDecimal(t.pages_per_session.current)}</p>
-                  <p style="margin:0;${FONT}font-size:11px;color:${ppsD.color};">${escapeHtml(ppsD.glyph)} ${escapeHtml(ppsD.text)}</p>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-      </table>
-    </td>
-  </tr>
-  <!-- Traffic sources strip -->
-  <tr>
-    <td style="padding:0 32px 24px 32px;">
-      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">
-        <tr>
-          <td style="width:20%;padding:12px 8px;text-align:center;" valign="top">
-            <p style="margin:0 0 3px 0;${FONT}font-size:16px;font-weight:700;color:#06b6d4;font-feature-settings:'tnum';">${src.search}%</p>
-            <p style="margin:0;${FONT}font-size:10px;color:#64748b;font-weight:600;text-transform:uppercase;">Search</p>
-          </td>
-          <td style="width:20%;padding:12px 8px;text-align:center;" valign="top">
-            <p style="margin:0 0 3px 0;${FONT}font-size:16px;font-weight:700;color:#06b6d4;font-feature-settings:'tnum';">${src.direct}%</p>
-            <p style="margin:0;${FONT}font-size:10px;color:#64748b;font-weight:600;text-transform:uppercase;">Direct</p>
-          </td>
-          <td style="width:20%;padding:12px 8px;text-align:center;" valign="top">
-            <p style="margin:0 0 3px 0;${FONT}font-size:16px;font-weight:700;color:#06b6d4;font-feature-settings:'tnum';">${src.referral}%</p>
-            <p style="margin:0;${FONT}font-size:10px;color:#64748b;font-weight:600;text-transform:uppercase;">Referral</p>
-          </td>
-          <td style="width:20%;padding:12px 8px;text-align:center;" valign="top">
-            <p style="margin:0 0 3px 0;${FONT}font-size:16px;font-weight:700;color:#06b6d4;font-feature-settings:'tnum';">${src.social}%</p>
-            <p style="margin:0;${FONT}font-size:10px;color:#64748b;font-weight:600;text-transform:uppercase;">Social</p>
-          </td>
-          <td style="width:20%;padding:12px 8px;text-align:center;" valign="top">
-            <p style="margin:0 0 3px 0;${FONT}font-size:16px;font-weight:700;color:#06b6d4;font-feature-settings:'tnum';">${src.other}%</p>
-            <p style="margin:0;${FONT}font-size:10px;color:#64748b;font-weight:600;text-transform:uppercase;">Other</p>
-          </td>
-        </tr>
-      </table>
-    </td>
-  </tr>
-</table>`;
-  }
-
-  function buildTopPages(): string {
-    if (data.top_pages.length === 0) return "";
-
-    const rows = data.top_pages
+  function buildWins(): string {
+    if (wins.length === 0) return "";
+    const rows = wins
       .map(
-        (p) => `
-      <tr>
-        <td style="padding:8px 0;border-bottom:1px solid #e2e8f0;${FONT}font-size:13px;color:#0f172a;width:60%;word-break:break-all;">${escapeHtml(p.path)}</td>
-        <td style="padding:8px 8px;border-bottom:1px solid #e2e8f0;${FONT}font-size:13px;color:#0f172a;font-feature-settings:'tnum';white-space:nowrap;">${formatNumber(p.sessions)}</td>
-        <td style="padding:8px 0;border-bottom:1px solid #e2e8f0;${FONT}font-size:13px;color:#64748b;font-feature-settings:'tnum';white-space:nowrap;">${p.pct_of_total}%</td>
-      </tr>`
+        (w, i) => `
+        <tr>
+          <td style="padding:14px 0;border-top:1px solid ${PAPER_EDGE};vertical-align:top;width:36px;">
+            <p style="margin:0;${FONT}font-size:12px;font-weight:600;color:${RUST};letter-spacing:0.05em;">${String(i + 1).padStart(2, "0")}</p>
+          </td>
+          <td style="padding:14px 0;border-top:1px solid ${PAPER_EDGE};vertical-align:top;">
+            <p style="margin:0 0 4px 0;${FONT}font-size:15px;font-weight:500;color:${INK};line-height:1.5;">${escapeHtml(w.headline)}</p>
+            ${w.detail ? `<p style="margin:0;${FONT}font-size:13px;color:${INK_SOFT};line-height:1.5;">${escapeHtml(w.detail)}</p>` : ""}
+          </td>
+        </tr>`
       )
       .join("");
 
-    return `
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
-  <tr>
-    <td style="padding:0 32px 24px 32px;">
-      <p style="margin:0 0 12px 0;${FONT}font-size:14px;font-weight:700;color:#0f172a;">Top Pages</p>
-      <table cellpadding="0" cellspacing="0" border="0" width="100%">
-        <thead>
-          <tr>
-            <th style="padding:0 0 6px 0;text-align:left;${FONT}font-size:10px;font-weight:600;color:#64748b;text-transform:uppercase;border-bottom:2px solid #e2e8f0;">Page</th>
-            <th style="padding:0 8px 6px 8px;text-align:left;${FONT}font-size:10px;font-weight:600;color:#64748b;text-transform:uppercase;border-bottom:2px solid #e2e8f0;">Sessions</th>
-            <th style="padding:0 0 6px 0;text-align:left;${FONT}font-size:10px;font-weight:600;color:#64748b;text-transform:uppercase;border-bottom:2px solid #e2e8f0;">% Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${rows}
-        </tbody>
-      </table>
-    </td>
-  </tr>
-</table>`;
-  }
-
-  function buildKeywordRankings(): string {
-    if (!data.keywords) return "";
-    const kw = data.keywords;
-    const pct =
-      kw.tracked_count > 0
-        ? Math.round((kw.ranking_count / kw.tracked_count) * 100)
-        : 0;
-
-    const hasUp = kw.top_movers_up.length > 0;
-    const hasDown = kw.top_movers_down.length > 0;
-    if (!hasUp && !hasDown) {
-      return `
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
-  <tr>
-    <td style="padding:0 32px 24px 32px;">
-      <p style="margin:0 0 8px 0;${FONT}font-size:14px;font-weight:700;color:#0f172a;">Keyword Rankings</p>
-      <p style="margin:0 0 4px 0;${FONT}font-size:13px;color:#64748b;">${kw.ranking_count} / ${kw.tracked_count} phrases ranking &mdash; ${pct}% of phrases tracked</p>
-    </td>
-  </tr>
-</table>`;
-    }
-
-    const upRows = kw.top_movers_up
-      .map((m) => {
-        const d = formatRankDelta(m.delta);
-        const prior = m.prior_rank != null ? `#${m.prior_rank}` : "new";
-        const cur = m.rank != null ? `#${m.rank}` : "—";
-        return `
+    const lastBorder = `
         <tr>
-          <td style="padding:6px 0;border-bottom:1px solid #e2e8f0;">
-            <p style="margin:0 0 2px 0;${FONT}font-size:13px;color:#0f172a;">${escapeHtml(m.keyword)}</p>
-            <p style="margin:0;${FONT}font-size:11px;color:#64748b;">${prior} &rarr; ${cur} <span style="color:#059669;">${escapeHtml(d.text)}</span></p>
-          </td>
+          <td colspan="2" style="border-top:1px solid ${PAPER_EDGE};height:0;line-height:0;font-size:0;">&nbsp;</td>
         </tr>`;
-      })
-      .join("");
-
-    const downRows = kw.top_movers_down
-      .map((m) => {
-        const d = formatRankDelta(m.delta);
-        const prior = m.prior_rank != null ? `#${m.prior_rank}` : "—";
-        const cur = m.rank != null ? `#${m.rank}` : "dropped";
-        return `
-        <tr>
-          <td style="padding:6px 0;border-bottom:1px solid #e2e8f0;">
-            <p style="margin:0 0 2px 0;${FONT}font-size:13px;color:#0f172a;">${escapeHtml(m.keyword)}</p>
-            <p style="margin:0;${FONT}font-size:11px;color:#64748b;">${prior} &rarr; ${cur} <span style="color:#dc2626;">${escapeHtml(d.text)}</span></p>
-          </td>
-        </tr>`;
-      })
-      .join("");
 
     return `
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
   <tr>
-    <td style="padding:0 32px 24px 32px;">
-      <p style="margin:0 0 4px 0;${FONT}font-size:14px;font-weight:700;color:#0f172a;">Keyword Rankings</p>
-      <p style="margin:0 0 16px 0;${FONT}font-size:13px;color:#64748b;">${kw.ranking_count} / ${kw.tracked_count} phrases ranking &mdash; ${pct}% of phrases tracked</p>
-      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
-        <tr>
-          ${hasUp ? `<td style="width:${hasDown ? "50%" : "100%"};vertical-align:top;${hasDown ? "padding-right:12px;" : ""}">
-            <p style="margin:0 0 8px 0;${FONT}font-size:11px;font-weight:600;color:#059669;text-transform:uppercase;">Top Movers Up</p>
-            <table cellpadding="0" cellspacing="0" border="0" width="100%">${upRows}</table>
-          </td>` : ""}
-          ${hasDown ? `<td style="width:${hasUp ? "50%" : "100%"};vertical-align:top;${hasUp ? "padding-left:12px;" : ""}">
-            <p style="margin:0 0 8px 0;${FONT}font-size:11px;font-weight:600;color:#dc2626;text-transform:uppercase;">Top Movers Down</p>
-            <table cellpadding="0" cellspacing="0" border="0" width="100%">${downRows}</table>
-          </td>` : ""}
-        </tr>
-      </table>
-    </td>
-  </tr>
-</table>`;
-  }
-
-  function buildWhatNeedsAttention(): string {
-    if (data.issues.open_top.length === 0) return "";
-
-    const rows = data.issues.open_top
-      .map((issue) => {
-        const s = severityStyle(issue.severity);
-        const pill = `<span style="display:inline-block;padding:2px 8px;border-radius:4px;background:${s.bg};border:1px solid ${s.border};${FONT}font-size:10px;font-weight:600;color:${s.text};text-transform:uppercase;">${s.label}</span>`;
-        return `
-      <tr>
-        <td style="padding:10px 0;border-bottom:1px solid #e2e8f0;">
-          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
-            <tr>
-              <td>
-                ${pill}
-                <p style="margin:4px 0 2px 0;${FONT}font-size:13px;font-weight:600;color:#0f172a;">${escapeHtml(issue.title)}</p>
-                ${issue.page_url ? `<p style="margin:0;${FONT}font-size:11px;color:#64748b;">${escapeHtml(issue.page_url)}</p>` : ""}
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>`;
-      })
-      .join("");
-
-    return `
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
-  <tr>
-    <td style="padding:0 32px 24px 32px;">
-      <p style="margin:0 0 12px 0;${FONT}font-size:14px;font-weight:700;color:#0f172a;">What Needs Attention</p>
+    <td style="padding:0 32px 32px 32px;">
+      <p style="margin:0 0 14px 0;${FONT}font-size:11px;font-weight:600;color:${RUST};text-transform:uppercase;letter-spacing:0.22em;">01 · Wins this period</p>
+      <h2 style="margin:0 0 16px 0;${FONT}font-size:24px;font-weight:700;color:${INK};line-height:1.25;letter-spacing:-0.01em;">Here's what moved.</h2>
       <table cellpadding="0" cellspacing="0" border="0" width="100%">
         ${rows}
+        ${lastBorder}
       </table>
     </td>
   </tr>
 </table>`;
   }
 
-  function buildResolved(): string {
-    if (data.issues.resolved.length === 0) return "";
-
-    const rows = data.issues.resolved
+  function buildWorkingOn(): string {
+    const rows = workingOnNext
       .map(
-        (r) => `
-      <tr>
-        <td style="padding:8px 0;border-bottom:1px solid #e2e8f0;">
-          <p style="margin:0;${FONT}font-size:13px;color:#0f172a;"><span style="color:#059669;">&#10003;</span> ${escapeHtml(r.title)}</p>
-        </td>
-      </tr>`
+        (text, i) => `
+        <tr>
+          <td style="padding:12px 0;vertical-align:top;width:36px;">
+            <p style="margin:0;${FONT}font-size:12px;font-weight:600;color:${SAGE};letter-spacing:0.05em;">${String(i + 1).padStart(2, "0")}</p>
+          </td>
+          <td style="padding:12px 0;vertical-align:top;">
+            <p style="margin:0;${FONT}font-size:15px;font-weight:500;color:${INK};line-height:1.5;">${escapeHtml(text)}</p>
+          </td>
+        </tr>`
       )
       .join("");
 
     return `
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
   <tr>
-    <td style="padding:0 32px 24px 32px;">
-      <p style="margin:0 0 12px 0;${FONT}font-size:14px;font-weight:700;color:#0f172a;">Resolved This Period</p>
+    <td style="padding:0 32px 32px 32px;">
+      <p style="margin:0 0 14px 0;${FONT}font-size:11px;font-weight:600;color:${RUST};text-transform:uppercase;letter-spacing:0.22em;">02 · What we're working on next</p>
+      <h2 style="margin:0 0 16px 0;${FONT}font-size:24px;font-weight:700;color:${INK};line-height:1.25;letter-spacing:-0.01em;">The plan from here.</h2>
       <table cellpadding="0" cellspacing="0" border="0" width="100%">
         ${rows}
       </table>
@@ -504,15 +263,16 @@ export function renderMonthlyReportEmail(
 
   function buildAiSummary(): string {
     if (!data.ai_summary) return "";
+    const trimmed = trimSummary(data.ai_summary);
     return `
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
   <tr>
-    <td style="padding:0 32px 24px 32px;">
-      <p style="margin:0 0 12px 0;${FONT}font-size:14px;font-weight:700;color:#0f172a;">What This Means</p>
-      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+    <td style="padding:0 32px 32px 32px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:${PAPER_RAISED};border:1px solid ${PAPER_EDGE};border-radius:12px;">
         <tr>
-          <td style="padding:16px 20px;background:#f8fafc;border-left:4px solid #06b6d4;border-radius:0 4px 4px 0;">
-            <p style="margin:0;${FONT}font-size:14px;color:#334155;line-height:1.6;">${escapeHtml(data.ai_summary).replace(/\n\n+/g, "</p><p style=\"margin:12px 0 0 0;\">").replace(/\n/g, "<br/>")}</p>
+          <td style="padding:24px 28px;">
+            <p style="margin:0 0 10px 0;${FONT}font-size:11px;font-weight:600;color:${INK_SOFT};text-transform:uppercase;letter-spacing:0.22em;">In plain English</p>
+            <p style="margin:0;${FONT}font-size:15px;color:${INK};line-height:1.65;">${escapeHtml(trimmed)}</p>
           </td>
         </tr>
       </table>
@@ -525,9 +285,18 @@ export function renderMonthlyReportEmail(
     return `
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
   <tr>
-    <td style="padding:16px 32px 0 32px;border-top:1px solid #e2e8f0;text-align:center;">
-      <p style="margin:0 0 4px 0;${FONT}font-size:12px;color:#94a3b8;">Delivered by Niewdel &middot; ${escapeHtml(generatedDate)}</p>
-      <p style="margin:0;${FONT}font-size:12px;color:#94a3b8;">If you have questions, just reply to this email.</p>
+    <td style="padding:24px 32px 32px 32px;border-top:1px solid ${PAPER_EDGE};">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+        <tr>
+          <td style="vertical-align:middle;">
+            <p style="margin:0;${FONT}font-size:15px;font-weight:700;color:${INK};letter-spacing:-0.01em;">niewdel</p>
+          </td>
+          <td style="text-align:right;vertical-align:middle;">
+            <p style="margin:0;${FONT}font-size:12px;color:${INK_SOFT};">${escapeHtml(generatedDate)}</p>
+          </td>
+        </tr>
+      </table>
+      <p style="margin:14px 0 0 0;${FONT}font-size:12px;color:${INK_FAINT};line-height:1.5;">Questions? Just reply to this email.</p>
     </td>
   </tr>
 </table>`;
@@ -538,14 +307,9 @@ export function renderMonthlyReportEmail(
   const body = [
     opts.intro ?? "",
     buildHeader(),
-    buildOverallScoreHero(),
-    buildScoreCards(),
-    buildOpenIssues(),
-    buildTrafficSection(),
-    buildTopPages(),
-    buildKeywordRankings(),
-    buildWhatNeedsAttention(),
-    buildResolved(),
+    buildScoreHero(),
+    headsDown ? buildHeadsDownNote() : buildWins(),
+    buildWorkingOn(),
     buildAiSummary(),
     buildFooter(),
   ]
@@ -560,12 +324,12 @@ export function renderMonthlyReportEmail(
 <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
 <title>SEO Report: ${escapeHtml(data.client.name)}</title>
 </head>
-<body style="margin:0;padding:0;background:#f1f5f9;${FONT}">
+<body style="margin:0;padding:0;background:${PAPER};${FONT}">
 <!--[if mso]><table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"><tr><td><![endif]-->
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f1f5f9;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:${PAPER};">
   <tr>
-    <td style="padding:24px 0;" align="center">
-      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;background:#ffffff;border-radius:12px;overflow:hidden;">
+    <td style="padding:32px 0;" align="center">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;background:${PAPER};border:1px solid ${PAPER_EDGE};border-radius:14px;overflow:hidden;">
         <tr>
           <td>
             ${body}

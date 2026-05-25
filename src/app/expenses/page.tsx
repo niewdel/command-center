@@ -120,6 +120,7 @@ export default function ExpensesPage() {
   return (
     <PageLayout
       title="Expenses"
+      eyebrow="Money · Recurring"
       icon={DollarSign}
       loading={loading}
       maxWidth="md"
@@ -131,7 +132,7 @@ export default function ExpensesPage() {
       }
     >
       {/* Monthly total */}
-      <div className="rounded border border-border p-4 hud-glow">
+      <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">Monthly Total</span>
           <span className="text-2xl font-bold font-mono text-primary tabular-nums">

@@ -19,16 +19,19 @@ export const STAGE_LABEL: Record<DealStage, string> = {
   disqualified: "Disqualified",
 };
 
+// Stage colors — warm palette only. Cyan / teal / neon blue are off-brand
+// (Niewdel Brand Guidelines v2). Each tone moves further along a "fresh →
+// resolved" arc.
 export const STAGE_COLOR: Record<DealStage, string> = {
-  discovery: "#00B4D8",
-  scope: "#A78BFA",
-  proposal: "#F59E0B",
-  build: "#3B82F6",
-  live: "#10B981",
-  lost: "#EF4444",
-  // Slate — distinct from lost's red because "we walked away (wrong fit)"
-  // is a different signal than "we lost the deal."
-  disqualified: "#71717A",
+  discovery: "#B58A5C",   // warm tan — incoming
+  scope: "#8C6A47",       // saddle brown — under study
+  proposal: "#C89B3C",    // gold — proposal out
+  build: "#6B4A2E",       // walnut — committed work
+  live: "#5C7F4F",        // sage — won
+  lost: "#8F3623",        // accent deep rust — failed
+  // Warm stone — "we walked away (wrong fit)" reads as neutral rather
+  // than as a loss.
+  disqualified: "#807870",
 };
 
 export const ACTIVE_STAGES: DealStage[] = ["discovery", "scope", "proposal", "build"];

@@ -53,7 +53,14 @@ export default function ClientsPage() {
     : contacts;
 
   return (
-    <PageLayout title="Clients" description="People in the Niewdel CRM" icon={UsersIcon} maxWidth="xl" loading={loading}>
+    <PageLayout
+      title="Clients"
+      eyebrow="Pipeline · People"
+      description="People in the Niewdel CRM."
+      icon={UsersIcon}
+      maxWidth="xl"
+      loading={loading}
+    >
       <PipelineTabs />
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -62,20 +69,20 @@ export default function ClientsPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search name, email, company..."
-          className="flex-1 max-w-md px-3 py-2 text-xs rounded-md border bg-transparent outline-none focus:border-[rgba(0,180,216,0.4)] transition-colors"
-          style={{ borderColor: "rgba(255,255,255,0.08)", color: "rgba(245,245,245,0.85)" }}
+          className="flex-1 max-w-md px-3 py-2 text-xs rounded-md border bg-transparent outline-none focus:border-[color-mix(in oklch, var(--rust) calc(0.4 * 100%), transparent)] transition-colors"
+          style={{ borderColor: "var(--border)", color: "var(--ink)" }}
         />
         <button
           onClick={() => setAddOpen(true)}
-          className="flex items-center gap-1.5 px-3 py-2 text-[10px] uppercase tracking-wider rounded-md transition-colors hover:bg-[rgba(0,180,216,0.15)]"
-          style={{ fontFamily: mono, color: "#00B4D8", border: "1px solid rgba(0,180,216,0.3)" }}
+          className="flex items-center gap-1.5 px-3 py-2 text-[10px] uppercase tracking-wider rounded-md transition-colors hover:bg-[color-mix(in oklch, var(--rust) calc(0.15 * 100%), transparent)]"
+          style={{ fontFamily: mono, color: "var(--rust)", border: "1px solid color-mix(in oklch, var(--rust) calc(0.3 * 100%), transparent)" }}
         >
           <UserPlus size={12} /> Add Client
         </button>
       </div>
 
       {filtered.length === 0 ? (
-        <div className="text-center py-12 rounded-lg border" style={{ backgroundColor: "rgba(26,26,26,0.5)", borderColor: "rgba(255,255,255,0.06)", color: "rgba(245,245,245,0.4)" }}>
+        <div className="text-center py-12 rounded-lg border" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)", color: "var(--ink-soft)" }}>
           <p className="text-sm" style={{ fontFamily: mono }}>
             {contacts.length === 0 ? "No clients yet. Add one or promote a prospect from /leads/prospects." : "No matches."}
           </p>
@@ -88,8 +95,8 @@ export default function ClientsPage() {
             return (
               <li
                 key={c.id}
-                className="p-3 rounded-lg border group transition-colors hover:border-[rgba(0,180,216,0.25)] cursor-pointer"
-                style={{ backgroundColor: "rgba(26,26,26,0.5)", borderColor: "rgba(255,255,255,0.06)" }}
+                className="p-3 rounded-lg border group transition-colors hover:border-[color-mix(in oklch, var(--rust) calc(0.25 * 100%), transparent)] cursor-pointer"
+                style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
                 onClick={() => setEditing(c)}
               >
                 <div className="flex items-start justify-between gap-3">
@@ -97,7 +104,7 @@ export default function ClientsPage() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-semibold truncate">{c.full_name}</p>
                       {c.title && (
-                        <span className="text-[11px]" style={{ color: "rgba(245,245,245,0.45)" }}>
+                        <span className="text-[11px]" style={{ color: "var(--ink-soft)" }}>
                           · {c.title}
                         </span>
                       )}
@@ -105,18 +112,18 @@ export default function ClientsPage() {
                     {c.company && (
                       <p className="text-[11px] mt-0.5 truncate" style={{ color: "rgba(245,245,245,0.55)" }}>
                         {c.company.name}
-                        {c.company.industry && <span style={{ color: "rgba(245,245,245,0.3)" }}> · {c.company.industry}</span>}
+                        {c.company.industry && <span style={{ color: "var(--ink-faint)" }}> · {c.company.industry}</span>}
                       </p>
                     )}
-                    <div className="flex flex-wrap items-center gap-3 mt-1.5 text-[11px]" style={{ color: "rgba(245,245,245,0.5)" }}>
+                    <div className="flex flex-wrap items-center gap-3 mt-1.5 text-[11px]" style={{ color: "var(--ink-soft)" }}>
                       {c.email && (
                         <a href={`mailto:${c.email}`} onClick={(e) => e.stopPropagation()} className="flex items-center gap-1 hover:text-foreground">
-                          <Mail size={10} style={{ color: "#00B4D8" }} /> {c.email}
+                          <Mail size={10} style={{ color: "var(--rust)" }} /> {c.email}
                         </a>
                       )}
                       {c.phone && (
                         <a href={`tel:${c.phone}`} onClick={(e) => e.stopPropagation()} className="flex items-center gap-1 hover:text-foreground">
-                          <Phone size={10} style={{ color: "#00B4D8" }} /> {c.phone}
+                          <Phone size={10} style={{ color: "var(--rust)" }} /> {c.phone}
                         </a>
                       )}
                       {c.linkedin_url && (
@@ -127,7 +134,7 @@ export default function ClientsPage() {
                           onClick={(e) => e.stopPropagation()}
                           className="flex items-center gap-1 hover:text-foreground"
                         >
-                          <ExternalLink size={10} style={{ color: "#00B4D8" }} /> LinkedIn
+                          <ExternalLink size={10} style={{ color: "var(--rust)" }} /> LinkedIn
                         </a>
                       )}
                     </div>
@@ -135,7 +142,7 @@ export default function ClientsPage() {
                   <div className="flex items-start gap-2 shrink-0">
                     <div className="text-right space-y-0.5">
                       {activeDeals.length > 0 && (
-                        <p className="text-[10px] uppercase tracking-wider" style={{ color: "#00B4D8", fontFamily: mono }}>
+                        <p className="text-[10px] uppercase tracking-wider" style={{ color: "var(--rust)", fontFamily: mono }}>
                           {activeDeals.length} active
                         </p>
                       )}

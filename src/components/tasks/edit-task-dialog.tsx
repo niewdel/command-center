@@ -260,7 +260,16 @@ export function EditTaskDialog({
               <Input
                 type="date"
                 value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  // Keep planned date in sync when the user is just rescheduling —
+                  // otherwise the task lingers on the Today view after pushing its
+                  // due date out (Bug: "Rescheduling Issue").
+                  if (plannedDate && plannedDate === dueDate) {
+                    setPlannedDate(next);
+                  }
+                  setDueDate(next);
+                }}
                 className="bg-background/50 border-border/50 rounded-lg"
               />
             </div>

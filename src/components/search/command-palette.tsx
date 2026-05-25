@@ -80,7 +80,7 @@ export function CommandPalette() {
       id: "action-upcoming",
       type: "action",
       title: "Upcoming Week",
-      icon: <CalendarDays className="size-4 text-cyan-400" />,
+      icon: <CalendarDays className="size-4 text-primary" />,
       href: "/upcoming",
     },
     {
@@ -300,7 +300,7 @@ export function CommandPalette() {
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm"
+        className="fixed inset-0 z-30 bg-foreground/15"
         onClick={() => setOpen(false)}
       />
 
@@ -388,7 +388,7 @@ export function CommandPalette() {
                         className={cn(
                           "text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full",
                           aiResult.intent === "create_event" &&
-                            "bg-blue-500/20 text-blue-400",
+                            "bg-foreground/10 text-foreground",
                           aiResult.intent === "create_task" &&
                             "bg-indigo-500/20 text-indigo-400",
                           aiResult.intent === "reschedule" &&
@@ -396,7 +396,7 @@ export function CommandPalette() {
                           aiResult.intent === "cancel" &&
                             "bg-red-500/20 text-red-400",
                           aiResult.intent === "query_schedule" &&
-                            "bg-cyan-500/20 text-cyan-400",
+                            "bg-primary/12 text-primary",
                           aiResult.intent === "find_free_time" &&
                             "bg-emerald-500/20 text-emerald-400"
                         )}
@@ -521,7 +521,7 @@ export function CommandPalette() {
                       <p className="text-[10px] font-semibold uppercase text-muted-foreground">Events</p>
                       {aiResponseData.events.map((e: { id: string; title: string; start_time: string; end_time: string; location?: string; all_day?: boolean }) => (
                         <div key={e.id} className="flex items-center gap-2 text-xs">
-                          <Calendar className="size-3 text-blue-400 shrink-0" />
+                          <Calendar className="size-3 text-foreground shrink-0" />
                           <span className="font-medium">{e.title}</span>
                           <span className="text-muted-foreground">
                             {e.all_day ? "All day" : `${new Date(e.start_time).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })} - ${new Date(e.end_time).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`}

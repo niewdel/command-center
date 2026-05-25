@@ -3,8 +3,8 @@
   "short_name": "CmdCenter",
   "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#0a0e1a",
-  "theme_color": "#0a0e1a",
+  "background_color": "#F5F1EA",
+  "theme_color": "#F5F1EA",
   "orientation": "portrait-primary",
   "icons": [
     {

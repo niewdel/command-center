@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
     title: "Command Center",
   },
 };
@@ -20,7 +20,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#0a0e1a",
+  themeColor: "#F5F1EA",
 };
 
 export default async function RootLayout({
@@ -37,12 +37,12 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className={`${GeistSans.variable} ${GeistMono.variable} dark h-full antialiased bg-background`}
+      className={`${GeistSans.variable} ${GeistMono.variable} h-full antialiased bg-background`}
     >
       <head>
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
       </head>
-      <body className="min-h-full font-sans">
+      <body className="min-h-full font-sans text-foreground">
         <AppShell bareShell={bareShell}>{children}</AppShell>
       </body>
     </html>

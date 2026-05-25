@@ -40,7 +40,7 @@ const STATUSES: Array<"" | EmailStatus> = [
 
 const STATUS_BADGE: Record<string, string> = {
   draft: "bg-muted text-muted-foreground",
-  approved: "bg-blue-500/15 text-blue-400",
+  approved: "bg-foreground/8 text-foreground",
   scheduled: "bg-amber-500/15 text-amber-400",
   sent: "bg-emerald-500/15 text-emerald-400",
   bounced: "bg-red-500/15 text-red-400",
@@ -83,6 +83,7 @@ export default function EmailsPage() {
   return (
     <PageLayout
       title="Email Drafts"
+      eyebrow="Lead Gen · Outreach"
       description={`${total} total`}
       icon={Mail}
       maxWidth="xl"

@@ -20,8 +20,8 @@ import type { LeadStats } from "@/types/leads";
 const mono = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
 
 const STATUS_DOT: Record<string, string> = {
-  new: "rgba(245,245,245,0.3)",
-  researched: "#00B4D8",
+  new: "var(--ink-faint)",
+  researched: "var(--rust)",
   outreach_ready: "#10B981",
   in_sequence: "#F59E0B",
   replied: "#10B981",
@@ -96,12 +96,18 @@ function LeadsStatsContent() {
   const recentJobs = jobs.filter((j) => !ACTIVE_STATUSES.includes(j.status));
 
   return (
-    <PageLayout title="Lead Gen Agent" description="Pipeline overview across all verticals" maxWidth="xl" loading={loading}>
+    <PageLayout
+      title="Lead Gen Agent"
+      eyebrow="Agent · Outbound"
+      description="Pipeline overview across all verticals."
+      maxWidth="xl"
+      loading={loading}
+    >
       <LeadsTabs />
 
       <style>{`
         @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes pulseGlow { 0%, 100% { box-shadow: 0 0 0 0 rgba(0,180,216,0); } 50% { box-shadow: 0 0 14px 2px rgba(0,180,216,0.18); } }
+        @keyframes pulseGlow { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklch, var(--rust) calc(0 * 100%), transparent); } 50% { box-shadow: 0 0 14px 2px color-mix(in oklch, var(--rust) calc(0.18 * 100%), transparent); } }
       `}</style>
 
       {!stats ? (
@@ -113,13 +119,13 @@ function LeadsStatsContent() {
             href="/leads/new"
             className="block w-full py-5 rounded-xl text-sm font-bold uppercase tracking-wider flex items-center justify-center gap-3 transition-all duration-200 hover:scale-[1.005] active:scale-[0.995]"
             style={{
-              backgroundColor: "rgba(0,180,216,0.1)",
-              color: "#00B4D8",
-              border: "1px solid rgba(0,180,216,0.3)",
+              backgroundColor: "color-mix(in oklch, var(--rust) calc(0.1 * 100%), transparent)",
+              color: "var(--rust)",
+              border: "1px solid color-mix(in oklch, var(--rust) calc(0.3 * 100%), transparent)",
               animation: activeJobs.length === 0 ? "pulseGlow 2.4s ease-in-out infinite" : undefined,
             }}
           >
-            <Play size={18} fill="#00B4D8" />
+            <Play size={18} fill="var(--rust)" />
             Launch Lead Gen Agent
           </Link>
 
@@ -128,7 +134,7 @@ function LeadsStatsContent() {
             <section className="space-y-2">
               <p
                 className="text-[10px] uppercase tracking-wider"
-                style={{ color: "rgba(245,245,245,0.4)", fontFamily: mono }}
+                style={{ color: "var(--ink-soft)", fontFamily: mono }}
               >
                 Active jobs
               </p>
@@ -136,9 +142,9 @@ function LeadsStatsContent() {
                 <div
                   className="p-4 rounded-lg border text-sm"
                   style={{
-                    backgroundColor: "rgba(26,26,26,0.5)",
-                    borderColor: "rgba(255,255,255,0.06)",
-                    color: "rgba(245,245,245,0.5)",
+                    backgroundColor: "var(--card)",
+                    borderColor: "var(--border)",
+                    color: "var(--ink-soft)",
                   }}
                 >
                   Job is starting…
@@ -177,7 +183,7 @@ function LeadsStatsContent() {
           <section className="space-y-2">
             <p
               className="text-[10px] uppercase tracking-wider"
-              style={{ color: "rgba(245,245,245,0.4)", fontFamily: mono }}
+              style={{ color: "var(--ink-soft)", fontFamily: mono }}
             >
               Verticals
             </p>
@@ -185,9 +191,9 @@ function LeadsStatsContent() {
               <div
                 className="p-4 rounded-lg border text-sm"
                 style={{
-                  backgroundColor: "rgba(26,26,26,0.5)",
-                  borderColor: "rgba(255,255,255,0.06)",
-                  color: "rgba(245,245,245,0.5)",
+                  backgroundColor: "var(--card)",
+                  borderColor: "var(--border)",
+                  color: "var(--ink-soft)",
                 }}
               >
                 No verticals yet. Click "Launch Lead Gen Agent" above to start your first run.
@@ -199,8 +205,8 @@ function LeadsStatsContent() {
                     key={v.id}
                     className="px-4 py-3 rounded-lg border flex items-center justify-between"
                     style={{
-                      backgroundColor: "rgba(26,26,26,0.5)",
-                      borderColor: "rgba(255,255,255,0.06)",
+                      backgroundColor: "var(--card)",
+                      borderColor: "var(--border)",
                     }}
                   >
                     <div className="min-w-0">
@@ -208,7 +214,7 @@ function LeadsStatsContent() {
                       <p
                         className="text-[10px] uppercase tracking-wider mt-0.5"
                         style={{
-                          color: v.is_active ? "#10B981" : "rgba(245,245,245,0.3)",
+                          color: v.is_active ? "#10B981" : "var(--ink-faint)",
                           fontFamily: mono,
                         }}
                       >
@@ -217,7 +223,7 @@ function LeadsStatsContent() {
                     </div>
                     <span
                       className="size-2 rounded-full shrink-0"
-                      style={{ backgroundColor: v.is_active ? "#10B981" : "rgba(245,245,245,0.2)" }}
+                      style={{ backgroundColor: v.is_active ? "#10B981" : "var(--ink-faint)" }}
                       aria-hidden
                     />
                   </div>
@@ -231,7 +237,7 @@ function LeadsStatsContent() {
             <section className="space-y-2">
               <p
                 className="text-[10px] uppercase tracking-wider"
-                style={{ color: "rgba(245,245,245,0.4)", fontFamily: mono }}
+                style={{ color: "var(--ink-soft)", fontFamily: mono }}
               >
                 Recent jobs
               </p>
@@ -247,16 +253,16 @@ function LeadsStatsContent() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
             <div
               className="p-4 rounded-lg border"
-              style={{ backgroundColor: "rgba(26,26,26,0.5)", borderColor: "rgba(255,255,255,0.06)" }}
+              style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
             >
               <p
                 className="text-[10px] uppercase tracking-wider mb-3"
-                style={{ color: "rgba(245,245,245,0.4)", fontFamily: mono }}
+                style={{ color: "var(--ink-soft)", fontFamily: mono }}
               >
                 Company pipeline
               </p>
               {Object.keys(stats.companies.byStatus).length === 0 ? (
-                <p className="text-sm" style={{ color: "rgba(245,245,245,0.5)" }}>
+                <p className="text-sm" style={{ color: "var(--ink-soft)" }}>
                   No companies yet.
                 </p>
               ) : (
@@ -266,7 +272,7 @@ function LeadsStatsContent() {
                       <div className="flex items-center gap-2">
                         <span
                           className="size-2 rounded-full"
-                          style={{ backgroundColor: STATUS_DOT[status] ?? "rgba(245,245,245,0.2)" }}
+                          style={{ backgroundColor: STATUS_DOT[status] ?? "var(--ink-faint)" }}
                           aria-hidden
                         />
                         <span className="capitalize" style={{ color: "rgba(245,245,245,0.75)" }}>
@@ -275,7 +281,7 @@ function LeadsStatsContent() {
                       </div>
                       <span
                         className="tabular-nums"
-                        style={{ color: "rgba(245,245,245,0.5)", fontFamily: mono }}
+                        style={{ color: "var(--ink-soft)", fontFamily: mono }}
                       >
                         {count}
                       </span>
@@ -287,16 +293,16 @@ function LeadsStatsContent() {
 
             <div
               className="p-4 rounded-lg border"
-              style={{ backgroundColor: "rgba(26,26,26,0.5)", borderColor: "rgba(255,255,255,0.06)" }}
+              style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
             >
               <p
                 className="text-[10px] uppercase tracking-wider mb-3"
-                style={{ color: "rgba(245,245,245,0.4)", fontFamily: mono }}
+                style={{ color: "var(--ink-soft)", fontFamily: mono }}
               >
                 Pipeline events
               </p>
               {Object.keys(stats.events).length === 0 ? (
-                <p className="text-sm" style={{ color: "rgba(245,245,245,0.5)" }}>
+                <p className="text-sm" style={{ color: "var(--ink-soft)" }}>
                   No events yet.
                 </p>
               ) : (
@@ -308,7 +314,7 @@ function LeadsStatsContent() {
                       </span>
                       <span
                         className="tabular-nums"
-                        style={{ color: "rgba(245,245,245,0.5)", fontFamily: mono }}
+                        style={{ color: "var(--ink-soft)", fontFamily: mono }}
                       >
                         {count}
                       </span>
@@ -328,18 +334,18 @@ function StatCard({ label, value, sub }: { label: string; value: number; sub: st
   return (
     <div
       className="p-3 rounded-lg border"
-      style={{ backgroundColor: "rgba(26,26,26,0.5)", borderColor: "rgba(255,255,255,0.06)" }}
+      style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
     >
       <p
         className="text-[9px] uppercase tracking-wider"
-        style={{ color: "rgba(245,245,245,0.3)", fontFamily: mono }}
+        style={{ color: "var(--ink-faint)", fontFamily: mono }}
       >
         {label}
       </p>
-      <p className="text-2xl font-bold tabular-nums mt-1" style={{ color: "#00B4D8" }}>
+      <p className="text-2xl font-bold tabular-nums mt-1" style={{ color: "var(--rust)" }}>
         {value}
       </p>
-      <p className="text-[10px] mt-0.5" style={{ color: "rgba(245,245,245,0.4)" }}>
+      <p className="text-[10px] mt-0.5" style={{ color: "var(--ink-soft)" }}>
         {sub}
       </p>
     </div>
@@ -357,12 +363,12 @@ function JobRow({ job, highlighted }: { job: LeadJob; highlighted?: boolean }) {
       <div
         className="px-4 py-3 rounded-lg border space-y-2"
         style={{
-          backgroundColor: isActive ? "rgba(0,180,216,0.04)" : "rgba(26,26,26,0.5)",
+          backgroundColor: isActive ? "color-mix(in oklch, var(--rust) calc(0.04 * 100%), transparent)" : "var(--card)",
           borderColor: highlighted
-            ? "rgba(0,180,216,0.5)"
+            ? "color-mix(in oklch, var(--rust) calc(0.5 * 100%), transparent)"
             : isActive
-              ? "rgba(0,180,216,0.2)"
-              : "rgba(255,255,255,0.06)",
+              ? "color-mix(in oklch, var(--rust) calc(0.2 * 100%), transparent)"
+              : "var(--border)",
           animation: isActive ? "pulseGlow 1.6s ease-in-out infinite" : undefined,
         }}
       >
@@ -374,16 +380,16 @@ function JobRow({ job, highlighted }: { job: LeadJob; highlighted?: boolean }) {
             </div>
             <p
               className="text-[10px] mt-0.5 truncate"
-              style={{ color: "rgba(245,245,245,0.4)", fontFamily: mono }}
+              style={{ color: "var(--ink-soft)", fontFamily: mono }}
             >
               {job.current_stage ?? PHASE_LABEL[job.status] ?? "Waiting…"}
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            {isActive && <Loader2 size={14} className="animate-spin" style={{ color: "#00B4D8" }} />}
+            {isActive && <Loader2 size={14} className="animate-spin" style={{ color: "var(--rust)" }} />}
             {complete && <CheckCircle2 size={14} style={{ color: "#10B981" }} />}
             {failed && <AlertCircle size={14} style={{ color: "#EF4444" }} />}
-            {cancelled && <X size={14} style={{ color: "rgba(245,245,245,0.4)" }} />}
+            {cancelled && <X size={14} style={{ color: "var(--ink-soft)" }} />}
           </div>
         </div>
 
@@ -391,20 +397,20 @@ function JobRow({ job, highlighted }: { job: LeadJob; highlighted?: boolean }) {
           <div className="space-y-1">
             <div
               className="h-1 w-full rounded-full overflow-hidden"
-              style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
+              style={{ backgroundColor: "var(--border)" }}
             >
               <div
                 className="h-full rounded-full"
                 style={{
                   width: `${job.progress_pct}%`,
-                  backgroundColor: "#00B4D8",
+                  backgroundColor: "var(--rust)",
                   transition: "width 0.3s ease",
                 }}
               />
             </div>
             <div
               className="flex items-center justify-between text-[10px] tabular-nums"
-              style={{ color: "rgba(245,245,245,0.4)", fontFamily: mono }}
+              style={{ color: "var(--ink-soft)", fontFamily: mono }}
             >
               <span>{job.progress_pct}%</span>
               <span>
@@ -415,7 +421,7 @@ function JobRow({ job, highlighted }: { job: LeadJob; highlighted?: boolean }) {
         )}
 
         {complete && (
-          <p className="text-[10px]" style={{ color: "rgba(245,245,245,0.4)", fontFamily: mono }}>
+          <p className="text-[10px]" style={{ color: "var(--ink-soft)", fontFamily: mono }}>
             {job.companies_found} companies · {job.contacts_found} contacts · {job.emails_drafted} email drafts ready
           </p>
         )}
@@ -430,10 +436,10 @@ function JobRow({ job, highlighted }: { job: LeadJob; highlighted?: boolean }) {
           <div className="pt-1 flex items-center gap-2">
             <Link
               href={`/leads/new?clone=${job.id}`}
-              className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-md transition-colors hover:bg-[rgba(255,255,255,0.04)]"
+              className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-md transition-colors hover:bg-[var(--border)]"
               style={{
-                color: "rgba(245,245,245,0.5)",
-                border: "1px solid rgba(255,255,255,0.06)",
+                color: "var(--ink-soft)",
+                border: "1px solid var(--border)",
                 fontFamily: mono,
               }}
             >
@@ -442,10 +448,10 @@ function JobRow({ job, highlighted }: { job: LeadJob; highlighted?: boolean }) {
             {complete && (
               <Link
                 href="/leads/prospects"
-                className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-md transition-colors hover:bg-[rgba(0,180,216,0.15)]"
+                className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-md transition-colors hover:bg-[color-mix(in oklch, var(--rust) calc(0.15 * 100%), transparent)]"
                 style={{
-                  color: "#00B4D8",
-                  border: "1px solid rgba(0,180,216,0.2)",
+                  color: "var(--rust)",
+                  border: "1px solid color-mix(in oklch, var(--rust) calc(0.2 * 100%), transparent)",
                   fontFamily: mono,
                 }}
               >
@@ -461,14 +467,14 @@ function JobRow({ job, highlighted }: { job: LeadJob; highlighted?: boolean }) {
 
 function JobStatusBadge({ status }: { status: string }) {
   const map: Record<string, { color: string; bg: string }> = {
-    queued: { color: "rgba(245,245,245,0.5)", bg: "rgba(255,255,255,0.04)" },
-    scraping: { color: "#00B4D8", bg: "rgba(0,180,216,0.1)" },
-    enriching: { color: "#00B4D8", bg: "rgba(0,180,216,0.1)" },
+    queued: { color: "var(--ink-soft)", bg: "var(--border)" },
+    scraping: { color: "var(--rust)", bg: "color-mix(in oklch, var(--rust) calc(0.1 * 100%), transparent)" },
+    enriching: { color: "var(--rust)", bg: "color-mix(in oklch, var(--rust) calc(0.1 * 100%), transparent)" },
     researching: { color: "#A78BFA", bg: "rgba(167,139,250,0.1)" },
     writing: { color: "#F59E0B", bg: "rgba(245,158,11,0.1)" },
     complete: { color: "#10B981", bg: "rgba(16,185,129,0.1)" },
     failed: { color: "#EF4444", bg: "rgba(239,68,68,0.1)" },
-    cancelled: { color: "rgba(245,245,245,0.4)", bg: "rgba(255,255,255,0.04)" },
+    cancelled: { color: "var(--ink-soft)", bg: "var(--border)" },
   };
   const s = map[status] ?? map.queued;
   return (

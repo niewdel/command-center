@@ -13,14 +13,16 @@ export function ReportHeader({ data, mode }: Props) {
   );
   return (
     <header className="mb-10">
-      <div className="flex items-start justify-between gap-6 flex-wrap">
-        <div>
-          <div className="text-muted-foreground text-xs uppercase font-semibold mb-2">
-            SEO Report
-          </div>
-          <h1 className="text-4xl font-semibold text-balance">{data.client.name}</h1>
+      <div className="flex items-end justify-between gap-6 flex-wrap">
+        <div className="space-y-2">
+          <span className="mono-tag block">
+            SEO Report · {data.client.period_label}
+          </span>
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-balance text-foreground">
+            {data.client.name}
+          </h1>
           {data.client.domain && (
-            <div className="text-muted-foreground text-sm mt-1">
+            <div className="text-muted-foreground text-sm">
               {data.client.domain}
             </div>
           )}

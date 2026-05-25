@@ -418,13 +418,13 @@ export function MorningRitual({
         {step === "Review Calendar" && (
           <div className="space-y-6">
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-blue-400">
+              <div className="flex items-center gap-2 text-foreground">
                 <CalendarClock className="size-5" />
                 <h2 className="text-lg font-semibold text-balance">Today&apos;s Calendar</h2>
               </div>
               <p className="text-sm text-muted-foreground text-pretty">
                 You have{" "}
-                <span className="text-blue-400 font-medium">
+                <span className="text-foreground font-medium">
                   {formatMinutes(meetingMinutes)}
                 </span>{" "}
                 of meetings today, leaving{" "}

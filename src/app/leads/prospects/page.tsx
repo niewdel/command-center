@@ -27,8 +27,8 @@ type Status = Prospect["status"];
 const mono = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
 
 const statusConfig: Record<Status, { icon: React.ReactNode; label: string; color: string }> = {
-  queued: { icon: <Clock size={12} />, label: "Queued", color: "rgba(245,245,245,0.3)" },
-  sent: { icon: <Send size={12} />, label: "Sent", color: "#00B4D8" },
+  queued: { icon: <Clock size={12} />, label: "Queued", color: "var(--ink-faint)" },
+  sent: { icon: <Send size={12} />, label: "Sent", color: "var(--rust)" },
   opened: { icon: <Mail size={12} />, label: "Opened", color: "#F59E0B" },
   replied: { icon: <CheckCircle size={12} />, label: "Replied", color: "#10B981" },
   bounced: { icon: <XCircle size={12} />, label: "Bounced", color: "#EF4444" },
@@ -98,7 +98,12 @@ export default function ProspectsPage() {
   }, []);
 
   return (
-    <PageLayout title="Prospects" description="Generated leads with enrichment and sequences" maxWidth="xl">
+    <PageLayout
+      title="Prospects"
+      eyebrow="Lead Gen · Pipeline"
+      description="Generated leads with enrichment and sequences."
+      maxWidth="xl"
+    >
       <LeadsTabs />
 
       <style>{`
@@ -116,14 +121,14 @@ export default function ProspectsPage() {
           <div
             key={s.label}
             className="p-3 rounded-lg border text-center"
-            style={{ backgroundColor: "rgba(26,26,26,0.5)", borderColor: "rgba(255,255,255,0.06)" }}
+            style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
           >
-            <p className="text-xl font-bold tabular-nums" style={{ color: "#00B4D8" }}>
+            <p className="text-xl font-bold tabular-nums" style={{ color: "var(--rust)" }}>
               {s.value}
             </p>
             <p
               className="text-[9px] uppercase tracking-wider"
-              style={{ color: "rgba(245,245,245,0.3)", fontFamily: mono }}
+              style={{ color: "var(--ink-faint)", fontFamily: mono }}
             >
               {s.label}
             </p>
@@ -134,7 +139,7 @@ export default function ProspectsPage() {
       {/* Toolbar */}
       <div
         className="mb-4 rounded-lg border p-3 flex flex-wrap items-center justify-between gap-3"
-        style={{ backgroundColor: "rgba(0,180,216,0.04)", borderColor: "rgba(0,180,216,0.15)" }}
+        style={{ backgroundColor: "color-mix(in oklch, var(--rust) calc(0.04 * 100%), transparent)", borderColor: "color-mix(in oklch, var(--rust) calc(0.15 * 100%), transparent)" }}
       >
         <div className="flex items-center gap-2 flex-wrap">
           {FILTERS.map((s) => (
@@ -144,9 +149,9 @@ export default function ProspectsPage() {
               className="px-2.5 py-1 text-[10px] uppercase tracking-wider rounded-md transition-colors duration-150"
               style={{
                 fontFamily: mono,
-                backgroundColor: filter === s ? "rgba(0,180,216,0.1)" : "transparent",
-                color: filter === s ? "#00B4D8" : "rgba(245,245,245,0.4)",
-                border: `1px solid ${filter === s ? "rgba(0,180,216,0.2)" : "rgba(255,255,255,0.06)"}`,
+                backgroundColor: filter === s ? "color-mix(in oklch, var(--rust) calc(0.1 * 100%), transparent)" : "transparent",
+                color: filter === s ? "var(--rust)" : "var(--ink-soft)",
+                border: `1px solid ${filter === s ? "color-mix(in oklch, var(--rust) calc(0.2 * 100%), transparent)" : "var(--border)"}`,
               }}
             >
               {s === "all" ? "All" : statusConfig[s].label}
@@ -156,16 +161,16 @@ export default function ProspectsPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={fetchProspects}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-wider rounded-md transition-colors duration-150 hover:bg-[rgba(255,255,255,0.04)]"
-            style={{ fontFamily: mono, color: "rgba(245,245,245,0.5)", border: "1px solid rgba(255,255,255,0.06)" }}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-wider rounded-md transition-colors duration-150 hover:bg-[var(--border)]"
+            style={{ fontFamily: mono, color: "var(--ink-soft)", border: "1px solid var(--border)" }}
             aria-label="Refresh prospects"
           >
             <RefreshCw size={12} /> Refresh
           </button>
           <button
             onClick={exportReport}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-wider rounded-md transition-colors duration-150 hover:bg-[rgba(0,180,216,0.15)]"
-            style={{ fontFamily: mono, color: "#00B4D8", border: "1px solid rgba(0,180,216,0.2)" }}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-wider rounded-md transition-colors duration-150 hover:bg-[color-mix(in oklch, var(--rust) calc(0.15 * 100%), transparent)]"
+            style={{ fontFamily: mono, color: "var(--rust)", border: "1px solid color-mix(in oklch, var(--rust) calc(0.2 * 100%), transparent)" }}
           >
             <FileDown size={12} /> Export Report
           </button>
@@ -179,7 +184,7 @@ export default function ProspectsPage() {
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16" style={{ color: "rgba(245,245,245,0.4)" }}>
+        <div className="text-center py-16" style={{ color: "var(--ink-soft)" }}>
           <Search size={32} className="mx-auto mb-3" />
           <p className="text-sm" style={{ fontFamily: mono }}>
             {prospects.length === 0
@@ -228,7 +233,7 @@ function ProspectCard({
   onPromote: () => void;
 }) {
   const st = statusConfig[p.status];
-  const scoreColor = p.score >= 85 ? "#10B981" : p.score >= 60 ? "#F59E0B" : "rgba(245,245,245,0.4)";
+  const scoreColor = p.score >= 85 ? "#10B981" : p.score >= 60 ? "#F59E0B" : "var(--ink-soft)";
 
   return (
     <div style={{ animation: "fadeIn 0.3s ease" }}>
@@ -236,8 +241,8 @@ function ProspectCard({
         onClick={onToggle}
         className="w-full text-left p-4 rounded-lg border transition-all duration-300"
         style={{
-          backgroundColor: isExpanded ? "rgba(0,180,216,0.04)" : "rgba(26,26,26,0.5)",
-          borderColor: isExpanded ? "rgba(0,180,216,0.2)" : "rgba(255,255,255,0.06)",
+          backgroundColor: isExpanded ? "color-mix(in oklch, var(--rust) calc(0.04 * 100%), transparent)" : "var(--card)",
+          borderColor: isExpanded ? "color-mix(in oklch, var(--rust) calc(0.2 * 100%), transparent)" : "var(--border)",
           borderBottomLeftRadius: isExpanded ? 0 : undefined,
           borderBottomRightRadius: isExpanded ? 0 : undefined,
           cursor: "pointer",
@@ -248,7 +253,7 @@ function ProspectCard({
             <ChevronDown
               size={14}
               style={{
-                color: "rgba(245,245,245,0.3)",
+                color: "var(--ink-faint)",
                 transform: isExpanded ? "rotate(180deg)" : "rotate(0)",
                 transition: "transform 0.2s",
                 flexShrink: 0,
@@ -270,7 +275,7 @@ function ProspectCard({
         </div>
         <p
           className="text-[10px] ml-6 truncate"
-          style={{ color: "rgba(245,245,245,0.4)", fontFamily: mono }}
+          style={{ color: "var(--ink-soft)", fontFamily: mono }}
         >
           {p.contact} · {p.title} · {p.industry} · {p.size} employees
         </p>
@@ -279,7 +284,7 @@ function ProspectCard({
       {isExpanded && (
         <div
           className="rounded-b-lg border border-t-0 p-5"
-          style={{ backgroundColor: "rgba(13,13,13,0.8)", borderColor: "rgba(0,180,216,0.2)" }}
+          style={{ backgroundColor: "rgba(13,13,13,0.8)", borderColor: "color-mix(in oklch, var(--rust) calc(0.2 * 100%), transparent)" }}
         >
           <div className="flex items-center justify-end mb-4">
             <button
@@ -288,8 +293,8 @@ function ProspectCard({
                 onPromote();
               }}
               disabled={promoting}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-wider rounded-md transition-colors hover:bg-[rgba(0,180,216,0.15)] disabled:opacity-60 disabled:cursor-not-allowed"
-              style={{ fontFamily: mono, color: "#00B4D8", border: "1px solid rgba(0,180,216,0.3)" }}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-wider rounded-md transition-colors hover:bg-[color-mix(in oklch, var(--rust) calc(0.15 * 100%), transparent)] disabled:opacity-60 disabled:cursor-not-allowed"
+              style={{ fontFamily: mono, color: "var(--rust)", border: "1px solid color-mix(in oklch, var(--rust) calc(0.3 * 100%), transparent)" }}
             >
               <KanbanSquare size={12} />
               {promoting ? "Adding…" : "Add to Pipeline"}
@@ -301,29 +306,29 @@ function ProspectCard({
               <div>
                 <p
                   className="text-[10px] uppercase tracking-wider mb-2"
-                  style={{ color: "rgba(0,180,216,0.5)", fontFamily: mono }}
+                  style={{ color: "color-mix(in oklch, var(--rust) calc(0.5 * 100%), transparent)", fontFamily: mono }}
                 >
                   Contact Information
                 </p>
                 <p className="text-sm font-semibold">{p.contact}</p>
-                <p className="text-xs" style={{ color: "rgba(245,245,245,0.5)" }}>
+                <p className="text-xs" style={{ color: "var(--ink-soft)" }}>
                   {p.title}
                 </p>
                 <div className="mt-2 space-y-1">
                   {p.email && (
                     <p
                       className="flex items-center gap-2 text-xs"
-                      style={{ color: "rgba(245,245,245,0.6)" }}
+                      style={{ color: "var(--ink-soft)" }}
                     >
-                      <Mail size={11} style={{ color: "#00B4D8" }} /> {p.email}
+                      <Mail size={11} style={{ color: "var(--rust)" }} /> {p.email}
                     </p>
                   )}
                   {p.phone ? (
                     <p
                       className="flex items-center gap-2 text-xs"
-                      style={{ color: "rgba(245,245,245,0.6)" }}
+                      style={{ color: "var(--ink-soft)" }}
                     >
-                      <Phone size={11} style={{ color: "#00B4D8" }} /> {p.phone}
+                      <Phone size={11} style={{ color: "var(--rust)" }} /> {p.phone}
                     </p>
                   ) : (
                     <button
@@ -332,7 +337,7 @@ function ProspectCard({
                         await fetch(`/api/leads/contacts/${p.id}/enrich-phone`, { method: "POST" });
                       }}
                       className="flex items-center gap-2 text-xs hover:underline"
-                      style={{ color: "rgba(0,180,216,0.6)" }}
+                      style={{ color: "color-mix(in oklch, var(--rust) calc(0.6 * 100%), transparent)" }}
                     >
                       <Sparkles size={11} /> Enrich phone
                     </button>
@@ -344,9 +349,9 @@ function ProspectCard({
                       rel="noreferrer"
                       onClick={(e) => e.stopPropagation()}
                       className="flex items-center gap-2 text-xs hover:underline"
-                      style={{ color: "rgba(245,245,245,0.6)" }}
+                      style={{ color: "var(--ink-soft)" }}
                     >
-                      <ExternalLink size={11} style={{ color: "#00B4D8" }} /> {p.linkedin}
+                      <ExternalLink size={11} style={{ color: "var(--rust)" }} /> {p.linkedin}
                     </a>
                   )}
                 </div>
@@ -355,7 +360,7 @@ function ProspectCard({
               <div>
                 <p
                   className="text-[10px] uppercase tracking-wider mb-2"
-                  style={{ color: "rgba(0,180,216,0.5)", fontFamily: mono }}
+                  style={{ color: "color-mix(in oklch, var(--rust) calc(0.5 * 100%), transparent)", fontFamily: mono }}
                 >
                   Company Data
                 </p>
@@ -369,7 +374,7 @@ function ProspectCard({
                     <div key={d.label}>
                       <p
                         className="text-[9px] uppercase"
-                        style={{ color: "rgba(245,245,245,0.3)", fontFamily: mono }}
+                        style={{ color: "var(--ink-faint)", fontFamily: mono }}
                       >
                         {d.label}
                       </p>
@@ -381,7 +386,7 @@ function ProspectCard({
                   <div className="mt-2">
                     <p
                       className="text-[9px] uppercase mb-1"
-                      style={{ color: "rgba(245,245,245,0.3)", fontFamily: mono }}
+                      style={{ color: "var(--ink-faint)", fontFamily: mono }}
                     >
                       Tech Stack
                     </p>
@@ -391,8 +396,8 @@ function ProspectCard({
                           key={t}
                           className="text-[9px] px-1.5 py-0.5 rounded"
                           style={{
-                            backgroundColor: "rgba(0,180,216,0.06)",
-                            color: "rgba(0,180,216,0.7)",
+                            backgroundColor: "color-mix(in oklch, var(--rust) calc(0.06 * 100%), transparent)",
+                            color: "color-mix(in oklch, var(--rust) calc(0.7 * 100%), transparent)",
                             fontFamily: mono,
                           }}
                         >
@@ -409,14 +414,14 @@ function ProspectCard({
             <div>
               <p
                 className="text-[10px] uppercase tracking-wider mb-2"
-                style={{ color: "rgba(0,180,216,0.5)", fontFamily: mono }}
+                style={{ color: "color-mix(in oklch, var(--rust) calc(0.5 * 100%), transparent)", fontFamily: mono }}
               >
                 AI-Generated Email Sequence
               </p>
               {p.emails.length === 0 ? (
                 <div
                   className="rounded-md border p-4 text-xs"
-                  style={{ backgroundColor: "rgba(26,26,26,0.5)", borderColor: "rgba(255,255,255,0.06)", color: "rgba(245,245,245,0.4)" }}
+                  style={{ backgroundColor: "var(--card)", borderColor: "var(--border)", color: "var(--ink-soft)" }}
                 >
                   No email drafts yet for this contact.
                 </div>
@@ -433,9 +438,9 @@ function ProspectCard({
                         className="px-2.5 py-1 text-[10px] rounded-md transition-colors duration-150"
                         style={{
                           fontFamily: mono,
-                          backgroundColor: activeEmail === i ? "rgba(0,180,216,0.1)" : "transparent",
-                          color: activeEmail === i ? "#00B4D8" : "rgba(245,245,245,0.4)",
-                          border: `1px solid ${activeEmail === i ? "rgba(0,180,216,0.2)" : "rgba(255,255,255,0.06)"}`,
+                          backgroundColor: activeEmail === i ? "color-mix(in oklch, var(--rust) calc(0.1 * 100%), transparent)" : "transparent",
+                          color: activeEmail === i ? "var(--rust)" : "var(--ink-soft)",
+                          border: `1px solid ${activeEmail === i ? "color-mix(in oklch, var(--rust) calc(0.2 * 100%), transparent)" : "var(--border)"}`,
                         }}
                       >
                         {STEP_LABEL[em.type] ?? `Step ${em.step}`}
@@ -444,11 +449,11 @@ function ProspectCard({
                   </div>
                   <div
                     className="rounded-md border p-4"
-                    style={{ backgroundColor: "rgba(26,26,26,0.5)", borderColor: "rgba(255,255,255,0.06)" }}
+                    style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
                   >
                     <p
                       className="text-[10px] mb-1"
-                      style={{ color: "rgba(245,245,245,0.3)", fontFamily: mono }}
+                      style={{ color: "var(--ink-faint)", fontFamily: mono }}
                     >
                       Subject:
                     </p>
@@ -457,7 +462,7 @@ function ProspectCard({
                     </p>
                     <p
                       className="text-[10px] mb-1"
-                      style={{ color: "rgba(245,245,245,0.3)", fontFamily: mono }}
+                      style={{ color: "var(--ink-faint)", fontFamily: mono }}
                     >
                       Body:
                     </p>

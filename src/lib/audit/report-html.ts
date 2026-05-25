@@ -1,23 +1,30 @@
-import type { AuditResult, CategoryResult, PSIMetrics } from './types';
+import type { AuditResult, CategoryResult } from './types';
+
+// Niewdel v2 palette, email-safe inline hex.
+const PAPER = '#F5F1EA';
+const PAPER_RAISED = '#FBF8F2';
+const PAPER_EDGE = '#E3DDD2';
+const INK = '#1A1410';
+const INK_SOFT = '#665E54';
+const INK_FAINT = '#8E867C';
+const RUST = '#C84B31';
+const RUST_HOT = '#E36548';
+const RUST_DEEP = '#8F3623';
+const SAGE = '#5C7F4F';
+const GOLD = '#B58A5C';
 
 function getScoreColor(score: number): string {
-  if (score <= 40) return '#EF4444';
-  if (score <= 65) return '#F59E0B';
-  if (score <= 85) return '#22C55E';
-  return '#3B82F6';
+  if (score <= 40) return RUST_DEEP;
+  if (score <= 65) return GOLD;
+  if (score <= 85) return SAGE;
+  return INK;
 }
 
 function getScoreLabel(score: number): string {
-  if (score <= 40) return 'Critical';
-  if (score <= 65) return 'Needs Work';
-  if (score <= 85) return 'Acceptable';
-  return 'Excellent';
-}
-
-function getSeverityIcon(score: number): string {
-  if (score <= 40) return '&#9888;';  // warning triangle
-  if (score <= 65) return '&#9679;';  // filled circle
-  return '&#10003;'; // checkmark
+  if (score <= 40) return 'Major issues';
+  if (score <= 65) return 'Needs work';
+  if (score <= 85) return 'On track';
+  return 'Strong';
 }
 
 function escapeHtml(text: string): string {
@@ -29,554 +36,259 @@ function escapeHtml(text: string): string {
     .replace(/'/g, '&#039;');
 }
 
-function formatMs(ms: number): string {
-  if (ms >= 1000) return `${(ms / 1000).toFixed(1)}s`;
-  return `${Math.round(ms)}ms`;
-}
+// Pick the top 5 issues worth surfacing. Prefer findings from the
+// lowest-scoring categories, one per category, until we have 5. Each
+// finding is already plain English from the audit runner.
+function pickTopIssues(categories: CategoryResult[]): { area: string; issue: string }[] {
+  const sorted = [...categories]
+    .filter((c) => c.findings.length > 0)
+    .sort((a, b) => a.score - b.score);
 
-function getCwvStatus(metric: string, value: number): { label: string; color: string } {
-  const thresholds: Record<string, [number, number]> = {
-    lcp: [2500, 4000],
-    fcp: [1800, 3000],
-    tbt: [200, 600],
-    speedIndex: [3400, 5800],
-    cls: [0.1, 0.25],
-  };
-  const [good, poor] = thresholds[metric] || [0, 0];
-  if (value <= good) return { label: 'Good', color: '#22C55E' };
-  if (value <= poor) return { label: 'Needs Improvement', color: '#F59E0B' };
-  return { label: 'Poor', color: '#EF4444' };
-}
-
-function renderCategorySection(cat: CategoryResult, index: number): string {
-  const color = getScoreColor(cat.score);
-  const label = getScoreLabel(cat.score);
-  const icon = getSeverityIcon(cat.score);
-  const issueCount = cat.findings.length;
-  const categoryNumber = String(index + 1).padStart(2, '0');
-
-  const findingsHtml = cat.findings
-    .map((f) => {
-      const bulletColor = '#EF4444';
-      const bulletIcon = '&#10007;';
-      return `
-      <li class="finding-item">
-        <span class="finding-icon" style="color: ${bulletColor};">${bulletIcon}</span>
-        <span class="finding-text">${escapeHtml(f)}</span>
-      </li>`;
-    })
-    .join('');
-
-  return `
-    <section class="category-section" style="border-left: 4px solid ${color};">
-      <div class="category-header">
-        <div class="category-meta">
-          <span class="category-number">${categoryNumber}</span>
-          <h2 class="category-name">${escapeHtml(cat.category_name)}</h2>
-        </div>
-        <div class="category-score-area">
-          <div class="score-badge-lg" style="background: ${color}15; border: 2px solid ${color};">
-            <span class="score-badge-number" style="color: ${color};">${cat.score}</span>
-            <span class="score-badge-max" style="color: ${color}80;">/100</span>
-          </div>
-          <span class="severity-label" style="color: ${color};">${icon} ${label}</span>
-        </div>
-      </div>
-      <div class="category-body">
-        <p class="category-headline" style="color: ${color};">${escapeHtml(cat.headline)}</p>
-        <p class="category-narrative">${escapeHtml(cat.narrative)}</p>
-        ${issueCount > 0 ? `
-          <div class="findings-header">
-            <span class="findings-count">${issueCount} finding${issueCount !== 1 ? 's' : ''} identified</span>
-          </div>
-          <ul class="findings-list">${findingsHtml}</ul>
-        ` : ''}
-      </div>
-    </section>`;
-}
-
-function renderScoreBar(cat: CategoryResult): string {
-  const color = getScoreColor(cat.score);
-  const label = getScoreLabel(cat.score);
-  return `
-    <div class="score-bar-row">
-      <div class="score-bar-label">${escapeHtml(cat.category_name)}</div>
-      <div class="score-bar-track">
-        <div class="score-bar-fill" style="width: ${cat.score}%; background: linear-gradient(90deg, ${color}CC, ${color});"></div>
-      </div>
-      <div class="score-bar-value" style="color: ${color};">${cat.score}</div>
-      <div class="score-bar-status" style="color: ${color};">${label}</div>
-    </div>`;
-}
-
-function renderCwvMetric(label: string, key: string, value: number, unit: string): string {
-  const status = getCwvStatus(key, value);
-  const displayValue = key === 'cls' ? value.toFixed(3) : formatMs(value);
-  return `
-    <div class="cwv-metric">
-      <div class="cwv-value" style="color: ${status.color};">${displayValue}</div>
-      <div class="cwv-label">${label}</div>
-      <div class="cwv-status" style="color: ${status.color}; background: ${status.color}15;">${status.label}</div>
-      <div class="cwv-target">Target: ${unit}</div>
-    </div>`;
-}
-
-function renderPerformanceDashboard(psiMetrics: PSIMetrics[]): string {
-  if (!psiMetrics || psiMetrics.length === 0) {
-    return `
-      <section class="perf-dashboard">
-        <h2 class="section-title">Performance Dashboard</h2>
-        <p class="section-subtitle">Core Web Vitals &amp; speed metrics</p>
-        <div class="perf-unavailable">
-          <span class="perf-unavailable-icon">&#9888;</span>
-          <p>Performance data could not be retrieved for this site. This may indicate server issues or extremely slow load times.</p>
-        </div>
-      </section>`;
+  const out: { area: string; issue: string }[] = [];
+  for (const cat of sorted) {
+    if (out.length >= 5) break;
+    out.push({ area: cat.category_name, issue: cat.findings[0] });
   }
-
-  // Average all metrics
-  const avg = {
-    performance: Math.round(psiMetrics.reduce((s, m) => s + m.scores.performance, 0) / psiMetrics.length),
-    lcp: psiMetrics.reduce((s, m) => s + m.coreWebVitals.lcp, 0) / psiMetrics.length,
-    fcp: psiMetrics.reduce((s, m) => s + m.coreWebVitals.fcp, 0) / psiMetrics.length,
-    cls: psiMetrics.reduce((s, m) => s + m.coreWebVitals.cls, 0) / psiMetrics.length,
-    tbt: psiMetrics.reduce((s, m) => s + m.coreWebVitals.tbt, 0) / psiMetrics.length,
-    speedIndex: psiMetrics.reduce((s, m) => s + m.coreWebVitals.speedIndex, 0) / psiMetrics.length,
-  };
-
-  const perfColor = getScoreColor(avg.performance);
-
-  // Per-page scores
-  const pageScoresHtml = psiMetrics.map((m) => {
-    const color = getScoreColor(m.scores.performance);
-    const pathname = new URL(m.url).pathname || '/';
-    return `
-      <div class="page-score-row">
-        <span class="page-score-path">${escapeHtml(pathname)}</span>
-        <div class="page-score-bar-track">
-          <div class="page-score-bar-fill" style="width: ${m.scores.performance}%; background: ${color};"></div>
-        </div>
-        <span class="page-score-value" style="color: ${color};">${m.scores.performance}</span>
-      </div>`;
-  }).join('');
-
-  return `
-    <section class="perf-dashboard">
-      <h2 class="section-title">Performance Dashboard</h2>
-      <p class="section-subtitle">Core Web Vitals &amp; speed metrics from Google PageSpeed Insights</p>
-
-      <div class="perf-overview">
-        <div class="perf-score-ring" style="border-color: ${perfColor}; box-shadow: 0 0 30px ${perfColor}22;">
-          <span class="perf-score-number" style="color: ${perfColor};">${avg.performance}</span>
-          <span class="perf-score-unit">avg</span>
-        </div>
-        <div class="perf-cwv-grid">
-          ${renderCwvMetric('Largest Contentful Paint', 'lcp', avg.lcp, '< 2.5s')}
-          ${renderCwvMetric('First Contentful Paint', 'fcp', avg.fcp, '< 1.8s')}
-          ${renderCwvMetric('Cumulative Layout Shift', 'cls', avg.cls, '< 0.1')}
-          ${renderCwvMetric('Total Blocking Time', 'tbt', avg.tbt, '< 200ms')}
-          ${renderCwvMetric('Speed Index', 'speedIndex', avg.speedIndex, '< 3.4s')}
-        </div>
-      </div>
-
-      <div class="page-scores">
-        <h3 class="subsection-title">Page-by-Page Performance</h3>
-        ${pageScoresHtml}
-      </div>
-    </section>`;
+  // If a single low-scoring category has dominated and we still have room,
+  // pull a second finding from the worst one.
+  if (out.length < 5 && sorted[0]?.findings.length > 1) {
+    out.push({ area: sorted[0].category_name, issue: sorted[0].findings[1] });
+  }
+  return out;
 }
 
-function renderScreenshots(screenshots: { url: string; dataUri: string }[]): string {
-  if (!screenshots || screenshots.length === 0) return '';
-
-  const items = screenshots
-    .map((s) => {
-      const pathname = (() => { try { return new URL(s.url).pathname || '/'; } catch { return s.url; } })();
-      return `
-      <div class="screenshot-item">
-        <div class="screenshot-label">${escapeHtml(pathname)}</div>
-        <img src="${s.dataUri}" alt="Screenshot of ${escapeHtml(s.url)}" class="screenshot-img" />
-        <p class="screenshot-caption">${escapeHtml(s.url)}</p>
-      </div>`;
-    })
-    .join('');
-
-  return `
-    <section class="screenshots-section">
-      <h2 class="section-title">Visual Preview</h2>
-      <p class="section-subtitle">Screenshots captured during the audit</p>
-      <div class="screenshots-grid">
-        ${items}
-      </div>
-    </section>`;
-}
-
-function renderStatsBar(result: AuditResult): string {
-  const totalFindings = result.categories.reduce((s, c) => s + c.findings.length, 0);
-  const criticalCategories = result.categories.filter(c => c.score <= 40).length;
-  const seriousCategories = result.categories.filter(c => c.score > 40 && c.score <= 65).length;
-
-  return `
-    <div class="stats-bar">
-      <div class="stat-item">
-        <div class="stat-number">${result.pagesCrawled}</div>
-        <div class="stat-label">Pages Analyzed</div>
-      </div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">
-        <div class="stat-number">${result.psiMetrics.length}</div>
-        <div class="stat-label">Speed Tests Run</div>
-      </div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">
-        <div class="stat-number" style="color: #F59E0B;">${totalFindings}</div>
-        <div class="stat-label">Issues Found</div>
-      </div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">
-        <div class="stat-number" style="color: #EF4444;">${criticalCategories}</div>
-        <div class="stat-label">Critical Areas</div>
-      </div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">
-        <div class="stat-number" style="color: #F59E0B;">${seriousCategories}</div>
-        <div class="stat-label">Areas Needing Work</div>
-      </div>
-    </div>`;
-}
-
-function renderAlertBanner(result: AuditResult): string {
-  if (result.overall_score > 65) return '';
-
-  const isCritical = result.overall_score <= 40;
-  const bgColor = isCritical ? '#EF444415' : '#F59E0B12';
-  const borderColor = isCritical ? '#EF4444' : '#F59E0B';
-  const icon = isCritical ? '&#9888;' : '&#9888;';
-  const title = isCritical
-    ? 'Critical Issues Detected'
-    : 'Significant Issues Detected';
-  const message = isCritical
-    ? 'This website has critical deficiencies that are actively costing the business customers and revenue. Immediate action is recommended.'
-    : 'This website has multiple areas that fall below industry standards. These issues are likely impacting customer acquisition and credibility.';
-
-  return `
-    <div class="alert-banner" style="background: ${bgColor}; border: 1px solid ${borderColor}40; border-left: 4px solid ${borderColor};">
-      <div class="alert-icon" style="color: ${borderColor};">${icon}</div>
-      <div class="alert-content">
-        <div class="alert-title" style="color: ${borderColor};">${title}</div>
-        <p class="alert-message">${message}</p>
-      </div>
-    </div>`;
+// Rough "after we fix this" projection. A site at score N could realistically
+// land at around min(95, N + 30) after a targeted improvement pass.
+function projectedScore(current: number): number {
+  return Math.min(95, current + 30);
 }
 
 export function generateHtmlReport(result: AuditResult, logoDataUri?: string): string {
   const overallColor = getScoreColor(result.overall_score);
   const overallLabel = getScoreLabel(result.overall_score);
+  const projected = projectedScore(result.overall_score);
+  const projectedColor = getScoreColor(projected);
+  const projectedLabel = getScoreLabel(projected);
 
-  const scoreBarsHtml = result.categories.map(renderScoreBar).join('');
-  const categorySectionsHtml = result.categories
-    .map((cat, i) => renderCategorySection(cat, i))
+  const issues = pickTopIssues(result.categories);
+  const issuesHtml = issues
+    .map(
+      (it, i) => `
+        <li class="issue-row">
+          <span class="issue-num">${String(i + 1).padStart(2, '0')}</span>
+          <div class="issue-body">
+            <p class="issue-area">${escapeHtml(it.area)}</p>
+            <p class="issue-text">${escapeHtml(it.issue)}</p>
+          </div>
+        </li>`,
+    )
     .join('');
-  const screenshotsHtml = ''; // Disabled until annotated screenshots are implemented
-  const perfDashboardHtml = renderPerformanceDashboard(result.psiMetrics);
-  const statsBarHtml = renderStatsBar(result);
-  const alertBannerHtml = renderAlertBanner(result);
-
-  const totalFindings = result.categories.reduce((s, c) => s + c.findings.length, 0);
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Website Audit Report — ${escapeHtml(result.siteName)}</title>
+  <title>Website Audit, ${escapeHtml(result.siteName)}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: #0D0D0D;
-      color: #F5F5F5;
-      line-height: 1.7;
+      background: ${PAPER};
+      color: ${INK};
+      line-height: 1.65;
       -webkit-font-smoothing: antialiased;
     }
 
-    .container { max-width: 940px; margin: 0 auto; padding: 0 36px; }
+    .container { max-width: 720px; margin: 0 auto; padding: 0 36px; }
+
+    .mono-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      font-size: 11px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: ${RUST};
+    }
+    .mono-tag-muted {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      font-size: 11px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: ${INK_SOFT};
+    }
 
     /* ── Cover ─────────────────────────────────────────── */
 
     .cover {
-      min-height: 100vh;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      text-align: center; padding: 80px 32px;
-      background: linear-gradient(180deg, #0D0D0D 0%, #111 40%, #0D0D0D 100%);
-      position: relative; overflow: hidden;
+      padding: 96px 36px 48px;
+      text-align: left;
+      max-width: 720px;
+      margin: 0 auto;
     }
-    .cover::before {
-      content: ''; position: absolute; top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      width: 700px; height: 700px;
-      background: radial-gradient(circle, ${overallColor}08 0%, transparent 70%);
-      pointer-events: none;
+    .cover-tag { margin-bottom: 36px; }
+    .cover-logo { margin-bottom: 28px; }
+    .cover-logo img { height: 38px; width: auto; display: block; }
+    .cover-logo-text {
+      font-family: 'Inter', sans-serif; font-weight: 700; font-size: 22px;
+      letter-spacing: -0.01em; color: ${INK};
     }
-    .cover-logo { margin-bottom: 20px; position: relative; }
-    .cover-logo img { height: 52px; width: auto; display: block; }
-    .cover-subtitle {
-      font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 13px;
-      letter-spacing: 8px; color: #00B4D8; text-transform: uppercase;
-      margin-bottom: 60px; position: relative;
+    .cover-headline {
+      font-family: 'Inter', sans-serif; font-weight: 700; font-size: 38px;
+      line-height: 1.08; letter-spacing: -0.015em; color: ${INK};
+      max-width: 580px; margin-bottom: 16px;
     }
-    .cover-score-ring {
-      width: 220px; height: 220px; border-radius: 50%;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      margin-bottom: 48px; position: relative; background: #111;
-      border: 3px solid ${overallColor};
-      box-shadow: 0 0 60px ${overallColor}25, 0 0 120px ${overallColor}10, inset 0 0 40px rgba(0,0,0,0.6);
+    .cover-headline-rust { color: ${RUST}; }
+    .cover-meta {
+      font-size: 14px; color: ${INK_SOFT}; line-height: 1.6;
     }
-    .cover-score-number {
-      font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 80px;
-      color: ${overallColor}; line-height: 1;
-    }
-    .cover-score-of {
-      font-family: 'Inter', sans-serif; font-weight: 400; font-size: 16px;
-      color: ${overallColor}80; margin-top: 2px;
-    }
-    .cover-score-label {
-      font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 14px;
-      letter-spacing: 4px; text-transform: uppercase; color: ${overallColor};
-      margin-top: 24px; padding: 6px 20px; border: 1px solid ${overallColor}40;
-      border-radius: 20px;
-    }
-    .cover-site-name {
-      font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 30px;
-      color: #F5F5F5; margin-top: 32px; position: relative;
-    }
-    .cover-url { font-size: 14px; color: #6b7280; margin-top: 8px; word-break: break-all; position: relative; }
-    .cover-date { font-size: 13px; color: #4b5563; margin-top: 4px; position: relative; }
+    .cover-meta-row { margin-top: 4px; }
 
-    /* ── Stats Bar ─────────────────────────────────────── */
+    /* ── Big score card ────────────────────────────────── */
 
-    .stats-bar {
-      display: flex; justify-content: center; align-items: center; gap: 0;
-      padding: 28px 0; margin: 0 -36px;
-      background: #111; border-top: 1px solid #1f2937; border-bottom: 1px solid #1f2937;
+    .score-card {
+      margin: 48px 36px 56px;
+      max-width: 720px;
+      margin-left: auto; margin-right: auto;
+      background: ${PAPER_RAISED};
+      border: 1px solid ${PAPER_EDGE};
+      border-radius: 12px;
+      padding: 40px 44px;
     }
-    .stat-item { text-align: center; padding: 0 32px; }
-    .stat-number {
-      font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 28px; color: #F5F5F5;
+    .score-card-row {
+      display: flex; align-items: baseline; justify-content: space-between;
+      gap: 28px;
     }
-    .stat-label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 4px; }
-    .stat-divider { width: 1px; height: 40px; background: #1f2937; }
-
-    /* ── Alert Banner ──────────────────────────────────── */
-
-    .alert-banner {
-      display: flex; align-items: flex-start; gap: 16px;
-      padding: 20px 24px; border-radius: 10px; margin: 40px 0 0;
+    .score-card-block { flex: 1; }
+    .score-card-tag { margin-bottom: 10px; }
+    .score-card-number {
+      font-family: 'Inter', sans-serif; font-weight: 700; font-size: 64px;
+      line-height: 1; letter-spacing: -0.03em;
     }
-    .alert-icon { font-size: 24px; flex-shrink: 0; margin-top: 2px; }
-    .alert-title { font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 15px; margin-bottom: 4px; }
-    .alert-message { font-size: 13px; color: #9ca3af; line-height: 1.7; }
-
-    /* ── Dividers ──────────────────────────────────────── */
-
-    .divider-thin { width: 100%; height: 1px; background: linear-gradient(90deg, transparent, #1f2937, transparent); margin: 48px 0; }
-    .section-divider { width: 100%; height: 1px; background: #1f2937; margin: 56px 0; }
-
-    /* ── Section Titles ────────────────────────────────── */
-
-    .section-title {
-      font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 26px;
-      color: #F5F5F5; margin-bottom: 6px; letter-spacing: 0.3px;
+    .score-card-number-of {
+      font-family: 'Inter', sans-serif; font-weight: 500; font-size: 22px;
+      color: ${INK_FAINT}; margin-left: 4px;
     }
-    .section-subtitle { font-size: 14px; color: #6b7280; margin-bottom: 36px; }
-    .subsection-title {
-      font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 14px;
-      color: #9ca3af; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 16px; margin-top: 32px;
+    .score-card-label {
+      font-size: 13px; font-weight: 600; margin-top: 8px;
+      text-transform: uppercase; letter-spacing: 0.12em;
+    }
+    .score-card-arrow {
+      font-size: 22px; color: ${INK_FAINT}; padding: 0 6px;
     }
 
-    /* ── Executive Summary ─────────────────────────────── */
+    /* ── Summary section ───────────────────────────────── */
 
-    .executive { padding: 56px 0 0; }
-    .overall-headline {
-      font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 22px;
-      color: ${overallColor}; margin-bottom: 16px; line-height: 1.4;
+    .section { padding: 28px 0 8px; }
+    .section-tag { margin-bottom: 14px; }
+    .section-headline {
+      font-family: 'Inter', sans-serif; font-weight: 700;
+      font-size: 26px; line-height: 1.2; letter-spacing: -0.012em;
+      color: ${INK}; margin-bottom: 16px;
     }
-    .overall-narrative { font-size: 15px; color: #d1d5db; line-height: 1.9; margin-bottom: 48px; }
-
-    /* ── Score Bars ────────────────────────────────────── */
-
-    .score-bars { margin-bottom: 16px; }
-    .score-bar-row { display: flex; align-items: center; margin-bottom: 14px; }
-    .score-bar-label {
-      width: 190px; flex-shrink: 0; font-size: 13px; font-weight: 500;
-      color: #9ca3af; text-align: right; padding-right: 20px;
-    }
-    .score-bar-track { flex: 1; height: 12px; background: #1a1a1a; border-radius: 6px; overflow: hidden; border: 1px solid #252525; }
-    .score-bar-fill { height: 100%; border-radius: 6px; }
-    .score-bar-value {
-      width: 36px; flex-shrink: 0; text-align: right;
-      font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 15px; padding-left: 14px;
-    }
-    .score-bar-status {
-      width: 100px; flex-shrink: 0; text-align: right;
-      font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; padding-left: 12px;
+    .section-body {
+      font-size: 15px; color: ${INK_SOFT}; line-height: 1.7;
+      max-width: 620px;
     }
 
-    /* ── Performance Dashboard ─────────────────────────── */
+    /* ── Top 5 issues ──────────────────────────────────── */
 
-    .perf-dashboard { padding: 0; }
-    .perf-overview { display: flex; align-items: flex-start; gap: 40px; margin-bottom: 16px; }
-    .perf-score-ring {
-      width: 120px; height: 120px; border-radius: 50%; flex-shrink: 0;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      background: #111; border: 3px solid;
+    .issues { padding: 32px 0 12px; }
+    .issues-list { list-style: none; padding: 0; }
+    .issue-row {
+      display: flex; align-items: flex-start; gap: 20px;
+      padding: 20px 0;
+      border-top: 1px solid ${PAPER_EDGE};
     }
-    .perf-score-number { font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 36px; line-height: 1; }
-    .perf-score-unit { font-size: 11px; color: #6b7280; margin-top: 2px; }
-    .perf-cwv-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; flex: 1; }
-    .cwv-metric {
-      background: #111; border: 1px solid #1f2937; border-radius: 10px; padding: 16px; text-align: center;
+    .issue-row:last-child { border-bottom: 1px solid ${PAPER_EDGE}; }
+    .issue-num {
+      font-family: 'JetBrains Mono', monospace; font-weight: 600;
+      font-size: 13px; color: ${RUST};
+      letter-spacing: 0.05em; flex-shrink: 0; padding-top: 2px;
+      min-width: 28px;
     }
-    .cwv-value { font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 22px; }
-    .cwv-label { font-size: 11px; color: #6b7280; margin-top: 4px; line-height: 1.3; }
-    .cwv-status {
-      display: inline-block; font-size: 10px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 1px; padding: 3px 10px; border-radius: 12px; margin-top: 8px;
+    .issue-body { flex: 1; min-width: 0; }
+    .issue-area {
+      font-family: 'JetBrains Mono', monospace; font-weight: 600;
+      font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+      color: ${INK_SOFT}; margin-bottom: 4px;
     }
-    .cwv-target { font-size: 10px; color: #4b5563; margin-top: 6px; }
-
-    .page-scores { margin-top: 8px; }
-    .page-score-row { display: flex; align-items: center; margin-bottom: 10px; }
-    .page-score-path { width: 200px; flex-shrink: 0; font-size: 12px; color: #6b7280; font-family: monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .page-score-bar-track { flex: 1; height: 8px; background: #1a1a1a; border-radius: 4px; overflow: hidden; border: 1px solid #252525; }
-    .page-score-bar-fill { height: 100%; border-radius: 4px; }
-    .page-score-value { width: 40px; flex-shrink: 0; text-align: right; font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 13px; padding-left: 12px; }
-
-    .perf-unavailable {
-      display: flex; align-items: center; gap: 16px;
-      background: #EF444410; border: 1px solid #EF444430; border-radius: 10px; padding: 24px;
-    }
-    .perf-unavailable-icon { font-size: 28px; color: #EF4444; flex-shrink: 0; }
-    .perf-unavailable p { font-size: 14px; color: #9ca3af; }
-
-    /* ── Category Deep-Dives ───────────────────────────── */
-
-    .categories { padding: 0 0 20px; }
-    .category-section {
-      background: #111; border: 1px solid #1f2937;
-      border-radius: 12px; padding: 32px 36px; margin-bottom: 24px;
-      border-left: 4px solid;
-    }
-    .category-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; }
-    .category-meta { display: flex; align-items: center; gap: 14px; }
-    .category-number {
-      font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 13px;
-      color: #374151; background: #1a1a1a; width: 32px; height: 32px;
-      border-radius: 8px; display: flex; align-items: center; justify-content: center;
-    }
-    .category-name { font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 19px; color: #F5F5F5; }
-    .category-score-area { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
-    .score-badge-lg {
-      display: flex; align-items: baseline; gap: 2px; padding: 8px 16px;
-      border-radius: 10px; border: 2px solid;
-    }
-    .score-badge-number { font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 28px; }
-    .score-badge-max { font-family: 'Inter', sans-serif; font-weight: 400; font-size: 14px; }
-    .severity-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
-
-    .category-body {}
-    .category-headline {
-      font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 16px;
-      margin-bottom: 10px; line-height: 1.4;
-    }
-    .category-narrative { font-size: 14px; color: #9ca3af; line-height: 1.8; margin-bottom: 24px; }
-
-    .findings-header { margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid #1f2937; }
-    .findings-count {
-      font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 12px;
-      color: #6b7280; text-transform: uppercase; letter-spacing: 1.5px;
-    }
-    .findings-list { list-style: none; padding: 0; }
-    .finding-item {
-      display: flex; align-items: flex-start; gap: 10px;
-      padding: 8px 0; font-size: 13px; color: #d1d5db; line-height: 1.5;
-      border-bottom: 1px solid #1a1a1a;
-    }
-    .finding-item:last-child { border-bottom: none; }
-    .finding-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; font-weight: 700; }
-    .finding-text { flex: 1; }
-
-    /* ── Screenshots ───────────────────────────────────── */
-
-    .screenshots-section { padding: 0 0 20px; }
-    .screenshots-grid { display: flex; flex-direction: column; gap: 24px; margin-top: 24px; }
-    .screenshot-item { background: #111; border: 1px solid #1f2937; border-radius: 12px; overflow: hidden; }
-    .screenshot-label {
-      padding: 10px 20px; font-family: monospace; font-size: 13px; color: #00B4D8;
-      background: #0a0a0a; border-bottom: 1px solid #1f2937;
-    }
-    .screenshot-img { width: 100%; display: block; }
-    .screenshot-caption {
-      padding: 10px 20px; font-size: 11px; color: #4b5563; word-break: break-all;
-      border-top: 1px solid #1f2937;
+    .issue-text {
+      font-size: 15px; color: ${INK}; line-height: 1.55;
     }
 
-    /* ── Bottom CTA ────────────────────────────────────── */
+    /* ── Projection callout ────────────────────────────── */
 
-    .bottom-cta {
-      text-align: center; padding: 56px 0; margin-top: 20px;
-      background: linear-gradient(180deg, transparent, #00B4D808, transparent);
-      border-radius: 16px;
+    .projection {
+      margin: 48px 0 0;
+      background: ${INK};
+      border-radius: 12px;
+      padding: 36px 40px;
+      color: ${PAPER};
     }
-    .bottom-cta-title {
-      font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 22px; color: #F5F5F5; margin-bottom: 12px;
+    .projection-tag {
+      font-family: 'JetBrains Mono', monospace; font-weight: 600;
+      font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+      color: ${RUST_HOT}; margin-bottom: 12px;
     }
-    .bottom-cta-text { font-size: 14px; color: #6b7280; max-width: 500px; margin: 0 auto 24px; line-height: 1.7; }
-    .bottom-cta-contact {
-      font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 16px;
-      color: #00B4D8; letter-spacing: 1px;
+    .projection-headline {
+      font-family: 'Inter', sans-serif; font-weight: 700;
+      font-size: 22px; line-height: 1.3; margin-bottom: 24px;
+      max-width: 460px;
+    }
+    .projection-grid {
+      display: flex; align-items: baseline; gap: 28px;
+    }
+    .projection-cell { flex: 1; }
+    .projection-cell-label {
+      font-family: 'JetBrains Mono', monospace; font-weight: 600;
+      font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+      color: ${PAPER_EDGE}; margin-bottom: 8px; opacity: 0.55;
+    }
+    .projection-cell-value {
+      font-family: 'Inter', sans-serif; font-weight: 700; font-size: 48px;
+      line-height: 1; letter-spacing: -0.02em;
+    }
+    .projection-arrow {
+      font-size: 24px; color: ${PAPER_EDGE}; opacity: 0.5;
     }
 
-    /* ── Legend / Footer ───────────────────────────────── */
+    /* ── Footer ────────────────────────────────────────── */
 
-    .legend { padding: 40px 0; }
-    .legend-title {
-      font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 12px;
-      letter-spacing: 3px; text-transform: uppercase; color: #4b5563; margin-bottom: 16px;
+    .footer {
+      padding: 56px 36px 56px;
+      max-width: 720px; margin: 24px auto 0;
+      border-top: 1px solid ${PAPER_EDGE};
     }
-    .legend-items { display: flex; gap: 28px; flex-wrap: wrap; }
-    .legend-item { display: flex; align-items: center; gap: 8px; }
-    .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-    .legend-text { font-size: 12px; color: #6b7280; }
-    .legend-range { font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 11px; color: #4b5563; }
-
-    .footer { text-align: center; padding: 36px 0; border-top: 1px solid #1f2937; }
+    .footer-inner {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px;
+    }
     .footer-brand {
-      font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 13px;
-      letter-spacing: 6px; color: #2a2a2a; text-transform: uppercase;
+      font-family: 'Inter', sans-serif; font-weight: 700; font-size: 16px;
+      letter-spacing: -0.01em; color: ${INK};
     }
-    .footer-tagline { font-size: 12px; color: #2a2a2a; margin-top: 6px; }
+    .footer-contact {
+      font-size: 13px; color: ${INK_SOFT};
+    }
+    .footer-contact a { color: ${RUST}; text-decoration: none; font-weight: 600; }
+    .footer-note {
+      font-size: 11px; color: ${INK_FAINT}; margin-top: 16px;
+      letter-spacing: 0.04em;
+    }
 
     /* ── Print ─────────────────────────────────────────── */
 
     @media print {
-      body { background: #fff; color: #111; }
-      .cover { min-height: auto; padding: 60px 32px; background: #fff; page-break-after: always; }
-      .cover::before { display: none; }
-      .cover-site-name, .section-title, .category-name, .category-headline { color: #111; }
-      .overall-narrative, .category-narrative { color: #374151; }
-      .stats-bar { background: #f9fafb; border-color: #e5e7eb; }
-      .stat-number { color: #111; }
-      .category-section { background: #f9fafb; border-color: #e5e7eb; page-break-inside: avoid; }
-      .cwv-metric { background: #f9fafb; border-color: #e5e7eb; }
-      .score-bar-track, .page-score-bar-track { background: #e5e7eb; border-color: #ddd; }
-      .finding-item { border-color: #e5e7eb; color: #374151; }
-      .screenshot-item { border-color: #e5e7eb; page-break-inside: avoid; }
-      .footer { border-color: #e5e7eb; }
+      body { background: #fff; }
+      .cover, .container { max-width: none; }
+      .score-card, .projection { page-break-inside: avoid; }
+      .projection { background: ${INK}; }
     }
   </style>
 </head>
@@ -584,99 +296,85 @@ export function generateHtmlReport(result: AuditResult, logoDataUri?: string): s
 
   <!-- Cover -->
   <div class="cover">
-    <div class="cover-logo">${logoDataUri ? `<img src="${logoDataUri}" alt="Niewdel" />` : `<span style="font-family:'Montserrat',sans-serif;font-weight:900;font-size:48px;letter-spacing:16px;color:#F5F5F5;text-transform:uppercase;">NIEWDEL</span>`}</div>
-    <div class="cover-subtitle">Website Audit Report</div>
-    <div class="cover-score-ring">
-      <div class="cover-score-number">${result.overall_score}</div>
-      <div class="cover-score-of">out of 100</div>
+    <div class="cover-tag mono-tag">Website Audit · ${escapeHtml(result.auditDate)}</div>
+    <div class="cover-logo">${
+      logoDataUri
+        ? `<img src="${logoDataUri}" alt="Niewdel" />`
+        : `<span class="cover-logo-text">niewdel</span>`
+    }</div>
+    <h1 class="cover-headline">
+      Audit for <span class="cover-headline-rust">${escapeHtml(result.siteName)}</span>.
+    </h1>
+    <div class="cover-meta">
+      <div>${escapeHtml(result.url)}</div>
+      <div class="cover-meta-row">${result.pagesCrawled} page${result.pagesCrawled !== 1 ? 's' : ''} reviewed.</div>
     </div>
-    <div class="cover-score-label" style="color: ${overallColor}; border-color: ${overallColor}40;">${overallLabel}</div>
-    <div class="cover-site-name">${escapeHtml(result.siteName)}</div>
-    <div class="cover-url">${escapeHtml(result.url)}</div>
-    <div class="cover-date">${escapeHtml(result.auditDate)} &middot; ${result.pagesCrawled} page${result.pagesCrawled !== 1 ? 's' : ''} analyzed</div>
   </div>
 
-  <!-- Stats Bar -->
+  <!-- Score Card -->
+  <div class="score-card">
+    <div class="score-card-row">
+      <div class="score-card-block">
+        <div class="score-card-tag mono-tag-muted">Your Score</div>
+        <div>
+          <span class="score-card-number" style="color: ${overallColor};">${result.overall_score}</span>
+          <span class="score-card-number-of">/100</span>
+        </div>
+        <div class="score-card-label" style="color: ${overallColor};">${overallLabel}</div>
+      </div>
+    </div>
+  </div>
+
   <div class="container">
-    ${statsBarHtml}
-    ${alertBannerHtml}
 
     <!-- Executive Summary -->
-    <section class="executive">
-      <h1 class="section-title">Executive Summary</h1>
-      <p class="section-subtitle">Your website scored ${result.overall_score} out of 100 across 8 audit categories. ${totalFindings} issues were identified.</p>
-      <p class="overall-headline">${escapeHtml(result.overall_headline)}</p>
-      <p class="overall-narrative">${escapeHtml(result.overall_narrative)}</p>
+    <section class="section">
+      <div class="section-tag mono-tag">01 · Summary</div>
+      <h2 class="section-headline">${escapeHtml(result.overall_headline)}</h2>
+      <p class="section-body">${escapeHtml(result.overall_narrative)}</p>
+    </section>
 
-      <div class="score-bars">
-        ${scoreBarsHtml}
+    <!-- Top Issues -->
+    <section class="issues">
+      <div class="section-tag mono-tag">02 · What we'd fix first</div>
+      <h2 class="section-headline">The biggest opportunities.</h2>
+      <ul class="issues-list">
+        ${issuesHtml}
+      </ul>
+    </section>
+
+    <!-- Projection -->
+    <section class="projection">
+      <div class="projection-tag">03 · After our fixes</div>
+      <p class="projection-headline">A focused plan can lift this site to a stronger score.</p>
+      <div class="projection-grid">
+        <div class="projection-cell">
+          <div class="projection-cell-label">Today</div>
+          <div class="projection-cell-value" style="color: ${overallColor === INK ? PAPER : overallColor};">${result.overall_score}</div>
+        </div>
+        <div class="projection-arrow">&rarr;</div>
+        <div class="projection-cell">
+          <div class="projection-cell-label">After</div>
+          <div class="projection-cell-value" style="color: ${projectedColor === INK ? PAPER : projectedColor};">${projected}</div>
+        </div>
       </div>
     </section>
 
-    <div class="section-divider"></div>
+  </div>
 
-    <!-- Performance Dashboard -->
-    ${perfDashboardHtml}
-
-    <div class="section-divider"></div>
-
-    <!-- Category Deep-Dives -->
-    <section class="categories">
-      <h2 class="section-title">Detailed Findings</h2>
-      <p class="section-subtitle">Category-by-category breakdown with ${totalFindings} individual findings</p>
-      <div style="margin-top: 28px;">
-        ${categorySectionsHtml}
+  <!-- Footer -->
+  <div class="footer">
+    <div class="footer-inner">
+      <div class="footer-brand">${
+        logoDataUri
+          ? `<img src="${logoDataUri}" alt="Niewdel" style="height: 22px; width: auto;" />`
+          : `niewdel`
+      }</div>
+      <div class="footer-contact">
+        Built by Niewdel. <a href="https://niewdel.com">niewdel.com</a>
       </div>
-    </section>
-
-    <div class="section-divider"></div>
-
-    <!-- Screenshots -->
-    ${screenshotsHtml}
-
-    ${screenshotsHtml ? '<div class="section-divider"></div>' : ''}
-
-    <!-- Bottom CTA -->
-    <div class="bottom-cta">
-      <div class="bottom-cta-title">Ready to improve these scores?</div>
-      <p class="bottom-cta-text">This audit identified ${totalFindings} areas where your website is underperforming. A targeted improvement plan can address the most impactful issues first.</p>
-      <div class="bottom-cta-contact">niewdel.com</div>
     </div>
-
-    <div class="section-divider"></div>
-
-    <!-- Legend -->
-    <section class="legend">
-      <p class="legend-title">Scoring Legend</p>
-      <div class="legend-items">
-        <div class="legend-item">
-          <div class="legend-dot" style="background: #EF4444;"></div>
-          <span class="legend-text">Critical</span>
-          <span class="legend-range">(0 &ndash; 40)</span>
-        </div>
-        <div class="legend-item">
-          <div class="legend-dot" style="background: #F59E0B;"></div>
-          <span class="legend-text">Needs Work</span>
-          <span class="legend-range">(41 &ndash; 65)</span>
-        </div>
-        <div class="legend-item">
-          <div class="legend-dot" style="background: #22C55E;"></div>
-          <span class="legend-text">Acceptable</span>
-          <span class="legend-range">(66 &ndash; 85)</span>
-        </div>
-        <div class="legend-item">
-          <div class="legend-dot" style="background: #3B82F6;"></div>
-          <span class="legend-text">Excellent</span>
-          <span class="legend-range">(86 &ndash; 100)</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- Footer -->
-    <div class="footer">
-      ${logoDataUri ? `<img src="${logoDataUri}" alt="Niewdel" style="height: 22px; width: auto; margin-bottom: 8px; opacity: 0.3;" />` : `<div class="footer-brand">Niewdel</div>`}
-      <div class="footer-tagline">Confidential &mdash; Prepared exclusively for ${escapeHtml(result.siteName)}</div>
-    </div>
+    <p class="footer-note">Prepared for ${escapeHtml(result.siteName)}. ${escapeHtml(result.auditDate)}.</p>
   </div>
 
 </body>

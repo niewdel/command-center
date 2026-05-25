@@ -35,7 +35,7 @@ const ROLES: Array<"" | RoleType> = ["", "decision_maker", "influencer", "unknow
 
 const ROLE_BADGE: Record<string, string> = {
   decision_maker: "bg-emerald-500/15 text-emerald-400",
-  influencer: "bg-blue-500/15 text-blue-400",
+  influencer: "bg-foreground/8 text-foreground",
   champion: "bg-purple-500/15 text-purple-400",
   end_user: "bg-amber-500/15 text-amber-400",
   unknown: "bg-muted text-muted-foreground",
@@ -78,6 +78,7 @@ export default function ContactsPage() {
   return (
     <PageLayout
       title="Contacts"
+      eyebrow="Lead Gen · Contacts"
       description={`${total} total`}
       icon={ContactIcon}
       maxWidth="xl"

@@ -25,15 +25,17 @@ import {
   Pencil,
 } from "lucide-react";
 
+// Warm palette only. Cyan / teal / neon blue are off-brand
+// (Niewdel Brand Guidelines v2). Matches ROUTINE_COLORS.
 const CALENDAR_COLORS = [
-  "#3b82f6", // blue
-  "#8b5cf6", // violet
-  "#ec4899", // pink
-  "#ef4444", // red
-  "#f97316", // orange
-  "#eab308", // yellow
-  "#22c55e", // green
-  "#06b6d4", // cyan
+  "#C84B31", // rust
+  "#8F3623", // deep rust
+  "#6B4A2E", // walnut
+  "#C89B3C", // gold
+  "#5C7F4F", // sage
+  "#B25A3E", // terracotta
+  "#807870", // stone
+  "#6B3A4A", // warm plum
 ];
 
 export function CalendarConnections() {

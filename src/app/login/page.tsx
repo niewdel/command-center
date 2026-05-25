@@ -35,20 +35,21 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-dvh items-center justify-center px-4">
-      <div className="w-full max-w-[320px] space-y-6 p-6 rounded border border-border hud-glow">
-        <div className="text-center space-y-2">
-          <div className="inline-flex size-12 items-center justify-center rounded border-2 border-primary/50" style={{ boxShadow: '0 0 16px -4px var(--hud-glow)' }}>
-            <span className="text-primary font-bold text-lg font-mono">CC</span>
+      <div className="w-full max-w-[340px] space-y-7 p-8 rounded-lg border border-border bg-card shadow-sm">
+        <div className="space-y-3">
+          <span className="mono-tag">Command Center · v2</span>
+          <div className="flex items-baseline gap-2">
+            <h1 className="text-2xl font-bold text-foreground text-balance tracking-tight font-heading">
+              Welcome back, Justin.
+            </h1>
+            <span aria-hidden="true" className="size-1.5 rounded-full bg-primary" />
           </div>
-          <h1 className="text-xl font-bold text-foreground font-mono text-balance">
-            Command Center
-          </h1>
-          <p className="text-sm text-muted-foreground text-pretty font-mono">
-            Enter your PIN to continue
+          <p className="text-sm text-muted-foreground text-pretty">
+            Enter your PIN to unlock.
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
           <Input
             autoFocus
             type="password"
@@ -59,18 +60,18 @@ export default function LoginPage() {
               setPin(e.target.value);
               setError("");
             }}
-            placeholder="PIN"
-            className="bg-card border-border rounded h-12 text-center text-lg tracking-widest font-mono focus-visible:border-primary focus-visible:ring-primary/30"
+            placeholder="••••"
+            className="bg-background border-border rounded h-12 text-center text-lg tracking-[0.4em] font-mono focus-visible:border-primary focus-visible:ring-primary/30"
           />
           {error && (
-            <p className="text-xs text-destructive text-center">{error}</p>
+            <p className="text-xs text-destructive">{error}</p>
           )}
           <Button
             type="submit"
             disabled={!pin.trim() || loading}
-            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground border-0 rounded h-11 font-medium"
+            className="w-full bg-primary hover:bg-[var(--rust-hot)] text-primary-foreground border-0 rounded h-11 font-medium"
           >
-            {loading ? "Checking..." : "Enter"}
+            {loading ? "Checking" : "Enter"}
           </Button>
         </form>
       </div>

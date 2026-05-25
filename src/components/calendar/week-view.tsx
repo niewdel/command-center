@@ -112,9 +112,9 @@ export function WeekView({ events, scheduledTasks = [], weekStart, onEventClick 
                   onClick={() => onEventClick?.(event)}
                   className="text-[10px] font-medium px-1.5 py-0.5 rounded truncate cursor-pointer hover:brightness-125"
                   style={{
-                    backgroundColor: `${event.color || "#3b82f6"}18`,
-                    color: event.color || "#3b82f6",
-                    borderLeft: `2px solid ${event.color || "#3b82f6"}`,
+                    backgroundColor: `${event.color || "var(--rust)"}18`,
+                    color: event.color || "var(--rust)",
+                    border: `1px solid ${event.color || "var(--rust)"}`,
                   }}
                 >
                   {event.title}
@@ -128,14 +128,14 @@ export function WeekView({ events, scheduledTasks = [], weekStart, onEventClick 
                   onClick={() => onEventClick?.(event)}
                   className="rounded px-1.5 py-1 group cursor-pointer hover:brightness-125"
                   style={{
-                    backgroundColor: `${event.color || "#3b82f6"}10`,
-                    borderLeft: `2px solid ${event.color || "#3b82f6"}`,
+                    backgroundColor: `${event.color || "var(--rust)"}10`,
+                    border: `1px solid ${event.color || "var(--rust)"}`,
                   }}
                 >
                   <div className="flex items-center gap-1">
                     <span
                       className="text-[10px] font-medium truncate"
-                      style={{ color: event.color || "#3b82f6" }}
+                      style={{ color: event.color || "var(--rust)" }}
                     >
                       {event.title}
                     </span>
@@ -148,7 +148,7 @@ export function WeekView({ events, scheduledTasks = [], weekStart, onEventClick 
                       >
                         <Video
                           className="size-2.5"
-                          style={{ color: event.color || "#3b82f6" }}
+                          style={{ color: event.color || "var(--rust)" }}
                         />
                       </a>
                     )}

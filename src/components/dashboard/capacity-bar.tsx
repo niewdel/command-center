@@ -7,16 +7,17 @@ type CapacityBarProps = {
   capacity: CapacityInfo | CapacityWithEventsInfo;
 };
 
+// Semantic capacity colors, warmed to sit on Paper.
 const levelColor = {
-  green: "bg-emerald-500",
-  yellow: "bg-amber-500",
-  red: "bg-red-500",
+  green: "bg-[var(--chart-2)]",
+  yellow: "bg-[var(--chart-3)]",
+  red: "bg-destructive",
 };
 
 const levelText = {
-  green: "text-emerald-400",
-  yellow: "text-amber-400",
-  red: "text-red-400",
+  green: "text-[var(--chart-2)]",
+  yellow: "text-[var(--chart-3)]",
+  red: "text-destructive",
 };
 
 function hasMeetings(
@@ -45,7 +46,7 @@ export function CapacityBar({ capacity }: CapacityBarProps) {
       <div className="h-1.5 rounded-full bg-muted/50 overflow-hidden flex">
         {withMeetings && meetingPercent > 0 && (
           <div
-            className="h-full bg-blue-500/70 transition-all duration-500"
+            className="h-full bg-[var(--chart-2)] transition-all duration-500"
             style={{ width: `${meetingPercent}%` }}
           />
         )}
@@ -64,7 +65,7 @@ export function CapacityBar({ capacity }: CapacityBarProps) {
           {withMeetings ? (
             <>
               {formatMinutes(capacity.meetingMinutes)}{" "}
-              <span className="text-blue-400">meetings</span>
+              <span className="text-foreground">meetings</span>
               {" + "}
               {formatMinutes(capacity.estimatedMinutes)}{" "}
               <span className={levelText[capacity.level]}>tasks</span>

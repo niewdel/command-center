@@ -291,10 +291,10 @@ export default function DealDetailPage() {
         <div className="lg:col-span-2 space-y-3">
           <div
             className="rounded-lg border p-4 space-y-3"
-            style={{ backgroundColor: "rgba(26,26,26,0.5)", borderColor: "rgba(255,255,255,0.06)" }}
+            style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
           >
             <div className="space-y-1.5">
-              <p className="text-[10px] uppercase tracking-wider" style={{ color: "rgba(245,245,245,0.4)", fontFamily: mono }}>
+              <p className="text-[10px] uppercase tracking-wider" style={{ color: "var(--ink-soft)", fontFamily: mono }}>
                 Title
               </p>
               <input
@@ -304,12 +304,12 @@ export default function DealDetailPage() {
                   setTitle(e.target.value);
                   queueSave({ title: e.target.value.trim() });
                 }}
-                className="w-full bg-transparent text-sm font-semibold outline-none border-b border-transparent focus:border-[rgba(0,180,216,0.4)] transition-colors"
+                className="w-full bg-transparent text-sm font-semibold outline-none border-b border-transparent focus:border-[color-mix(in oklch, var(--rust) calc(0.4 * 100%), transparent)] transition-colors"
               />
             </div>
 
             <div>
-              <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: "rgba(245,245,245,0.4)", fontFamily: mono }}>
+              <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: "var(--ink-soft)", fontFamily: mono }}>
                 Stage
               </p>
               <div className="flex flex-wrap gap-1.5">
@@ -324,8 +324,8 @@ export default function DealDetailPage() {
                     style={{
                       fontFamily: mono,
                       backgroundColor: stage === s ? `${STAGE_COLOR[s]}1f` : "transparent",
-                      color: stage === s ? STAGE_COLOR[s] : "rgba(245,245,245,0.4)",
-                      border: `1px solid ${stage === s ? STAGE_COLOR[s] : "rgba(255,255,255,0.06)"}`,
+                      color: stage === s ? STAGE_COLOR[s] : "var(--ink-soft)",
+                      border: `1px solid ${stage === s ? STAGE_COLOR[s] : "var(--border)"}`,
                     }}
                   >
                     {STAGE_LABEL[s]}
@@ -336,7 +336,7 @@ export default function DealDetailPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <div className="space-y-1.5">
-                <p className="text-[10px] uppercase tracking-wider" style={{ color: "rgba(245,245,245,0.4)", fontFamily: mono }}>
+                <p className="text-[10px] uppercase tracking-wider" style={{ color: "var(--ink-soft)", fontFamily: mono }}>
                   Value ($)
                 </p>
                 <input
@@ -350,11 +350,11 @@ export default function DealDetailPage() {
                   }}
                   placeholder="5000"
                   className="w-full text-sm bg-transparent outline-none border rounded-md px-2 py-1.5"
-                  style={{ borderColor: "rgba(255,255,255,0.08)" }}
+                  style={{ borderColor: "var(--border)" }}
                 />
               </div>
               <div className="space-y-1.5">
-                <p className="text-[10px] uppercase tracking-wider" style={{ color: "rgba(245,245,245,0.4)", fontFamily: mono }}>
+                <p className="text-[10px] uppercase tracking-wider" style={{ color: "var(--ink-soft)", fontFamily: mono }}>
                   Est. close
                 </p>
                 <input
@@ -365,11 +365,11 @@ export default function DealDetailPage() {
                     queueSave({ close_date_est: e.target.value || null }, { immediate: true });
                   }}
                   className="w-full text-sm bg-transparent outline-none border rounded-md px-2 py-1.5"
-                  style={{ borderColor: "rgba(255,255,255,0.08)" }}
+                  style={{ borderColor: "var(--border)" }}
                 />
               </div>
               <div className="space-y-1.5">
-                <p className="text-[10px] uppercase tracking-wider" style={{ color: "rgba(245,245,245,0.4)", fontFamily: mono }}>
+                <p className="text-[10px] uppercase tracking-wider" style={{ color: "var(--ink-soft)", fontFamily: mono }}>
                   Owner
                 </p>
                 <input
@@ -381,7 +381,7 @@ export default function DealDetailPage() {
                   }}
                   placeholder="Justin"
                   className="w-full text-sm bg-transparent outline-none border rounded-md px-2 py-1.5"
-                  style={{ borderColor: "rgba(255,255,255,0.08)" }}
+                  style={{ borderColor: "var(--border)" }}
                 />
               </div>
             </div>
@@ -406,7 +406,7 @@ export default function DealDetailPage() {
             )}
 
             <div className="space-y-1.5">
-              <p className="text-[10px] uppercase tracking-wider" style={{ color: "rgba(245,245,245,0.4)", fontFamily: mono }}>
+              <p className="text-[10px] uppercase tracking-wider" style={{ color: "var(--ink-soft)", fontFamily: mono }}>
                 Notes
               </p>
               <textarea
@@ -418,7 +418,7 @@ export default function DealDetailPage() {
                 rows={6}
                 placeholder="Deal context, next steps, decisions made..."
                 className="w-full text-sm bg-transparent outline-none border rounded-md px-2 py-1.5 resize-vertical"
-                style={{ borderColor: "rgba(255,255,255,0.08)", color: "rgba(245,245,245,0.85)" }}
+                style={{ borderColor: "var(--border)", color: "var(--ink)" }}
               />
             </div>
 
@@ -426,7 +426,7 @@ export default function DealDetailPage() {
               <button
                 onClick={() => (confirmDelete ? handleDelete() : setConfirmDelete(true))}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] uppercase tracking-wider rounded-md transition-colors hover:bg-[rgba(239,68,68,0.1)]"
-                style={{ fontFamily: mono, color: confirmDelete ? "#EF4444" : "rgba(245,245,245,0.4)", border: "1px solid rgba(255,255,255,0.06)" }}
+                style={{ fontFamily: mono, color: confirmDelete ? "#EF4444" : "var(--ink-soft)", border: "1px solid var(--border)" }}
               >
                 <Trash2 size={12} /> {confirmDelete ? "Confirm Delete" : "Delete Deal"}
               </button>
@@ -437,15 +437,15 @@ export default function DealDetailPage() {
           {/* Attachments */}
           <div
             className="rounded-lg border p-4 space-y-4"
-            style={{ backgroundColor: "rgba(26,26,26,0.5)", borderColor: "rgba(255,255,255,0.06)" }}
+            style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
           >
-            <p className="text-[10px] uppercase tracking-wider" style={{ color: "rgba(0,180,216,0.5)", fontFamily: mono }}>
+            <p className="text-[10px] uppercase tracking-wider" style={{ color: "color-mix(in oklch, var(--rust) calc(0.5 * 100%), transparent)", fontFamily: mono }}>
               Attachments
             </p>
 
             {/* Proposal */}
             <div className="space-y-2">
-              <p className="text-[10px] uppercase tracking-wider flex items-center gap-1.5" style={{ color: "rgba(245,245,245,0.45)", fontFamily: mono }}>
+              <p className="text-[10px] uppercase tracking-wider flex items-center gap-1.5" style={{ color: "var(--ink-soft)", fontFamily: mono }}>
                 <FileText size={11} /> Proposal
               </p>
               {proposalUrl ? (
@@ -455,7 +455,7 @@ export default function DealDetailPage() {
                     return (
                       <div
                         className="rounded-md overflow-hidden"
-                        style={{ backgroundColor: "rgba(0,180,216,0.04)", border: "1px solid rgba(0,180,216,0.15)" }}
+                        style={{ backgroundColor: "color-mix(in oklch, var(--rust) calc(0.04 * 100%), transparent)", border: "1px solid color-mix(in oklch, var(--rust) calc(0.15 * 100%), transparent)" }}
                       >
                         <a
                           href={proposalUrl}
@@ -477,7 +477,7 @@ export default function DealDetailPage() {
                             target="_blank"
                             rel="noreferrer"
                             className="flex items-center gap-2 text-xs min-w-0 hover:underline"
-                            style={{ color: "#00B4D8" }}
+                            style={{ color: "var(--rust)" }}
                           >
                             <ExternalLink size={11} className="shrink-0" />
                             <span className="truncate">{proposalFilename || "Google Drive"}</span>
@@ -485,7 +485,7 @@ export default function DealDetailPage() {
                           <button
                             onClick={handleClearProposal}
                             className="px-1.5 py-1 rounded hover:bg-[rgba(239,68,68,0.1)] transition-colors"
-                            style={{ color: "rgba(245,245,245,0.4)" }}
+                            style={{ color: "var(--ink-soft)" }}
                             aria-label="Remove proposal"
                           >
                             <XIcon size={11} />
@@ -497,14 +497,14 @@ export default function DealDetailPage() {
                   return (
                     <div
                       className="flex items-center justify-between gap-2 rounded-md px-3 py-2"
-                      style={{ backgroundColor: "rgba(0,180,216,0.06)", border: "1px solid rgba(0,180,216,0.15)" }}
+                      style={{ backgroundColor: "color-mix(in oklch, var(--rust) calc(0.06 * 100%), transparent)", border: "1px solid color-mix(in oklch, var(--rust) calc(0.15 * 100%), transparent)" }}
                     >
                       <a
                         href={proposalUrl}
                         target="_blank"
                         rel="noreferrer"
                         className="flex items-center gap-2 text-xs min-w-0 hover:underline"
-                        style={{ color: "#00B4D8" }}
+                        style={{ color: "var(--rust)" }}
                       >
                         <ExternalLink size={11} className="shrink-0" />
                         <span className="truncate">{proposalFilename || proposalUrl}</span>
@@ -512,7 +512,7 @@ export default function DealDetailPage() {
                       <button
                         onClick={handleClearProposal}
                         className="text-[10px] uppercase tracking-wider px-1.5 py-1 rounded hover:bg-[rgba(239,68,68,0.1)] transition-colors"
-                        style={{ color: "rgba(245,245,245,0.4)", fontFamily: mono }}
+                        style={{ color: "var(--ink-soft)", fontFamily: mono }}
                         aria-label="Remove proposal"
                       >
                         <XIcon size={11} />
@@ -523,8 +523,8 @@ export default function DealDetailPage() {
               ) : (
                 <div className="space-y-2">
                   <label
-                    className="flex items-center justify-center gap-2 py-2.5 rounded-md cursor-pointer transition-colors hover:bg-[rgba(0,180,216,0.08)]"
-                    style={{ border: "1px dashed rgba(0,180,216,0.25)", color: "#00B4D8", fontFamily: mono, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}
+                    className="flex items-center justify-center gap-2 py-2.5 rounded-md cursor-pointer transition-colors hover:bg-[color-mix(in oklch, var(--rust) calc(0.08 * 100%), transparent)]"
+                    style={{ border: "1px dashed color-mix(in oklch, var(--rust) calc(0.25 * 100%), transparent)", color: "var(--rust)", fontFamily: mono, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}
                   >
                     <Upload size={12} />
                     {uploadingProposal ? "Uploading…" : "Upload PDF"}
@@ -538,10 +538,10 @@ export default function DealDetailPage() {
                       }}
                     />
                   </label>
-                  <div className="flex items-center gap-1 text-[10px]" style={{ color: "rgba(245,245,245,0.3)", fontFamily: mono }}>
-                    <span className="h-px flex-1" style={{ backgroundColor: "rgba(255,255,255,0.06)" }} />
+                  <div className="flex items-center gap-1 text-[10px]" style={{ color: "var(--ink-faint)", fontFamily: mono }}>
+                    <span className="h-px flex-1" style={{ backgroundColor: "var(--border)" }} />
                     OR PASTE LINK
-                    <span className="h-px flex-1" style={{ backgroundColor: "rgba(255,255,255,0.06)" }} />
+                    <span className="h-px flex-1" style={{ backgroundColor: "var(--border)" }} />
                   </div>
                   <div className="flex gap-2">
                     <input
@@ -550,13 +550,13 @@ export default function DealDetailPage() {
                       onChange={(e) => setProposalDraftUrl(e.target.value)}
                       placeholder="https://drive.google.com/..."
                       className="flex-1 text-xs bg-transparent outline-none border rounded-md px-2 py-1.5"
-                      style={{ borderColor: "rgba(255,255,255,0.08)" }}
+                      style={{ borderColor: "var(--border)" }}
                     />
                     <button
                       onClick={handleProposalLink}
                       disabled={!proposalDraftUrl.trim()}
-                      className="px-3 py-1.5 text-[10px] uppercase tracking-wider rounded-md transition-colors hover:bg-[rgba(0,180,216,0.15)] disabled:opacity-50 disabled:cursor-not-allowed"
-                      style={{ fontFamily: mono, color: "#00B4D8", border: "1px solid rgba(0,180,216,0.3)" }}
+                      className="px-3 py-1.5 text-[10px] uppercase tracking-wider rounded-md transition-colors hover:bg-[color-mix(in oklch, var(--rust) calc(0.15 * 100%), transparent)] disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{ fontFamily: mono, color: "var(--rust)", border: "1px solid color-mix(in oklch, var(--rust) calc(0.3 * 100%), transparent)" }}
                     >
                       Attach
                     </button>
@@ -567,20 +567,20 @@ export default function DealDetailPage() {
 
             {/* Fathom */}
             <div className="space-y-2">
-              <p className="text-[10px] uppercase tracking-wider flex items-center gap-1.5" style={{ color: "rgba(245,245,245,0.45)", fontFamily: mono }}>
+              <p className="text-[10px] uppercase tracking-wider flex items-center gap-1.5" style={{ color: "var(--ink-soft)", fontFamily: mono }}>
                 <Video size={11} /> Fathom recording
               </p>
               {deal.fathom_url ? (
                 <div
                   className="flex items-center justify-between gap-2 rounded-md px-3 py-2"
-                  style={{ backgroundColor: "rgba(0,180,216,0.06)", border: "1px solid rgba(0,180,216,0.15)" }}
+                  style={{ backgroundColor: "color-mix(in oklch, var(--rust) calc(0.06 * 100%), transparent)", border: "1px solid color-mix(in oklch, var(--rust) calc(0.15 * 100%), transparent)" }}
                 >
                   <a
                     href={deal.fathom_url}
                     target="_blank"
                     rel="noreferrer"
                     className="flex items-center gap-2 text-xs min-w-0 hover:underline"
-                    style={{ color: "#00B4D8" }}
+                    style={{ color: "var(--rust)" }}
                   >
                     <ExternalLink size={11} className="shrink-0" />
                     <span className="truncate">{deal.fathom_url}</span>
@@ -588,7 +588,7 @@ export default function DealDetailPage() {
                   <button
                     onClick={handleClearFathom}
                     className="text-[10px] uppercase tracking-wider px-1.5 py-1 rounded hover:bg-[rgba(239,68,68,0.1)] transition-colors"
-                    style={{ color: "rgba(245,245,245,0.4)", fontFamily: mono }}
+                    style={{ color: "var(--ink-soft)", fontFamily: mono }}
                     aria-label="Remove Fathom link"
                   >
                     <XIcon size={11} />
@@ -602,13 +602,13 @@ export default function DealDetailPage() {
                     onChange={(e) => setFathomUrl(e.target.value)}
                     placeholder="https://fathom.video/calls/..."
                     className="flex-1 text-xs bg-transparent outline-none border rounded-md px-2 py-1.5"
-                    style={{ borderColor: "rgba(255,255,255,0.08)" }}
+                    style={{ borderColor: "var(--border)" }}
                   />
                   <button
                     onClick={handleFathomSave}
                     disabled={!fathomUrl.trim()}
-                    className="px-3 py-1.5 text-[10px] uppercase tracking-wider rounded-md transition-colors hover:bg-[rgba(0,180,216,0.15)] disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{ fontFamily: mono, color: "#00B4D8", border: "1px solid rgba(0,180,216,0.3)" }}
+                    className="px-3 py-1.5 text-[10px] uppercase tracking-wider rounded-md transition-colors hover:bg-[color-mix(in oklch, var(--rust) calc(0.15 * 100%), transparent)] disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ fontFamily: mono, color: "var(--rust)", border: "1px solid color-mix(in oklch, var(--rust) calc(0.3 * 100%), transparent)" }}
                   >
                     Attach
                   </button>
@@ -622,23 +622,23 @@ export default function DealDetailPage() {
         <div className="space-y-3">
           <div
             className="rounded-lg border p-4 space-y-3"
-            style={{ backgroundColor: "rgba(26,26,26,0.5)", borderColor: "rgba(255,255,255,0.06)" }}
+            style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
           >
             <div className="flex items-center justify-between">
-              <p className="text-[10px] uppercase tracking-wider" style={{ color: "rgba(0,180,216,0.5)", fontFamily: mono }}>
+              <p className="text-[10px] uppercase tracking-wider" style={{ color: "color-mix(in oklch, var(--rust) calc(0.5 * 100%), transparent)", fontFamily: mono }}>
                 Contacts ({deal.contacts.length})
               </p>
               <button
                 onClick={() => setPickerOpen(true)}
-                className="flex items-center gap-1.5 px-2.5 py-1 text-[10px] uppercase tracking-wider rounded-md transition-colors hover:bg-[rgba(0,180,216,0.15)]"
-                style={{ fontFamily: mono, color: "#00B4D8", border: "1px solid rgba(0,180,216,0.3)" }}
+                className="flex items-center gap-1.5 px-2.5 py-1 text-[10px] uppercase tracking-wider rounded-md transition-colors hover:bg-[color-mix(in oklch, var(--rust) calc(0.15 * 100%), transparent)]"
+                style={{ fontFamily: mono, color: "var(--rust)", border: "1px solid color-mix(in oklch, var(--rust) calc(0.3 * 100%), transparent)" }}
               >
                 <UserPlus size={11} /> Add
               </button>
             </div>
 
             {deal.contacts.length === 0 ? (
-              <p className="text-[11px]" style={{ color: "rgba(245,245,245,0.4)", fontFamily: mono }}>
+              <p className="text-[11px]" style={{ color: "var(--ink-soft)", fontFamily: mono }}>
                 No contacts attached. Click Add to link a client to this deal.
               </p>
             ) : (
@@ -651,8 +651,8 @@ export default function DealDetailPage() {
                       key={c.id}
                       className="rounded-md border p-2.5 group cursor-pointer transition-colors"
                       style={{
-                        backgroundColor: isPrimary ? "rgba(0,180,216,0.04)" : "rgba(13,13,13,0.5)",
-                        borderColor: isPrimary ? "rgba(0,180,216,0.2)" : "rgba(255,255,255,0.06)",
+                        backgroundColor: isPrimary ? "color-mix(in oklch, var(--rust) calc(0.04 * 100%), transparent)" : "var(--paper-sunken)",
+                        borderColor: isPrimary ? "color-mix(in oklch, var(--rust) calc(0.2 * 100%), transparent)" : "var(--border)",
                       }}
                       onClick={() => {
                         // Fetch fresh contact details (so edit dialog has notes,
@@ -670,10 +670,10 @@ export default function DealDetailPage() {
                           <div className="flex items-center gap-1.5">
                             <p className="text-sm font-semibold truncate">{c.full_name}</p>
                             {isPrimary && (
-                              <Star size={11} fill="#00B4D8" style={{ color: "#00B4D8" }} aria-label="Primary contact" />
+                              <Star size={11} fill="var(--rust)" style={{ color: "var(--rust)" }} aria-label="Primary contact" />
                             )}
                           </div>
-                          <p className="text-[11px] truncate" style={{ color: "rgba(245,245,245,0.5)" }}>
+                          <p className="text-[11px] truncate" style={{ color: "var(--ink-soft)" }}>
                             {[c.title, c.company?.name].filter(Boolean).join(" · ") || "—"}
                           </p>
                         </div>
@@ -681,11 +681,11 @@ export default function DealDetailPage() {
                           {!isPrimary && (
                             <button
                               onClick={(e) => { e.stopPropagation(); handleSetPrimary(c.id); }}
-                              className="p-1 rounded hover:bg-[rgba(0,180,216,0.1)] transition-colors"
+                              className="p-1 rounded hover:bg-[color-mix(in oklch, var(--rust) calc(0.1 * 100%), transparent)] transition-colors"
                               title="Set as primary"
                               aria-label="Set as primary contact"
                             >
-                              <Star size={11} style={{ color: "rgba(0,180,216,0.7)" }} />
+                              <Star size={11} style={{ color: "color-mix(in oklch, var(--rust) calc(0.7 * 100%), transparent)" }} />
                             </button>
                           )}
                           <button
@@ -694,19 +694,19 @@ export default function DealDetailPage() {
                             title="Remove from deal"
                             aria-label="Remove contact from deal"
                           >
-                            <XIcon size={11} style={{ color: "rgba(245,245,245,0.5)" }} />
+                            <XIcon size={11} style={{ color: "var(--ink-soft)" }} />
                           </button>
                         </div>
                       </div>
                       <div className="mt-1.5 space-y-0.5 text-[11px]" style={{ color: "rgba(245,245,245,0.55)" }}>
                         {c.email && (
                           <a href={`mailto:${c.email}`} onClick={(e) => e.stopPropagation()} className="flex items-center gap-1.5 hover:text-foreground">
-                            <Mail size={10} style={{ color: "#00B4D8" }} /> {c.email}
+                            <Mail size={10} style={{ color: "var(--rust)" }} /> {c.email}
                           </a>
                         )}
                         {c.phone && (
                           <a href={`tel:${c.phone}`} onClick={(e) => e.stopPropagation()} className="flex items-center gap-1.5 hover:text-foreground">
-                            <Phone size={10} style={{ color: "#00B4D8" }} /> {c.phone}
+                            <Phone size={10} style={{ color: "var(--rust)" }} /> {c.phone}
                           </a>
                         )}
                         {c.linkedin_url && (
@@ -717,7 +717,7 @@ export default function DealDetailPage() {
                             onClick={(e) => e.stopPropagation()}
                             className="flex items-center gap-1.5 hover:text-foreground"
                           >
-                            <ExternalLink size={10} style={{ color: "#00B4D8" }} /> LinkedIn
+                            <ExternalLink size={10} style={{ color: "var(--rust)" }} /> LinkedIn
                           </a>
                         )}
                       </div>
@@ -730,16 +730,16 @@ export default function DealDetailPage() {
 
           <div
             className="rounded-lg border p-4"
-            style={{ backgroundColor: "rgba(26,26,26,0.5)", borderColor: "rgba(255,255,255,0.06)" }}
+            style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
           >
             <div className="flex items-center justify-between mb-2">
-              <p className="text-[10px] uppercase tracking-wider" style={{ color: "rgba(0,180,216,0.5)", fontFamily: mono }}>
+              <p className="text-[10px] uppercase tracking-wider" style={{ color: "color-mix(in oklch, var(--rust) calc(0.5 * 100%), transparent)", fontFamily: mono }}>
                 Company
               </p>
               <button
                 onClick={() => setCompanyPickerOpen(true)}
-                className="flex items-center gap-1.5 px-2.5 py-1 text-[10px] uppercase tracking-wider rounded-md transition-colors hover:bg-[rgba(0,180,216,0.15)]"
-                style={{ fontFamily: mono, color: "#00B4D8", border: "1px solid rgba(0,180,216,0.3)" }}
+                className="flex items-center gap-1.5 px-2.5 py-1 text-[10px] uppercase tracking-wider rounded-md transition-colors hover:bg-[color-mix(in oklch, var(--rust) calc(0.15 * 100%), transparent)]"
+                style={{ fontFamily: mono, color: "var(--rust)", border: "1px solid color-mix(in oklch, var(--rust) calc(0.3 * 100%), transparent)" }}
               >
                 {deal.company ? <><Repeat size={11} /> Change</> : <><Building size={11} /> Set</>}
               </button>
@@ -747,7 +747,7 @@ export default function DealDetailPage() {
             {deal.company ? (
               <>
                 <p className="text-sm font-semibold">{deal.company.name}</p>
-                <div className="mt-1 space-y-0.5 text-[11px]" style={{ color: "rgba(245,245,245,0.5)" }}>
+                <div className="mt-1 space-y-0.5 text-[11px]" style={{ color: "var(--ink-soft)" }}>
                   {deal.company.industry && <p>{deal.company.industry}</p>}
                   {deal.company.hq && <p>{deal.company.hq}</p>}
                   {deal.company.headcount && <p>{deal.company.headcount} employees</p>}
@@ -758,13 +758,13 @@ export default function DealDetailPage() {
                       rel="noreferrer"
                       className="flex items-center gap-1 hover:text-foreground"
                     >
-                      <ExternalLink size={10} style={{ color: "#00B4D8" }} /> {deal.company.domain ?? "Website"}
+                      <ExternalLink size={10} style={{ color: "var(--rust)" }} /> {deal.company.domain ?? "Website"}
                     </a>
                   )}
                 </div>
               </>
             ) : (
-              <p className="text-[11px]" style={{ color: "rgba(245,245,245,0.4)", fontFamily: mono }}>
+              <p className="text-[11px]" style={{ color: "var(--ink-soft)", fontFamily: mono }}>
                 No company linked. Click Set to attach one.
               </p>
             )}
@@ -807,14 +807,14 @@ function SaveStatus({ saving, savedAt }: { saving: boolean; savedAt: number | nu
 
   if (saving) {
     return (
-      <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider" style={{ color: "#00B4D8", fontFamily: mono }}>
+      <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider" style={{ color: "var(--rust)", fontFamily: mono }}>
         <Loader2 size={11} className="animate-spin" /> Saving…
       </span>
     );
   }
   if (!savedAt) {
     return (
-      <span className="text-[10px] uppercase tracking-wider" style={{ color: "rgba(245,245,245,0.35)", fontFamily: mono }}>
+      <span className="text-[10px] uppercase tracking-wider" style={{ color: "var(--ink-faint)", fontFamily: mono }}>
         Auto-saved
       </span>
     );

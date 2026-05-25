@@ -305,7 +305,7 @@ export function ShutdownRitual({
         {step === "Loose Ends" && (
           <div className="space-y-6">
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-blue-400">
+              <div className="flex items-center gap-2 text-foreground">
                 <Plus className="size-5" />
                 <h2 className="text-lg font-semibold text-balance">Capture Loose Ends</h2>
               </div>
@@ -389,7 +389,7 @@ export function ShutdownRitual({
                   <p className="text-xs text-muted-foreground text-pretty">Carried Over</p>
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-blue-400">{looseEnds.length}</p>
+                  <p className="text-2xl font-bold text-foreground">{looseEnds.length}</p>
                   <p className="text-xs text-muted-foreground text-pretty">New for Tomorrow</p>
                 </div>
               </div>

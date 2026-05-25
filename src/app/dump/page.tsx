@@ -141,12 +141,18 @@ export default function DumpPage() {
   const priorityColor: Record<string, string> = {
     high: "bg-red-500/20 text-red-400 border-red-500/30",
     medium: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
-    low: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+    low: "bg-foreground/10 text-foreground border-foreground/20",
     none: "bg-muted text-muted-foreground border-border/50",
   };
 
   return (
-    <PageLayout title="Dump" description="Throw tasks in. AI sorts them." icon={Zap} maxWidth="md">
+    <PageLayout
+      title="Task Dump"
+      eyebrow="Capture · Inbox"
+      description="Throw tasks in. AI sorts them."
+      icon={Zap}
+      maxWidth="md"
+    >
       {/* Input area */}
       <div className="relative">
         <textarea

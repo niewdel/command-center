@@ -155,7 +155,7 @@ export function CreateEventDialog({
       all_day: allDay,
       timezone: "America/New_York",
       status: "confirmed",
-      color: conn?.color || "#3b82f6",
+      color: conn?.color || "var(--rust)",
       source: conn ? conn.provider : "local",
       is_read_only: false,
       attendees: [],

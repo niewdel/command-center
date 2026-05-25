@@ -61,7 +61,13 @@ export default function SettingsPage() {
   };
 
   return (
-    <PageLayout title="Settings" icon={Settings} loading={loading} maxWidth="sm">
+    <PageLayout
+      title="Settings"
+      eyebrow="Configuration"
+      icon={Settings}
+      loading={loading}
+      maxWidth="sm"
+    >
       {/* Capacity */}
       <div className="space-y-4">
         <div>
@@ -155,9 +161,9 @@ export default function SettingsPage() {
             <p className="text-sm font-medium text-pretty">Task Reminders</p>
             <p className="text-xs text-muted-foreground text-pretty">
               {notifStatus === "granted"
-                ? "Notifications enabled — you'll get alerts for overdue and due-today tasks"
+                ? "Notifications enabled. You'll get alerts for overdue and due-today tasks."
                 : notifStatus === "denied"
-                ? "Notifications blocked — enable in browser settings"
+                ? "Notifications blocked. Enable in browser settings."
                 : notifStatus === "unsupported"
                 ? "Notifications not supported in this browser"
                 : "Enable notifications to get task reminders"}

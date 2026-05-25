@@ -142,7 +142,14 @@ export default function CreatorHubPage() {
   );
 
   return (
-    <PageLayout title="Creator Hub" icon={Clapperboard} loading={loading} maxWidth="lg" actions={pageActions}>
+    <PageLayout
+      title="Creator Hub"
+      eyebrow="Tool · Content"
+      icon={Clapperboard}
+      loading={loading}
+      maxWidth="lg"
+      actions={pageActions}
+    >
       <div className="space-y-3">
         <div className="inline-flex rounded border border-border bg-card/50 p-0.5 flex-wrap">
           {tabButton("ideas", "Ideas", Lightbulb)}

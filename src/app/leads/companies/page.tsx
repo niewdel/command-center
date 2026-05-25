@@ -37,7 +37,7 @@ const STATUSES: Array<"" | CompanyStatus> = [
 
 const STATUS_BADGE: Record<string, string> = {
   new: "bg-muted text-muted-foreground",
-  researched: "bg-blue-500/15 text-blue-400",
+  researched: "bg-foreground/8 text-foreground",
   outreach_ready: "bg-emerald-500/15 text-emerald-400",
   in_sequence: "bg-amber-500/15 text-amber-400",
   replied: "bg-purple-500/15 text-purple-400",
@@ -68,6 +68,7 @@ export default function CompaniesPage() {
   return (
     <PageLayout
       title="Companies"
+      eyebrow="Lead Gen · Accounts"
       description={`${total} total`}
       icon={Building2}
       maxWidth="xl"

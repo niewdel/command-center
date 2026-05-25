@@ -98,7 +98,7 @@ export function EventDetail({ event, open, onClose }: EventDetailProps) {
           <div className="flex items-start gap-3 pr-8">
             <div
               className="w-1 h-8 rounded-full shrink-0 mt-0.5"
-              style={{ backgroundColor: event.color || "#3b82f6" }}
+              style={{ backgroundColor: event.color || "var(--rust)" }}
             />
             <div className="min-w-0">
               <DialogTitle className="text-lg leading-snug text-balance break-words">
@@ -135,7 +135,7 @@ export function EventDetail({ event, open, onClose }: EventDetailProps) {
                 href={event.meeting_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors text-sm font-medium"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-foreground/8 text-foreground hover:bg-foreground/12 transition-colors text-sm font-medium"
               >
                 {getMeetingProviderLabel(event.meeting_provider)}
                 <ExternalLink className="size-3" />

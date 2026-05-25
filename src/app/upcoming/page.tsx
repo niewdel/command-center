@@ -219,6 +219,7 @@ export default function UpcomingPage() {
   return (
     <PageLayout
       title="This Week"
+      eyebrow="Plan · Next 7 days"
       description="Your next 7 days at a glance."
       icon={CalendarDays}
       loading={loading}
@@ -334,7 +335,7 @@ export default function UpcomingPage() {
                       <div
                         className="w-0.5 h-7 rounded-full shrink-0"
                         style={{
-                          backgroundColor: event.color || "#3b82f6",
+                          backgroundColor: event.color || "var(--rust)",
                         }}
                       />
                       <div className="flex-1 min-w-0">
@@ -372,7 +373,7 @@ export default function UpcomingPage() {
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={(e) => e.stopPropagation()}
-                          className="shrink-0 px-2 py-1 rounded text-xs font-medium bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors flex items-center gap-1"
+                          className="shrink-0 px-2 py-1 rounded text-xs font-medium bg-foreground/8 text-foreground hover:bg-foreground/12 transition-colors flex items-center gap-1"
                         >
                           <Video className="size-3" />
                           Join

@@ -320,12 +320,12 @@ function NewLeadJobForm() {
             disabled={submitting}
             className="flex-1 py-4 rounded-xl text-sm font-bold uppercase tracking-wider flex items-center justify-center gap-3 transition-all duration-200 hover:scale-[1.005] active:scale-[0.995] disabled:opacity-60 disabled:cursor-not-allowed"
             style={{
-              backgroundColor: "rgba(0,180,216,0.1)",
-              color: "#00B4D8",
-              border: "1px solid rgba(0,180,216,0.3)",
+              backgroundColor: "color-mix(in oklch, var(--rust) calc(0.1 * 100%), transparent)",
+              color: "var(--rust)",
+              border: "1px solid color-mix(in oklch, var(--rust) calc(0.3 * 100%), transparent)",
             }}
           >
-            <Play size={18} fill={submitting ? "transparent" : "#00B4D8"} />
+            <Play size={18} fill={submitting ? "transparent" : "var(--rust)"} />
             {submitting ? "Starting Agent…" : "Launch Lead Gen Agent"}
           </button>
           <Link

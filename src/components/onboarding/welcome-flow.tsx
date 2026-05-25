@@ -75,7 +75,7 @@ export function WelcomeFlow({ workspaces, onComplete }: WelcomeFlowProps) {
         {/* Step 0: Welcome */}
         {step === 0 && (
           <div className="text-center space-y-6">
-            <div className="inline-flex size-16 items-center justify-center rounded-lg border-2 border-primary/50" style={{ boxShadow: '0 0 20px -4px var(--hud-glow)' }}>
+            <div className="inline-flex size-16 items-center justify-center rounded-lg border-2 border-primary/50" style={{ boxShadow: '0 1px 2px oklch(0.18 0.013 50 / 0.08)' }}>
               <Sparkles className="size-8 text-primary" />
             </div>
             <div className="space-y-2">
@@ -131,7 +131,7 @@ export function WelcomeFlow({ workspaces, onComplete }: WelcomeFlowProps) {
               ].map((item, i) => (
                 <div
                   key={i}
-                  className="flex items-start gap-4 rounded border border-border/50 bg-card/50 p-4 hud-glow-hover"
+                  className="flex items-start gap-4 rounded border border-border/60 bg-card p-4 transition-colors hover:border-primary/40"
                 >
                   <div
                     className={cn("size-10 rounded flex items-center justify-center border shrink-0", item.color)}

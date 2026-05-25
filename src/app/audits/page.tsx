@@ -106,8 +106,9 @@ export default function AuditsPage() {
 
   return (
     <PageLayout
-      title="Audits"
-      description="Run a website audit — crawl, score, and render a sales-ready report"
+      title="Website Scoring"
+      eyebrow="Tool · Site Audit"
+      description="Run a website audit: crawl, score, and render a sales-ready report."
       icon={Gauge}
       maxWidth="xl"
       loading={loading}
@@ -347,7 +348,7 @@ function CopyPromptButton({ auditId }: { auditId: string }) {
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
     pending: "bg-muted text-muted-foreground",
-    crawling: "bg-blue-500/15 text-blue-400",
+    crawling: "bg-foreground/8 text-foreground",
     scoring: "bg-purple-500/15 text-purple-400",
     rendering: "bg-amber-500/15 text-amber-400",
     complete: "bg-emerald-500/15 text-emerald-400",
@@ -384,7 +385,7 @@ function ScoreBadge({
 function severityToTone(severity: string | null): string {
   switch (severity) {
     case "strong":
-      return "bg-blue-500/15 text-blue-400";
+      return "bg-foreground/8 text-foreground";
     case "acceptable":
       return "bg-emerald-500/15 text-emerald-400";
     case "moderate":

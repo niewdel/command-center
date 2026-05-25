@@ -37,9 +37,9 @@ function formatDateHeading(date: Date, viewMode: ViewMode): string {
     day: "numeric",
   });
 
-  if (isToday) return `Today — ${formatted}`;
-  if (isTomorrow) return `Tomorrow — ${formatted}`;
-  if (isYesterday) return `Yesterday — ${formatted}`;
+  if (isToday) return `Today · ${formatted}`;
+  if (isTomorrow) return `Tomorrow · ${formatted}`;
+  if (isYesterday) return `Yesterday · ${formatted}`;
   return formatted;
 }
 
@@ -219,6 +219,7 @@ export default function CalendarPage() {
   return (
     <PageLayout
       title="Calendar"
+      eyebrow={`Schedule · ${headingText}`}
       icon={CalendarDays}
       loading={loading}
       maxWidth="lg"

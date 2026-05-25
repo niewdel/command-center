@@ -48,69 +48,84 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* ── HUD Design System ── */
+/* ── Niewdel v2 — Paper / Ink / Rust ──
+   Surfaces:      Paper #F5F1EA (light)  ·  Ink #1A1410 (text)  ·  Jet #0D0D0D (inverted)
+   Accent (Rust): #C84B31  ·  Hot #E36548  ·  Deep #8F3623
+   Cyan / teal / neon blue are explicitly NOT part of this brand. */
 :root {
-  /* Surfaces — layered depth */
-  --background: oklch(0.07 0.01 250);
-  --foreground: oklch(0.93 0.005 250);
-  --card: oklch(0.10 0.012 250);
-  --card-foreground: oklch(0.93 0.005 250);
-  --popover: oklch(0.12 0.015 250);
-  --popover-foreground: oklch(0.93 0.005 250);
+  /* Surfaces — warm Paper hierarchy, each tinted toward 75° (warm yellow) */
+  --paper: oklch(0.953 0.012 75);          /* #F5F1EA — primary background */
+  --paper-raised: oklch(0.975 0.008 75);   /* slight elevation: cards, popovers */
+  --paper-sunken: oklch(0.928 0.014 75);   /* sunken: sidebar, inputs, hover */
+  --paper-edge: oklch(0.880 0.014 75);     /* borders */
 
-  /* Brand — electric cyan */
-  --primary: oklch(0.78 0.15 195);
-  --primary-foreground: oklch(0.10 0.01 250);
-  --secondary: oklch(0.13 0.01 250);
-  --secondary-foreground: oklch(0.85 0.005 250);
+  /* Ink — warm dark for text + inverted surfaces */
+  --ink: oklch(0.205 0.013 50);            /* #1A1410 — body text */
+  --ink-soft: oklch(0.45 0.013 50);        /* secondary text, captions */
+  --ink-faint: oklch(0.65 0.010 60);       /* tertiary text, placeholders */
+  --jet: oklch(0.165 0.005 50);            /* #0D0D0D — inverted surface */
 
-  /* Neutral */
-  --muted: oklch(0.15 0.01 250);
-  --muted-foreground: oklch(0.50 0.015 250);
-  --accent: oklch(0.14 0.015 250);
-  --accent-foreground: oklch(0.90 0.005 250);
+  /* Rust accent — emphasis only, never body text */
+  --rust: oklch(0.555 0.155 32);           /* #C84B31 — CTAs + active */
+  --rust-hot: oklch(0.655 0.160 35);       /* #E36548 — hover */
+  --rust-deep: oklch(0.420 0.130 30);      /* #8F3623 — pressed */
+  --rust-tint: oklch(0.555 0.155 32 / 0.10); /* selection + active background */
 
-  /* Destructive */
-  --destructive: oklch(0.65 0.22 25);
+  /* ── shadcn role mapping ── */
+  --background: var(--paper);
+  --foreground: var(--ink);
 
-  /* Borders — visible, crisp, cyan-tinted */
-  --border: oklch(0.20 0.015 250);
-  --input: oklch(0.18 0.015 250);
-  --ring: oklch(0.70 0.12 195);
+  --card: var(--paper-raised);
+  --card-foreground: var(--ink);
+  --popover: var(--paper-raised);
+  --popover-foreground: var(--ink);
 
-  /* Radius — sharp, technical */
+  --primary: var(--rust);
+  --primary-foreground: var(--paper);
+
+  --secondary: var(--paper-sunken);
+  --secondary-foreground: var(--ink);
+
+  --muted: var(--paper-sunken);
+  --muted-foreground: var(--ink-soft);
+
+  --accent: var(--paper-sunken);
+  --accent-foreground: var(--ink);
+
+  --destructive: oklch(0.55 0.20 25);      /* warm red, distinct from rust accent */
+
+  --border: var(--paper-edge);
+  --input: var(--paper-edge);
+  --ring: var(--rust);
+
+  /* Sharp, editorial radius */
   --radius: 0.25rem;
 
   /* Layout */
   --sidebar-width: 240px;
 
-  /* Sidebar */
-  --sidebar: oklch(0.06 0.01 250);
-  --sidebar-foreground: oklch(0.80 0.005 250);
-  --sidebar-primary: oklch(0.78 0.15 195);
-  --sidebar-primary-foreground: oklch(0.10 0.01 250);
-  --sidebar-accent: oklch(0.12 0.02 195);
-  --sidebar-accent-foreground: oklch(0.93 0.005 250);
-  --sidebar-border: oklch(0.16 0.015 250);
-  --sidebar-ring: oklch(0.70 0.12 195);
+  /* Sidebar — slightly sunken paper to delineate from main */
+  --sidebar: var(--paper-sunken);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--rust);
+  --sidebar-primary-foreground: var(--paper);
+  --sidebar-accent: oklch(0.90 0.014 75);  /* hovered nav row */
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: var(--paper-edge);
+  --sidebar-ring: var(--rust);
 
-  /* Charts */
-  --chart-1: oklch(0.78 0.15 195);
-  --chart-2: oklch(0.70 0.15 160);
-  --chart-3: oklch(0.70 0.18 45);
-  --chart-4: oklch(0.68 0.18 330);
-  --chart-5: oklch(0.65 0.15 265);
+  /* Charts — warm-leaning palette built off rust + ink */
+  --chart-1: var(--rust);
+  --chart-2: oklch(0.50 0.080 50);         /* warm brown */
+  --chart-3: oklch(0.70 0.110 80);         /* dusk ochre */
+  --chart-4: oklch(0.40 0.030 50);         /* slate brown */
+  --chart-5: oklch(0.75 0.060 30);         /* faded rust */
 
-  /* Inbox */
-  --inbox-action: oklch(0.65 0.2 25);
-  --inbox-response: oklch(0.78 0.15 195);
-  --inbox-info: oklch(0.65 0.12 200);
-  --inbox-promo: oklch(0.50 0.08 250);
-
-  /* HUD effects */
-  --hud-glow: oklch(0.78 0.15 195 / 0.15);
-  --hud-grid: oklch(0.25 0.015 250 / 0.25);
-  --hud-scanline: oklch(0.78 0.15 195 / 0.04);
+  /* Inbox tone mapping — warmth + rust, no cyan */
+  --inbox-action: var(--rust);
+  --inbox-response: oklch(0.55 0.10 50);
+  --inbox-info: var(--ink-soft);
+  --inbox-promo: var(--ink-faint);
 }
 
 @layer base {
@@ -121,50 +136,59 @@
     @apply text-foreground;
   }
   html {
-    color-scheme: dark;
+    color-scheme: light;
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-heading);
+    font-weight: 700;
+    letter-spacing: -0.01em;
   }
 
-  [data-slot="sidebar"] {
-    box-shadow: inset -1px 0 0 oklch(0.20 0.015 250 / 0.6);
-  }
-
-  ::-webkit-scrollbar {
-    width: 6px;
-  }
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
+  /* Soft, paper-toned scrollbars */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb {
-    background: oklch(0.25 0.01 250);
+    background: var(--paper-edge);
     border-radius: 3px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: oklch(0.35 0.01 250);
+    background: var(--ink-faint);
   }
+
+  /* Body text gets the editorial measure cap. Pages override per layout. */
+  p { max-width: 75ch; }
 }
 
 @layer utilities {
-  .font-heading {
-    font-family: var(--font-heading);
+  .font-heading { font-family: var(--font-heading); }
+
+  /* Editorial mono tag — matches brand "01 · LOGOS" eyebrow style.
+     Uppercase, Geist Mono 600, wide tracking, rust accent. */
+  .mono-tag {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.6875rem;       /* 11px */
+    letter-spacing: 0.22em;
+    color: var(--rust);
+  }
+  .mono-tag-muted {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.6875rem;
+    letter-spacing: 0.22em;
+    color: var(--ink-soft);
   }
 
   /* iOS safe areas for notch / home indicator */
-  .safe-area-bottom {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-  }
-  .safe-area-top {
-    padding-top: env(safe-area-inset-top, 0px);
-  }
+  .safe-area-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .safe-area-top { padding-top: env(safe-area-inset-top, 0px); }
 
   /* PWA standalone mode: extra top padding for status bar */
   @media all and (display-mode: standalone) {
-    .pwa-top-pad {
-      padding-top: max(env(safe-area-inset-top, 20px), 20px);
-    }
+    .pwa-top-pad { padding-top: max(env(safe-area-inset-top, 20px), 20px); }
   }
 
   .font-data {
@@ -173,38 +197,11 @@
     letter-spacing: -0.01em;
   }
 
-  .hud-glow {
-    box-shadow: 0 0 0 1px var(--border),
-                0 0 8px -2px var(--hud-glow),
-                inset 0 0 8px -4px var(--hud-glow);
-  }
-
-  .hud-glow-hover {
-    transition: box-shadow 0.2s ease;
-  }
-  .hud-glow-hover:hover {
-    box-shadow: 0 0 0 1px oklch(0.78 0.15 195 / 0.4),
-                0 0 15px -3px var(--hud-glow),
-                inset 0 0 12px -6px var(--hud-glow);
-  }
-}
-
-/* ── HUD Animations ── */
-
-@keyframes hud-scan {
-  0% { transform: translateY(-100%); }
-  100% { transform: translateY(100vh); }
-}
-
-@keyframes glow-pulse {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
 }
 
 /* ── Task completion animations ── */
 /* GPU-only: only transform + opacity are animated for smoothness */
 
-/* Checkmark pen-stroke draw */
 @keyframes check-draw {
   from { stroke-dashoffset: 30; }
   to { stroke-dashoffset: 0; }
@@ -213,23 +210,12 @@
   animation: check-draw 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-/* Row: hold for checkmark, then throw off screen */
 @keyframes task-fly-off {
-  0% {
-    transform: translateX(0) rotate(0deg);
-    opacity: 1;
-  }
-  20% {
-    transform: translateX(8px) rotate(0.3deg);
-    opacity: 1;
-  }
-  100% {
-    transform: translateX(200px) rotate(2deg);
-    opacity: 0;
-  }
+  0%   { transform: translateX(0) rotate(0deg); opacity: 1; }
+  20%  { transform: translateX(8px) rotate(0.3deg); opacity: 1; }
+  100% { transform: translateX(200px) rotate(2deg); opacity: 0; }
 }
 
-/* Title text dims */
 @keyframes title-fade {
   to { opacity: 0.35; }
 }

@@ -45,7 +45,8 @@ const ROUTINE_ICONS = [
   // Wind down & sleep
   "🌙", "😴", "📵",
 ];
-const ROUTINE_COLORS = ["#4b5563", "#6366f1", "#8b5cf6", "#ec4899", "#f97316", "#22c55e", "#06b6d4", "#3b82f6"];
+// Warm palette only — shared with CALENDAR_COLORS in calendar-connections.tsx.
+const ROUTINE_COLORS = ["#C84B31", "#8F3623", "#6B4A2E", "#C89B3C", "#5C7F4F", "#B25A3E", "#807870", "#6B3A4A"];
 
 export function RoutineEditor() {
   const [templates, setTemplates] = useState<(RoutineTemplate & { blocks: RoutineBlock[] })[]>([]);

@@ -206,7 +206,14 @@ function VideosContent() {
   const getVerdictBadge = (guide: string | null) => { if (!guide) return null; const m = guide.match(/\b(MUST-ACT|WORTH EXPLORING|REFERENCE ONLY|SKIP)\b/); if (!m) return null; const v = m[1]; const c: Record<string, string> = { "MUST-ACT": "bg-emerald-500/20 text-emerald-400 border-emerald-500/30", "WORTH EXPLORING": "bg-primary/20 text-primary border-primary/30", "REFERENCE ONLY": "bg-yellow-500/20 text-yellow-400 border-yellow-500/30", "SKIP": "bg-muted text-muted-foreground border-border/50" }; return <span className={cn("text-[10px] font-semibold px-1.5 py-0.5 rounded border", c[v])}>{v}</span>; };
 
   return (
-    <PageLayout title="Videos" icon={Play} loading={loading} maxWidth="lg" actions={<Button onClick={() => { setAddKind(viewMode); setShowAddDialog(true); }} variant="outline" size="sm" className="gap-1.5 h-8"><Plus className="size-3.5" />Add Link</Button>}>
+    <PageLayout
+      title="Video Digests"
+      eyebrow="Tool · Media Library"
+      icon={Play}
+      loading={loading}
+      maxWidth="lg"
+      actions={<Button onClick={() => { setAddKind(viewMode); setShowAddDialog(true); }} variant="outline" size="sm" className="gap-1.5 h-8"><Plus className="size-3.5" />Add Link</Button>}
+    >
       <div className="space-y-3">
         <div className="inline-flex rounded border border-border bg-card/50 p-0.5">
           <button onClick={() => setViewMode("digest")} className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-colors", viewMode === "digest" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground")} aria-label="Digests"><BookOpen className="size-3.5" />Digests<span className="text-[10px] opacity-70 tabular-nums">{counts.digest}</span></button>
@@ -246,7 +253,7 @@ function VideosContent() {
             </a>
             <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               <button onClick={(e) => { e.stopPropagation(); handleReclassify(digest.id, "digest"); }} className="size-6 rounded bg-background/80 hover:bg-primary hover:text-primary-foreground flex items-center justify-center" aria-label="Promote to digest" title="Promote to digest"><Sparkles className="size-3" /></button>
-              <button onClick={(e) => { e.stopPropagation(); handleDiscard(digest.id); }} className="size-6 rounded bg-background/80 hover:bg-red-500 hover:text-white flex items-center justify-center" aria-label="Delete"><Trash2 className="size-3" /></button>
+              <button onClick={(e) => { e.stopPropagation(); handleDiscard(digest.id); }} className="size-6 rounded bg-background/80 hover:bg-destructive hover:text-background flex items-center justify-center" aria-label="Delete"><Trash2 className="size-3" /></button>
             </div>
           </div>
         ))}</div>
@@ -287,9 +294,9 @@ function VideosContent() {
                 {digest.status === "failed" && (
                   <button onClick={(e) => { e.stopPropagation(); handleRetry(digest.id); }} className="size-6 rounded bg-background/80 hover:bg-primary hover:text-primary-foreground flex items-center justify-center" aria-label="Retry" title="Retry"><RefreshCw className="size-3" /></button>
                 )}
-                <button onClick={(e) => { e.stopPropagation(); handleReclassify(digest.id, "inspiration"); }} className="size-6 rounded bg-background/80 hover:bg-yellow-500 hover:text-white flex items-center justify-center" aria-label="Move to inspiration" title="Move to inspiration"><Lightbulb className="size-3" /></button>
+                <button onClick={(e) => { e.stopPropagation(); handleReclassify(digest.id, "inspiration"); }} className="size-6 rounded bg-background/80 hover:bg-foreground hover:text-background flex items-center justify-center" aria-label="Move to inspiration" title="Move to inspiration"><Lightbulb className="size-3" /></button>
                 <a href={digest.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="size-6 rounded bg-background/80 hover:bg-foreground hover:text-background flex items-center justify-center" aria-label="Open original" title="Open original"><ExternalLink className="size-3" /></a>
-                <button onClick={(e) => { e.stopPropagation(); handleDiscard(digest.id); }} className="size-6 rounded bg-background/80 hover:bg-red-500 hover:text-white flex items-center justify-center" aria-label="Delete" title="Delete"><Trash2 className="size-3" /></button>
+                <button onClick={(e) => { e.stopPropagation(); handleDiscard(digest.id); }} className="size-6 rounded bg-background/80 hover:bg-destructive hover:text-background flex items-center justify-center" aria-label="Delete" title="Delete"><Trash2 className="size-3" /></button>
               </div>
             </div>
           );

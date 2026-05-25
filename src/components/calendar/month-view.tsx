@@ -133,9 +133,9 @@ export function MonthView({
                       }}
                       className="text-[9px] md:text-[10px] font-medium truncate rounded px-1 py-0.5 cursor-pointer hover:brightness-125"
                       style={{
-                        backgroundColor: `${event.color || "#3b82f6"}15`,
-                        color: event.color || "#3b82f6",
-                        borderLeft: `2px solid ${event.color || "#3b82f6"}`,
+                        backgroundColor: `${event.color || "var(--rust)"}15`,
+                        color: event.color || "var(--rust)",
+                        border: `1px solid ${event.color || "var(--rust)"}`,
                       }}
                     >
                       {event.all_day

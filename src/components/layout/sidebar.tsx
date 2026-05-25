@@ -115,94 +115,35 @@ export function Sidebar() {
     <>
       {/* Sidebar — desktop only */}
       <aside data-slot="sidebar" className="hidden md:flex fixed inset-y-0 left-0 z-40 w-[var(--sidebar-width)] flex-col bg-sidebar border-r border-sidebar-border">
-        {/* Header */}
-        <div className="flex items-center px-4 py-3 border-b border-sidebar-border">
-          <div className="flex items-center gap-2.5">
-            <div className="size-7 rounded flex items-center justify-center border border-primary/50" style={{ boxShadow: '0 0 8px -2px var(--hud-glow)' }}>
-              <span className="text-primary font-bold text-xs font-mono">CC</span>
-            </div>
-            <h1 className="text-sm font-semibold text-foreground font-heading">Command Center</h1>
+        {/* Header — editorial wordmark, rust dot as the only ornament */}
+        <div className="flex items-center px-5 py-4 border-b border-sidebar-border">
+          <div className="flex items-baseline gap-2">
+            <h1 className="text-[15px] font-semibold tracking-tight text-foreground font-heading">
+              Command Center
+            </h1>
+            <span aria-hidden="true" className="size-1.5 rounded-full bg-primary" />
           </div>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
-          {/* Dashboard */}
-          <Link
-            href="/dashboard"
-            className={cn(
-              "flex items-center gap-2.5 rounded px-2.5 py-2 text-sm font-medium transition-colors",
-              isDashboardActive
-                ? "border-l-2 border-l-primary bg-primary/5 text-foreground"
-                : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
-            )}
-          >
-            <LayoutDashboard className="size-4 shrink-0" />
-            <span>Today</span>
-          </Link>
-
-          {/* This Week */}
-          <Link
-            href="/upcoming"
-            className={cn(
-              "flex items-center gap-2.5 rounded px-2.5 py-2 text-sm font-medium transition-colors",
-              pathname === "/upcoming"
-                ? "border-l-2 border-l-primary bg-primary/5 text-foreground"
-                : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
-            )}
-          >
-            <CalendarDays className="size-4 shrink-0" />
-            <span>This Week</span>
-          </Link>
-
-          {/* Pipeline */}
-          <Link
-            href="/pipeline"
-            className={cn(
-              "flex items-center gap-2.5 rounded px-2.5 py-2 text-sm font-medium transition-colors",
-              pathname === "/pipeline" || pathname.startsWith("/pipeline/")
-                ? "border-l-2 border-l-primary bg-primary/5 text-foreground"
-                : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
-            )}
-          >
-            <KanbanSquare className="size-4 shrink-0" />
-            <span>Pipeline</span>
-          </Link>
-
-          {/* Calendar */}
-          <Link
-            href="/calendar"
-            className={cn(
-              "flex items-center gap-2.5 rounded px-2.5 py-2 text-sm font-medium transition-colors",
-              pathname === "/calendar"
-                ? "border-l-2 border-l-primary bg-primary/5 text-foreground"
-                : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
-            )}
-          >
-            <Calendar className="size-4 shrink-0" />
-            <span>Calendar</span>
-          </Link>
-
-          {/* Task Dump */}
-          <Link
-            href="/dump"
-            className={cn(
-              "flex items-center gap-2.5 rounded px-2.5 py-2 text-sm font-medium transition-colors",
-              pathname === "/dump"
-                ? "border-l-2 border-l-primary bg-primary/5 text-foreground"
-                : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
-            )}
-          >
-            <Zap className="size-4 shrink-0" />
-            <span>Task Dump</span>
-          </Link>
+        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+          {(() => {
+            const primaryNav = [
+              { href: "/dashboard", icon: LayoutDashboard, label: "Today", match: () => isDashboardActive },
+              { href: "/upcoming", icon: CalendarDays, label: "This Week", match: () => pathname === "/upcoming" },
+              { href: "/pipeline", icon: KanbanSquare, label: "Pipeline", match: () => pathname === "/pipeline" || pathname.startsWith("/pipeline/") },
+              { href: "/calendar", icon: Calendar, label: "Calendar", match: () => pathname === "/calendar" },
+              { href: "/dump", icon: Zap, label: "Task Dump", match: () => pathname === "/dump" },
+            ];
+            return primaryNav.map(({ href, icon: Icon, label, match }) => (
+              <NavRow key={href} href={href} icon={Icon} label={label} active={match()} />
+            ));
+          })()}
 
           {/* Dynamic Workspaces */}
-          <div className="pt-3 mt-1 border-t border-sidebar-border">
-            <div className="flex items-center justify-between px-2.5 mb-1.5 pt-3">
-              <p className="text-[11px] font-medium uppercase text-muted-foreground">
-                Workspaces
-              </p>
+          <div className="pt-5 mt-2 border-t border-sidebar-border">
+            <div className="flex items-center justify-between px-2.5 pb-2 pt-4">
+              <span className="mono-tag-muted">Workspaces</span>
               <button
                 aria-label="Add workspace"
                 onClick={() => {
@@ -221,14 +162,14 @@ export function Sidebar() {
                   <Link
                     href={`/workspace/${ws.slug}`}
                     className={cn(
-                      "flex items-center gap-2.5 rounded px-2.5 py-2 text-sm font-medium transition-colors",
+                      "flex items-center gap-3 rounded px-2.5 py-2 text-sm font-medium transition-colors",
                       isActive
-                        ? "border-l-2 border-l-primary bg-primary/5 text-foreground"
-                        : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+                        ? "bg-[var(--rust-tint)] text-foreground"
+                        : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
                     )}
                   >
                     <span
-                      className={cn("size-2.5 rounded-full shrink-0 ring-1 ring-white/10", !ws.color?.startsWith("#") && (ws.color || "bg-muted-foreground"))}
+                      className={cn("size-2 rounded-full shrink-0", !ws.color?.startsWith("#") && (ws.color || "bg-muted-foreground"))}
                       style={ws.color?.startsWith("#") ? { backgroundColor: ws.color } : undefined}
                     />
                     <span className="flex-1 truncate">{ws.name}</span>
@@ -250,73 +191,50 @@ export function Sidebar() {
           </div>
 
           {/* Agents section */}
-          <div className="pt-3 mt-1 border-t border-sidebar-border">
-            <p className="px-2.5 mb-1.5 pt-3 text-[11px] font-medium uppercase text-muted-foreground">
-              Agents
-            </p>
-            {agentsNav.map((item) => {
-              const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium transition-colors",
-                    isActive
-                      ? "bg-accent text-foreground"
-                      : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
-                  )}
-                >
-                  <item.icon className="size-4 shrink-0" />
-                  <span>{item.name}</span>
-                </Link>
-              );
-            })}
+          <div className="pt-5 mt-2 border-t border-sidebar-border">
+            <p className="mono-tag-muted px-2.5 pb-2 pt-4">Agents</p>
+            {agentsNav.map((item) => (
+              <NavRow
+                key={item.href}
+                href={item.href}
+                icon={item.icon}
+                label={item.name}
+                active={pathname === item.href || pathname.startsWith(item.href + "/")}
+              />
+            ))}
           </div>
 
           {/* Tools section */}
-          <div className="pt-3 mt-1 border-t border-sidebar-border">
-            <p className="px-2.5 mb-1.5 pt-3 text-[11px] font-medium uppercase text-muted-foreground">
-              Tools
-            </p>
-            {toolsNav.map((item) => {
-              const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium transition-colors",
-                    isActive
-                      ? "bg-accent text-foreground"
-                      : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
-                  )}
-                >
-                  <item.icon className="size-4 shrink-0" />
-                  <span>{item.name}</span>
-                </Link>
-              );
-            })}
+          <div className="pt-5 mt-2 border-t border-sidebar-border">
+            <p className="mono-tag-muted px-2.5 pb-2 pt-4">Tools</p>
+            {toolsNav.map((item) => (
+              <NavRow
+                key={item.href}
+                href={item.href}
+                icon={item.icon}
+                label={item.name}
+                active={pathname === item.href || pathname.startsWith(item.href + "/")}
+              />
+            ))}
           </div>
         </nav>
 
         {/* Bottom actions */}
-        <div className="p-3 border-t border-sidebar-border space-y-1.5">
+        <div className="p-3 border-t border-sidebar-border space-y-2">
           <Button
-            variant="outline"
             onClick={() => setQuickAddOpen(true)}
-            className="w-full gap-2 rounded h-9 text-sm font-medium border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50"
+            className="w-full gap-2 rounded h-9 text-sm font-medium bg-primary text-primary-foreground hover:bg-[var(--rust-hot)] border-0"
             size="sm"
           >
             <Plus className="size-4" />
             Quick Add
-            <kbd className="ml-auto text-[10px] opacity-50 px-1.5 py-0.5 rounded bg-primary/10 text-primary/70">
+            <kbd className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-[var(--rust-deep)] text-primary-foreground/85 font-mono tracking-wide">
               {shortcutPrefix}N
             </kbd>
           </Button>
           <button
             onClick={handleLock}
-            className="w-full flex items-center justify-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
+            className="w-full flex items-center justify-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-sidebar-accent transition-colors"
           >
             <Lock className="size-3.5" />
             Lock
@@ -338,6 +256,40 @@ export function Sidebar() {
         onSaved={fetchWorkspaces}
       />
     </>
+  );
+}
+
+// --- Nav Row ---
+
+function NavRow({
+  href,
+  icon: Icon,
+  label,
+  active,
+}: {
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  active: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "flex items-center gap-3 rounded px-2.5 py-2 text-sm font-medium transition-colors",
+        active
+          ? "bg-[var(--rust-tint)] text-foreground"
+          : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground",
+      )}
+    >
+      <Icon
+        className={cn(
+          "size-4 shrink-0 transition-colors",
+          active ? "text-primary" : "text-muted-foreground",
+        )}
+      />
+      <span>{label}</span>
+    </Link>
   );
 }
 
@@ -557,7 +509,7 @@ function WorkspaceDialog({
             <div className="flex items-center gap-3">
               <label className="relative cursor-pointer" title="Pick a color">
                 <div
-                  className="size-10 rounded border border-border hud-glow-hover"
+                  className="size-10 rounded border border-border transition-colors hover:border-foreground/40"
                   style={{ backgroundColor: color.startsWith("#") ? color : "#64748b" }}
                 />
                 <input

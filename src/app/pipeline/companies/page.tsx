@@ -58,7 +58,14 @@ export default function CompaniesPage() {
     : companies;
 
   return (
-    <PageLayout title="Companies" description="Niewdel CRM accounts" icon={Building} maxWidth="xl" loading={loading}>
+    <PageLayout
+      title="Companies"
+      eyebrow="Pipeline · CRM"
+      description="Niewdel CRM accounts."
+      icon={Building}
+      maxWidth="xl"
+      loading={loading}
+    >
       <PipelineTabs />
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -67,20 +74,20 @@ export default function CompaniesPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search name, industry, HQ..."
-          className="flex-1 max-w-md px-3 py-2 text-xs rounded-md border bg-transparent outline-none focus:border-[rgba(0,180,216,0.4)] transition-colors"
-          style={{ borderColor: "rgba(255,255,255,0.08)", color: "rgba(245,245,245,0.85)" }}
+          className="flex-1 max-w-md px-3 py-2 text-xs rounded-md border bg-transparent outline-none focus:border-[color-mix(in oklch, var(--rust) calc(0.4 * 100%), transparent)] transition-colors"
+          style={{ borderColor: "var(--border)", color: "var(--ink)" }}
         />
         <button
           onClick={() => setAddOpen(true)}
-          className="flex items-center gap-1.5 px-3 py-2 text-[10px] uppercase tracking-wider rounded-md transition-colors hover:bg-[rgba(0,180,216,0.15)]"
-          style={{ fontFamily: mono, color: "#00B4D8", border: "1px solid rgba(0,180,216,0.3)" }}
+          className="flex items-center gap-1.5 px-3 py-2 text-[10px] uppercase tracking-wider rounded-md transition-colors hover:bg-[color-mix(in oklch, var(--rust) calc(0.15 * 100%), transparent)]"
+          style={{ fontFamily: mono, color: "var(--rust)", border: "1px solid color-mix(in oklch, var(--rust) calc(0.3 * 100%), transparent)" }}
         >
           <Plus size={12} /> Add Company
         </button>
       </div>
 
       {filtered.length === 0 ? (
-        <div className="text-center py-12 rounded-lg border" style={{ backgroundColor: "rgba(26,26,26,0.5)", borderColor: "rgba(255,255,255,0.06)", color: "rgba(245,245,245,0.4)" }}>
+        <div className="text-center py-12 rounded-lg border" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)", color: "var(--ink-soft)" }}>
           <p className="text-sm" style={{ fontFamily: mono }}>
             {companies.length === 0 ? "No companies yet." : "No matches."}
           </p>
@@ -94,14 +101,14 @@ export default function CompaniesPage() {
             return (
               <li
                 key={c.id}
-                className="p-3 rounded-lg border group transition-colors hover:border-[rgba(0,180,216,0.25)] cursor-pointer"
-                style={{ backgroundColor: "rgba(26,26,26,0.5)", borderColor: "rgba(255,255,255,0.06)" }}
+                className="p-3 rounded-lg border group transition-colors hover:border-[color-mix(in oklch, var(--rust) calc(0.25 * 100%), transparent)] cursor-pointer"
+                style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
                 onClick={() => setEditing(c)}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold truncate">{c.name}</p>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5 text-[11px]" style={{ color: "rgba(245,245,245,0.5)" }}>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5 text-[11px]" style={{ color: "var(--ink-soft)" }}>
                       {c.industry && <span>{c.industry}</span>}
                       {c.hq && <span>· {c.hq}</span>}
                       {c.headcount && <span>· {c.headcount} people</span>}
@@ -113,7 +120,7 @@ export default function CompaniesPage() {
                           onClick={(e) => e.stopPropagation()}
                           className="flex items-center gap-1 hover:text-foreground"
                         >
-                          <ExternalLink size={10} style={{ color: "#00B4D8" }} />
+                          <ExternalLink size={10} style={{ color: "var(--rust)" }} />
                           {c.domain ?? c.website}
                         </a>
                       )}
@@ -121,10 +128,10 @@ export default function CompaniesPage() {
                   </div>
                   <div className="flex items-start gap-2 shrink-0">
                     <div className="text-right space-y-0.5">
-                      <p className="text-[10px] uppercase tracking-wider" style={{ color: "rgba(245,245,245,0.4)", fontFamily: mono }}>
+                      <p className="text-[10px] uppercase tracking-wider" style={{ color: "var(--ink-soft)", fontFamily: mono }}>
                         {contactCount} contact{contactCount === 1 ? "" : "s"}
                       </p>
-                      <p className="text-[10px] uppercase tracking-wider" style={{ color: "#00B4D8", fontFamily: mono }}>
+                      <p className="text-[10px] uppercase tracking-wider" style={{ color: "var(--rust)", fontFamily: mono }}>
                         {activeDeals.length} deal{activeDeals.length === 1 ? "" : "s"}
                       </p>
                       {totalValue > 0 && (

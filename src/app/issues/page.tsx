@@ -37,7 +37,15 @@ import {
   Bot,
   User,
   Link as LinkIcon,
+  MoreHorizontal,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 type LinkableEntity = {
   type: Issue["linked_entity_type"];
@@ -46,7 +54,7 @@ type LinkableEntity = {
 };
 
 const STATUS_CONFIG = {
-  open: { label: "Open", icon: Circle, color: "text-blue-400" },
+  open: { label: "Open", icon: Circle, color: "text-foreground" },
   in_progress: { label: "In Progress", icon: Clock, color: "text-amber-400" },
   resolved: { label: "Resolved", icon: CheckCircle2, color: "text-emerald-400" },
   closed: { label: "Closed", icon: XCircle, color: "text-muted-foreground" },
@@ -54,7 +62,7 @@ const STATUS_CONFIG = {
 
 const PRIORITY_CONFIG = {
   low: { label: "Low", color: "bg-muted text-muted-foreground" },
-  medium: { label: "Medium", color: "bg-blue-500/15 text-blue-400" },
+  medium: { label: "Medium", color: "bg-foreground/8 text-foreground" },
   high: { label: "High", color: "bg-amber-500/15 text-amber-400" },
   critical: { label: "Critical", color: "bg-red-500/15 text-red-400" },
 } as const;
@@ -89,16 +97,19 @@ export default function IssuesPage() {
     setIssues(issuesData || []);
 
     const entities: LinkableEntity[] = [
-      // Pages
-      { type: "page", id: "dashboard", label: "Today (Dashboard)" },
+      // Pages — kept in sync with the sidebar in src/components/layout/sidebar.tsx
+      { type: "page", id: "dashboard", label: "Today" },
       { type: "page", id: "upcoming", label: "This Week" },
+      { type: "page", id: "pipeline", label: "Pipeline" },
       { type: "page", id: "calendar", label: "Calendar" },
       { type: "page", id: "dump", label: "Task Dump" },
-      { type: "page", id: "goals", label: "Goals" },
+      { type: "page", id: "seo", label: "SEO Agent" },
+      { type: "page", id: "leads", label: "Lead Gen" },
+      { type: "page", id: "audits", label: "Website Scoring" },
       { type: "page", id: "expenses", label: "Expenses" },
-      { type: "page", id: "videos", label: "Videos" },
-      { type: "page", id: "news", label: "News" },
-      { type: "page", id: "issues", label: "Issues" },
+      { type: "page", id: "creator", label: "Creator Hub" },
+      { type: "page", id: "videos", label: "Video Digests" },
+      { type: "page", id: "issues", label: "Bug Reports" },
       { type: "page", id: "settings", label: "Settings" },
       // Dynamic entities
       ...(workspaces || []).map((w) => ({ type: "workspace" as const, id: w.id, label: w.name })),
@@ -153,7 +164,8 @@ export default function IssuesPage() {
 
   return (
     <PageLayout
-      title="Issues"
+      title="Bug Reports"
+      eyebrow="Engineering · Issues"
       description={`${openCount} open${inProgressCount > 0 ? `, ${inProgressCount} in progress` : ""}`}
       icon={Bug}
       loading={loading}
@@ -236,7 +248,7 @@ export default function IssuesPage() {
             return (
               <div
                 key={issue.id}
-                className="group rounded-lg border border-border/50 bg-card/50 p-4 hover:bg-card hover:border-border transition-colors"
+                className="group rounded-lg border border-border/50 bg-card/50 p-3 sm:p-4 hover:bg-card hover:border-border transition-colors"
               >
                 <div className="flex items-start gap-3">
                   {/* Status icon */}
@@ -254,20 +266,27 @@ export default function IssuesPage() {
 
                   {/* Content */}
                   <div className="flex-1 min-w-0 space-y-1.5">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-semibold truncate">{issue.title}</h3>
-                      {issue.type === "bug" ? (
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-red-500/30 text-red-400 shrink-0">
-                          Bug
+                    {/* Title + badges — badges wrap below on narrow screens so the
+                        title stays readable on mobile (Bug: "Formatting problem with
+                        issue section on mobile"). */}
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <h3 className="text-sm font-semibold text-pretty break-words min-w-0 flex-1">
+                        {issue.title}
+                      </h3>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {issue.type === "bug" ? (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-red-500/30 text-red-400">
+                            Bug
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-purple-500/30 text-purple-400">
+                            Feature
+                          </Badge>
+                        )}
+                        <Badge className={cn("text-[10px] px-1.5 py-0 border-0", priorityCfg.color)}>
+                          {priorityCfg.label}
                         </Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-purple-500/30 text-purple-400 shrink-0">
-                          Feature
-                        </Badge>
-                      )}
-                      <Badge className={cn("text-[10px] px-1.5 py-0 border-0 shrink-0", priorityCfg.color)}>
-                        {priorityCfg.label}
-                      </Badge>
+                      </div>
                     </div>
 
                     {issue.description && (
@@ -276,11 +295,11 @@ export default function IssuesPage() {
                       </p>
                     )}
 
-                    <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
                       {issue.linked_entity_label && (
-                        <span className="flex items-center gap-1">
-                          <LinkIcon className="size-3" />
-                          {issue.linked_entity_label}
+                        <span className="flex items-center gap-1 min-w-0">
+                          <LinkIcon className="size-3 shrink-0" />
+                          <span className="truncate">{issue.linked_entity_label}</span>
                         </span>
                       )}
                       {issue.resolved_by && (
@@ -307,50 +326,53 @@ export default function IssuesPage() {
                     </div>
                   </div>
 
-                  {/* Actions */}
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                    {/* Status dropdown */}
-                    <Select
-                      value={issue.status}
-                      onValueChange={(v) => handleStatusChange(issue.id, v as Issue["status"])}
+                  {/* Actions — single dropdown so the row stays compact on mobile.
+                      Visible by default, only fades on hover-capable devices. */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      aria-label="Issue actions"
+                      className={cn(
+                        "inline-flex items-center justify-center size-8 shrink-0 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors",
+                        "opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100",
+                      )}
                     >
-                      <SelectTrigger className="h-8 w-[120px] text-xs bg-background/50 border-border/50 rounded-lg">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-popover border-border rounded-lg">
-                        {Object.entries(STATUS_CONFIG).map(([key, cfg]) => {
-                          const Icon = cfg.icon;
-                          return (
-                            <SelectItem key={key} value={key} className="text-xs rounded-lg">
-                              <div className="flex items-center gap-2">
-                                <Icon className={cn("size-3", cfg.color)} />
-                                {cfg.label}
-                              </div>
-                            </SelectItem>
-                          );
-                        })}
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-8 rounded-lg"
-                      onClick={() => {
-                        setEditingIssue(issue);
-                        setShowAdd(true);
-                      }}
-                    >
-                      <Pencil className="size-3.5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-8 rounded-lg text-muted-foreground hover:text-red-400"
-                      onClick={() => handleDelete(issue.id)}
-                    >
-                      <Trash2 className="size-3.5" />
-                    </Button>
-                  </div>
+                      <MoreHorizontal className="size-4" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-44 bg-popover border-border rounded-lg">
+                      {Object.entries(STATUS_CONFIG).map(([key, cfg]) => {
+                        const Icon = cfg.icon;
+                        return (
+                          <DropdownMenuItem
+                            key={key}
+                            onClick={() => handleStatusChange(issue.id, key as Issue["status"])}
+                            className="text-xs"
+                          >
+                            <Icon className={cn("size-3.5 mr-2", cfg.color)} />
+                            {cfg.label}
+                            {issue.status === key && <span className="ml-auto text-muted-foreground">·</span>}
+                          </DropdownMenuItem>
+                        );
+                      })}
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setEditingIssue(issue);
+                          setShowAdd(true);
+                        }}
+                        className="text-xs"
+                      >
+                        <Pencil className="size-3.5 mr-2" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleDelete(issue.id)}
+                        className="text-xs text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="size-3.5 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             );

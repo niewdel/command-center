@@ -158,9 +158,9 @@ export function DayTimeline({
                 onClick={() => onEventClick?.(event)}
                 className="flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium cursor-pointer hover:brightness-125"
                 style={{
-                  backgroundColor: `${event.color || "#3b82f6"}18`,
-                  color: event.color || "#3b82f6",
-                  borderLeft: `3px solid ${event.color || "#3b82f6"}`,
+                  backgroundColor: `${event.color || "var(--rust)"}18`,
+                  color: event.color || "var(--rust)",
+                  border: `1px solid ${event.color || "var(--rust)"}`,
                 }}
               >
                 {event.title}
@@ -222,7 +222,7 @@ export function DayTimeline({
                   top,
                   height,
                   backgroundColor: `${block.color}08`,
-                  borderLeft: `2px dashed ${block.color}30`,
+                  border: `1px dashed ${block.color}30`,
                 }}
               >
                 <span
@@ -257,8 +257,8 @@ export function DayTimeline({
                       height: pos.height,
                       left: `${col.leftPercent}%`,
                       width: `${col.widthPercent}%`,
-                      backgroundColor: `${event.color || "#3b82f6"}${isTask ? "0a" : "14"}`,
-                      borderLeft: `3px ${isTask ? "dashed" : "solid"} ${event.color || "#3b82f6"}`,
+                      backgroundColor: `${event.color || "var(--rust)"}${isTask ? "0a" : "14"}`,
+                      border: `1px ${isTask ? "dashed" : "solid"} ${event.color || "var(--rust)"}`,
                     }}
                   >
                     <div
@@ -279,7 +279,7 @@ export function DayTimeline({
                             "font-medium truncate",
                             isCompact ? "text-[11px]" : "text-xs"
                           )}
-                          style={{ color: event.color || "#3b82f6" }}
+                          style={{ color: event.color || "var(--rust)" }}
                         >
                           {event.title}
                         </span>
@@ -293,7 +293,7 @@ export function DayTimeline({
                           >
                             <Video
                               className="size-3"
-                              style={{ color: event.color || "#3b82f6" }}
+                              style={{ color: event.color || "var(--rust)" }}
                             />
                           </a>
                         )}

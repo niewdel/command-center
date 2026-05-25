@@ -149,8 +149,9 @@ export default function SeoOverviewPage() {
 
   return (
     <PageLayout
-      title="SEO"
-      description="Weekly automated SEO monitoring across your sites"
+      title="SEO Agent"
+      eyebrow="Agent · Search"
+      description="Weekly automated SEO monitoring across your sites."
       icon={TrendingUp}
       maxWidth="xl"
       loading={loading}

@@ -55,17 +55,17 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
   }, [toast.id, onDismiss]);
 
   const icons = {
-    success: <CheckCircle2 className="size-4 text-emerald-400 shrink-0" />,
-    error: <AlertCircle className="size-4 text-red-400 shrink-0" />,
-    info: <Info className="size-4 text-blue-400 shrink-0" />,
+    success: <CheckCircle2 className="size-4 text-[var(--chart-2)] shrink-0" />,
+    error: <AlertCircle className="size-4 text-destructive shrink-0" />,
+    info: <Info className="size-4 text-foreground shrink-0" />,
   };
 
   return (
     <div
       className={cn(
         "flex items-center gap-3 rounded-lg border bg-card px-4 py-3 shadow-md animate-in slide-in-from-right-full duration-300",
-        toast.type === "error" && "border-red-500/30",
-        toast.type === "success" && "border-emerald-500/30",
+        toast.type === "error" && "border-destructive/30",
+        toast.type === "success" && "border-[var(--chart-2)]/40",
         toast.type === "info" && "border-border/50"
       )}
     >

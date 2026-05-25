@@ -315,34 +315,29 @@ function DashboardContent() {
   const allTodayTasks = [...overdueTasks.filter((t) => !plannedToday.includes(t)), ...plannedToday];
 
   return (
-    <div className="max-w-3xl mx-auto p-3 md:p-8 pb-24 md:pb-8 space-y-5">
-      {/* Header */}
-      <div className="flex items-center justify-between pt-1">
-        <div>
-          <h1 className="text-lg font-semibold font-heading">
-            {getGreeting()}, Justin
+    <div className="max-w-3xl mx-auto p-4 md:p-10 pb-24 md:pb-10 space-y-6">
+      {/* Header — editorial greeting block: mono day-tag → display greeting → factual chips */}
+      <div className="flex items-end justify-between gap-4 pt-2">
+        <div className="space-y-2 min-w-0">
+          <span className="mono-tag">{dateStr}</span>
+          <h1 className="text-2xl md:text-3xl font-bold font-heading text-balance tracking-tight">
+            {getGreeting()}, Justin.
           </h1>
-          <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-sm text-muted-foreground">{dateStr}</span>
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm text-muted-foreground">
             {weather && (
-              <>
-                <span className="text-border">·</span>
-                <span className="text-sm text-muted-foreground">
-                  {weather.icon} {weather.temp}°F {weather.description}
-                </span>
-              </>
+              <span>{weather.icon} {weather.temp}°F {weather.description}</span>
             )}
+            {weather && nextBlock && <span className="text-border">·</span>}
             {nextBlock && (
-              <>
-                <span className="text-border">·</span>
-                <span className="text-sm text-muted-foreground">
-                  {nextBlock.icon} {nextBlock.label} at {formatRoutineTime(nextBlock.start_time)}
-                </span>
-              </>
+              <span>
+                {nextBlock.icon} {nextBlock.label} at {formatRoutineTime(nextBlock.start_time)}
+              </span>
             )}
           </div>
           {settings?.daily_intention && planningDone && (
-            <p className="text-sm text-muted-foreground/70 italic mt-1">&ldquo;{settings.daily_intention}&rdquo;</p>
+            <p className="text-sm text-muted-foreground/80 italic max-w-[55ch]">
+              &ldquo;{settings.daily_intention}&rdquo;
+            </p>
           )}
         </div>
         <div className="flex items-center gap-2">
@@ -435,7 +430,7 @@ function DashboardContent() {
                 >
                   <div
                     className="w-0.5 h-8 rounded-full shrink-0"
-                    style={{ backgroundColor: event.color || "#3b82f6" }}
+                    style={{ backgroundColor: event.color || "var(--rust)" }}
                   />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{event.title}</p>
@@ -459,7 +454,7 @@ function DashboardContent() {
                       href={event.meeting_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="shrink-0 px-2.5 py-1 rounded text-xs font-medium bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors flex items-center gap-1"
+                      className="shrink-0 px-2.5 py-1 rounded text-xs font-medium bg-foreground/8 text-foreground hover:bg-foreground/12 transition-colors flex items-center gap-1"
                     >
                       <Video className="size-3" />
                       Join
@@ -553,7 +548,7 @@ function DashboardContent() {
           {/* Empty state */}
           {allTodayTasks.length === 0 && (
             <div className="text-center py-20 space-y-3">
-              <div className="inline-flex size-12 items-center justify-center rounded border border-primary/30" style={{ boxShadow: '0 0 12px -3px var(--hud-glow)' }}>
+              <div className="inline-flex size-12 items-center justify-center rounded border border-primary/30" style={{ boxShadow: '0 1px 2px oklch(0.18 0.013 50 / 0.08)' }}>
                 <Sunrise className="size-5 text-primary" />
               </div>
               <p className="text-sm font-medium">Clear schedule today</p>

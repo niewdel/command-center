@@ -30,14 +30,14 @@ type KanbanBoardProps = {
 
 const columns: { id: Task["status"]; label: string; color: string; borderColor: string }[] = [
   { id: "todo", label: "Backlog", color: "text-muted-foreground", borderColor: "border-t-muted-foreground/30" },
-  { id: "in_progress", label: "In Progress", color: "text-blue-400", borderColor: "border-t-blue-500" },
-  { id: "done", label: "Done", color: "text-emerald-400", borderColor: "border-t-emerald-500" },
+  { id: "in_progress", label: "In Progress", color: "text-foreground", borderColor: "border-t-foreground/40" },
+  { id: "done", label: "Done", color: "text-[var(--chart-2)]", borderColor: "border-t-[var(--chart-2)]/50" },
 ];
 
 const priorityColors: Record<string, string> = {
-  high: "bg-red-500",
-  medium: "bg-amber-500",
-  low: "bg-blue-500",
+  high: "bg-primary",
+  medium: "bg-[var(--chart-3)]",
+  low: "bg-foreground/40",
   none: "bg-transparent",
 };
 
