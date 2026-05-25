@@ -48,6 +48,10 @@ type SeoConfig = {
   dry_run?: boolean;
   report_status?: "enabled" | "paused";
   ga4_property_id?: string;
+  google_ads?: {
+    customer_id?: string;
+    enabled?: boolean;
+  };
 };
 
 type Client = {
@@ -904,6 +908,12 @@ function SettingsForm({
   const [enabled, setEnabled] = useState(cfg.enabled !== false);
   const [dryRun, setDryRun] = useState(!!cfg.dry_run);
   const [ga4PropertyId, setGa4PropertyId] = useState(cfg.ga4_property_id ?? "");
+  // Google Ads — accepts the 10-digit customer ID with or without hyphens;
+  // we strip hyphens on save so the API helper gets the canonical form.
+  const [adsCustomerId, setAdsCustomerId] = useState(
+    cfg.google_ads?.customer_id ?? "",
+  );
+  const [adsEnabled, setAdsEnabled] = useState(cfg.google_ads?.enabled ?? true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -972,6 +982,11 @@ function SettingsForm({
       dry_run: dryRun,
       report_status: cfg.report_status ?? "enabled",
       ga4_property_id: ga4PropertyId.trim() || undefined,
+      google_ads: (() => {
+        const id = adsCustomerId.replace(/[^0-9]/g, "");
+        if (!id) return undefined;
+        return { customer_id: id, enabled: adsEnabled };
+      })(),
     };
     const res = await fetch(`/api/seo/clients/${client.id}`, {
       method: "PATCH",
@@ -1132,8 +1147,8 @@ function SettingsForm({
         ) : (
           <div className="space-y-2">
             <p className="text-[11px] text-muted-foreground">
-              Connect your Google account once. The same connection works for
-              all clients.
+              Connect your Google account once. The same connection covers
+              GA4, Gmail send, and Google Ads.
             </p>
             <Button
               type="button"
@@ -1142,10 +1157,48 @@ function SettingsForm({
               onClick={handleConnectGoogle}
               className="rounded"
             >
-              Connect Google Analytics
+              Connect Google
             </Button>
           </div>
         )}
+      </div>
+
+      {/* Google Ads — per-client customer ID. The operator-level dev token
+          and MCC login ID come from env (GOOGLE_ADS_DEVELOPER_TOKEN +
+          GOOGLE_ADS_LOGIN_CUSTOMER_ID). Without those the report falls back
+          to the upsell placeholder no matter what's entered here. */}
+      <div className="space-y-3 pt-5 mt-2 border-t border-border">
+        <div className="flex items-center justify-between">
+          <Label className="text-xs uppercase text-muted-foreground">
+            Google Ads
+          </Label>
+          <label className="inline-flex items-center gap-2 text-[11px] text-muted-foreground cursor-pointer">
+            <input
+              type="checkbox"
+              checked={adsEnabled}
+              onChange={(e) => setAdsEnabled(e.target.checked)}
+              className="rounded"
+            />
+            Pull metrics into report
+          </label>
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-xs">Customer ID</Label>
+          <Input
+            value={adsCustomerId}
+            onChange={(e) => setAdsCustomerId(e.target.value)}
+            placeholder="697-497-6770 or 6974976770"
+            className="font-mono"
+          />
+          <p className="text-[11px] text-muted-foreground pt-0.5">
+            The 10-digit ID at the top of the client&apos;s Google Ads
+            dashboard. Hyphens optional. Leave blank to render the
+            &quot;you could be running ads&quot; placeholder instead.
+            The client&apos;s account must be linked under your MCC
+            (Niewdel manager account) before data will flow.
+          </p>
+        </div>
       </div>
 
       {error && <p className="text-xs text-rose-400">{error}</p>}
