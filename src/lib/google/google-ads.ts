@@ -14,7 +14,7 @@
 
 import { getValidAccessToken } from "./oauth";
 
-const API_VERSION = "v18";
+const API_VERSION = "v20";
 const API_BASE = `https://googleads.googleapis.com/${API_VERSION}`;
 
 export class AdsNotConfiguredError extends Error {
@@ -28,6 +28,18 @@ export class AdsPermissionError extends Error {
   constructor(reason: string) {
     super(reason);
     this.name = "AdsPermissionError";
+  }
+}
+
+/** Distinct from AdsPermissionError: the dev token is correct, the scope is
+ *  correct, but Google hasn't approved Basic Access on the developer token
+ *  yet. Tokens default to "test mode" which only works against test
+ *  accounts. Lets the status badge show "pending approval" vs "needs
+ *  reconnect", which mean very different things to the operator. */
+export class AdsPendingApprovalError extends Error {
+  constructor(reason: string) {
+    super(reason);
+    this.name = "AdsPendingApprovalError";
   }
 }
 
@@ -137,9 +149,14 @@ export async function fetchAdsMetrics(opts: {
 
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    // The most common failure here is the operator hasn't re-authorized
-    // since we added the adwords scope. Surface that distinctly so the
-    // UI can show a "Reconnect Google" button.
+    // Three distinct failure classes, each implying a different operator
+    // action. Order matters: check the most-specific token-not-approved
+    // body marker BEFORE the generic 403 branch, since both return 403.
+    if (body.includes("DEVELOPER_TOKEN_NOT_APPROVED")) {
+      throw new AdsPendingApprovalError(
+        "Google Ads developer token is still in test mode. Basic Access approval pending from Google.",
+      );
+    }
     if (
       res.status === 401 ||
       res.status === 403 ||
@@ -150,9 +167,7 @@ export async function fetchAdsMetrics(opts: {
         `Google Ads API rejected the request (${res.status}). The operator's Google connection likely needs the 'adwords' scope. Reconnect Google to fix.`,
       );
     }
-    throw new Error(
-      `Google Ads ${res.status}: ${body.slice(0, 400)}`,
-    );
+    throw new Error(`Google Ads ${res.status}: ${body.slice(0, 400)}`);
   }
 
   const data = (await res.json()) as SearchResponse;

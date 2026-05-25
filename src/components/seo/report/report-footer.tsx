@@ -1,5 +1,5 @@
-import type { ReportData } from "@/lib/seo/report-data";
-import { RANGE_LABEL } from "@/lib/seo/report-data";
+import type { ReportData } from "@/lib/seo/report-types";
+import { RANGE_LABEL } from "@/lib/seo/report-types";
 
 export function ReportFooter({ data }: { data: ReportData }) {
   const generated = new Date(data.client.generated_at).toLocaleDateString(

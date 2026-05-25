@@ -1183,6 +1183,8 @@ function SettingsForm({
           </label>
         </div>
 
+        <AdsStatusBadge clientId={client.id} customerId={adsCustomerId} enabled={adsEnabled} />
+
         <div className="space-y-2">
           <Label className="text-xs">Customer ID</Label>
           <Input
@@ -1208,6 +1210,123 @@ function SettingsForm({
           {saving ? "Saving..." : "Save"}
         </Button>
       </div>
+    </div>
+  );
+}
+
+// ── Operator-only badge: polls /ads-status and renders the live state ────
+// Distinct from the report renderer, which always falls back to the
+// placeholder card for client-facing surfaces. This badge tells the
+// operator the truth: pending Google approval, scope missing, real
+// error, etc. Only shows when the customer ID looks complete (10
+// digits).
+
+type AdsStatusResponse =
+  | { state: "ok"; campaign_count: number; cost: number }
+  | { state: "pending_approval" }
+  | { state: "needs_reconnect" }
+  | { state: "not_configured" }
+  | { state: "error"; message?: string };
+
+function AdsStatusBadge({
+  clientId,
+  customerId,
+  enabled,
+}: {
+  clientId: string;
+  customerId: string;
+  enabled: boolean;
+}) {
+  const [status, setStatus] = useState<AdsStatusResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  // Only probe when there's something worth probing.
+  const cleanId = customerId.replace(/[^0-9]/g, "");
+  const ready = cleanId.length === 10 && enabled;
+
+  useEffect(() => {
+    if (!ready) {
+      setStatus({ state: "not_configured" });
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    fetch(`/api/seo/clients/${clientId}/ads-status`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!cancelled) setStatus(d);
+      })
+      .catch(() => {
+        if (!cancelled) setStatus({ state: "error" });
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [clientId, ready]);
+
+  if (loading || !status) {
+    return (
+      <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md text-[11px] font-mono bg-muted/40 text-muted-foreground border border-border/50">
+        <span className="size-1.5 rounded-full bg-muted-foreground animate-pulse" />
+        Checking…
+      </div>
+    );
+  }
+
+  const config = {
+    ok: {
+      label: status.state === "ok" && "campaign_count" in status
+        ? `Live · ${status.campaign_count} campaign${status.campaign_count === 1 ? "" : "s"}`
+        : "Live",
+      bg: "bg-[var(--chart-2)]/15",
+      text: "text-[var(--chart-2)]",
+      border: "border-[var(--chart-2)]/40",
+      dot: "bg-[var(--chart-2)]",
+    },
+    pending_approval: {
+      label: "Pending Google approval",
+      bg: "bg-[var(--chart-3)]/15",
+      text: "text-[var(--chart-3)]",
+      border: "border-[var(--chart-3)]/40",
+      dot: "bg-[var(--chart-3)]",
+    },
+    needs_reconnect: {
+      label: "Reconnect Google",
+      bg: "bg-primary/15",
+      text: "text-primary",
+      border: "border-primary/40",
+      dot: "bg-primary",
+    },
+    not_configured: {
+      label: "Not configured",
+      bg: "bg-muted/40",
+      text: "text-muted-foreground",
+      border: "border-border/50",
+      dot: "bg-muted-foreground/40",
+    },
+    error: {
+      label: "Error reaching Google",
+      bg: "bg-destructive/10",
+      text: "text-destructive",
+      border: "border-destructive/40",
+      dot: "bg-destructive",
+    },
+  }[status.state];
+
+  return (
+    <div
+      className={cn(
+        "inline-flex items-center gap-2 px-2.5 py-1 rounded-md text-[11px] font-mono border",
+        config.bg,
+        config.text,
+        config.border,
+      )}
+    >
+      <span className={cn("size-1.5 rounded-full", config.dot)} />
+      {config.label}
     </div>
   );
 }

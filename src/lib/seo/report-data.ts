@@ -1,132 +1,33 @@
-// Single source of report data. Both the in-app dashboard and the monthly
-// PDF render from this shape. Sections that depend on optional data
-// (traffic snapshots, keyword ranks) return null so the corresponding UI
-// section can be omitted entirely instead of showing empty placeholders.
+// Server-side report data loader. The shape itself + all pure constants
+// live in ./report-types so client components can import them without
+// dragging this module's service-role / Google OAuth deps into their
+// bundle. Re-exported here for backward compat with existing imports.
 
 import { getServiceClient } from "./db";
-export interface ScoreHistoryPoint {
-  created_at: string;
-  technical_score: number | null;
-  onpage_score: number | null;
-  lighthouse_mobile: number | null;
-  lighthouse_desktop: number | null;
-}
 
-export type ReportRange = "30d" | "90d" | "life";
+export type {
+  ReportRange,
+  ReportData,
+  ScoreCard,
+  MetricCard,
+  KeywordMover,
+  ScoreHistoryPoint,
+  SeoIssueRowOut,
+  SeoResolvedRowOut,
+  AdsMetricsView,
+} from "./report-types";
+export { REPORT_RANGES, RANGE_LABEL } from "./report-types";
 
-export const REPORT_RANGES: ReportRange[] = ["30d", "90d", "life"];
-
-export const RANGE_LABEL: Record<ReportRange, string> = {
-  "30d": "Last 30 days",
-  "90d": "Last 90 days",
-  life: "Lifetime",
-};
-
-export interface ScoreCard {
-  current: number | null;
-  delta: number | null;
-  history: number[]; // sparkline data, oldest → newest
-}
-
-export interface MetricCard {
-  current: number;
-  delta: number | null;
-}
-
-export interface KeywordMover {
-  keyword: string;
-  rank: number | null;
-  prior_rank: number | null;
-  delta: number | null; // negative = improvement (rank dropped from 12 to 8)
-}
-
-export interface SeoIssueRowOut {
-  severity: "critical" | "high" | "medium" | "low";
-  title: string;
-  page_url: string | null;
-  category: string;
-}
-
-export interface SeoResolvedRowOut {
-  title: string;
-  category: string;
-}
-
-export interface ReportData {
-  client: {
-    id: string;
-    name: string;
-    domain: string;
-    period_label: string;
-    generated_at: string;
-  };
-  range: ReportRange;
-
-  health: {
-    overall_score: number | null;
-    overall_delta: number | null;
-    technical: ScoreCard;
-    onpage: ScoreCard;
-    lighthouse_mobile: ScoreCard;
-    lighthouse_desktop: ScoreCard;
-    open_issues: {
-      total: number;
-      critical: number;
-      high: number;
-      medium: number;
-      low: number;
-    };
-  };
-
-  traffic: {
-    sessions: MetricCard;
-    organic_sessions: MetricCard;
-    users: MetricCard;
-    pages_per_session: MetricCard;
-    sources: {
-      search: number;
-      direct: number;
-      referral: number;
-      social: number;
-      other: number;
-    };
-    period_start: string;
-    period_end: string;
-  } | null;
-
-  keywords: {
-    ranking_count: number;
-    tracked_count: number;
-    avg_rank: number | null;
-    total_search_volume: number;
-    top_movers_up: KeywordMover[];
-    top_movers_down: KeywordMover[];
-  } | null;
-
-  top_pages: Array<{
-    path: string;
-    sessions: number;
-    pct_of_total: number;
-  }>;
-
-  issues: {
-    open_top: SeoIssueRowOut[];
-    resolved: SeoResolvedRowOut[];
-  };
-
-  /** Google Ads metrics for the window. `state` distinguishes "this client
-   *  isn't running paid ads" (placeholder/upsell in the report) from
-   *  "fetch failed" (silent for clients, surfaced in logs) from a real
-   *  payload. Only populated when seo_config.google_ads.customer_id is set
-   *  AND the operator has authorized the adwords OAuth scope. */
-  ads: {
-    state: "not_configured" | "needs_reconnect" | "error" | "ok";
-    metrics: import("@/lib/google/google-ads").AdsMetrics | null;
-  };
-
-  history: ScoreHistoryPoint[];
-  ai_summary: string | null;
-}
+import type {
+  ReportRange,
+  ReportData,
+  ScoreCard,
+  MetricCard,
+  KeywordMover,
+  ScoreHistoryPoint,
+  SeoIssueRowOut,
+  SeoResolvedRowOut,
+} from "./report-types";
 
 function rangeWindowMs(range: ReportRange): number | null {
   if (range === "30d") return 30 * 86_400_000;
@@ -534,8 +435,13 @@ async function loadAds(opts: {
 
   // Lazy imports keep the report-data module from forcing Ads helpers into
   // every bundle that touches it.
-  const { adsConfigured, fetchAdsMetrics, AdsPermissionError, AdsNotConfiguredError } =
-    await import("@/lib/google/google-ads");
+  const {
+    adsConfigured,
+    fetchAdsMetrics,
+    AdsPermissionError,
+    AdsPendingApprovalError,
+    AdsNotConfiguredError,
+  } = await import("@/lib/google/google-ads");
 
   if (!adsConfigured()) {
     return { state: "not_configured", metrics: null };
@@ -558,6 +464,12 @@ async function loadAds(opts: {
     });
     return { state: "ok", metrics };
   } catch (err) {
+    if (err instanceof AdsPendingApprovalError) {
+      // Pending approval looks like "not_configured" from the client's
+      // POV (placeholder card). The operator sees the real state via
+      // the ads-status badge on the edit page.
+      return { state: "not_configured", metrics: null };
+    }
     if (err instanceof AdsPermissionError) {
       return { state: "needs_reconnect", metrics: null };
     }
