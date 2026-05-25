@@ -636,8 +636,10 @@ export function renderMonthlyReportEmail(
 </table>`;
     }
 
-    // Placeholder / upsell. Same block for not_configured, needs_reconnect,
-    // and error — clients should never see internal plumbing state.
+    // Placeholder. Same block for not_configured, needs_reconnect, and
+    // error states. Niewdel does NOT run ad campaigns; we only report on
+    // existing ones. CTA asks the client to grant manager access so we
+    // can pull their data, not to hire us to run ads.
     return `
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
   <tr>
@@ -646,8 +648,8 @@ export function renderMonthlyReportEmail(
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:${PAPER_RAISED};border:1px dashed ${PAPER_EDGE};border-radius:12px;">
         <tr>
           <td style="padding:22px 26px;">
-            <p style="margin:0 0 6px 0;${FONT}font-size:16px;font-weight:700;color:${INK};letter-spacing:-0.01em;">You're not running paid ads yet.</p>
-            <p style="margin:0;${FONT}font-size:14px;color:${INK_SOFT};line-height:1.6;">Search rankings build over months. Google Ads can drive qualified traffic in days. We run campaigns end-to-end: setup, creative, bidding, and weekly tuning. Reply if you want a quote.</p>
+            <p style="margin:0 0 6px 0;${FONT}font-size:16px;font-weight:700;color:${INK};letter-spacing:-0.01em;">Link your Google Ads.</p>
+            <p style="margin:0;${FONT}font-size:14px;color:${INK_SOFT};line-height:1.6;">If you run Google Ads campaigns and want the performance included here each month, add Niewdel as a manager on your Google Ads account. We don't run the campaigns, we just pull the data for your monthly report. Reply if you'd like to set it up.</p>
           </td>
         </tr>
       </table>

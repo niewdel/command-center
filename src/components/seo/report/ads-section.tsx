@@ -104,17 +104,20 @@ export function AdsSection({ data }: { data: ReportData }) {
     );
   }
 
-  // Placeholder / upsell for any non-ok state.
+  // Placeholder for any non-ok state. Niewdel does not run ad campaigns,
+  // we only report on existing ones, so the CTA asks the client to grant
+  // us manager access rather than offering campaign management.
   return (
     <Section title="07 · Google Ads">
       <div className="col-span-12 bg-card border border-dashed border-border rounded-lg p-6">
         <p className="text-base font-bold text-foreground tracking-tight mb-2">
-          You're not running paid ads yet.
+          Link your Google Ads.
         </p>
-        <p className="text-sm text-muted-foreground leading-relaxed max-w-[55ch]">
-          Search rankings build over months. Google Ads can drive qualified
-          traffic in days. We run campaigns end-to-end: setup, creative,
-          bidding, and weekly tuning. Reply if you want a quote.
+        <p className="text-sm text-muted-foreground leading-relaxed max-w-[60ch]">
+          If you run Google Ads campaigns and want the performance included
+          here each month, add Niewdel as a manager on your Google Ads
+          account. We don&apos;t run the campaigns, we just pull the data
+          for your monthly report. Reply if you&apos;d like to set it up.
         </p>
       </div>
     </Section>
