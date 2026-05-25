@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import withSerwistInit from "@serwist/next";
 
 const nextConfig: NextConfig = {
   compress: true,
@@ -16,4 +17,14 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// Serwist replaces the older @ducanh2912/next-pwa we used before the
+// Turbopack migration. Same install-to-home-screen behavior, plus
+// runtime caching so repeat visits feel instant.
+const withSerwist = withSerwistInit({
+  swSrc: "src/app/sw.ts",
+  swDest: "public/sw.js",
+  disable: process.env.NODE_ENV === "development",
+  cacheOnNavigation: true,
+});
+
+export default withSerwist(nextConfig);
