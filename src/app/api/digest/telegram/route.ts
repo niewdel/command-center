@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { detectSource } from "@/lib/digest/extract";
 import { fetchLightMetadata } from "@/lib/digest/metadata";
+import { dumpTask } from "@/lib/tasks/dump";
+import { localDateString } from "@/lib/utils";
 
 function getSupabaseAdmin() {
   return createClient(
@@ -48,10 +50,67 @@ async function handleMessage(message: {
   chat?: { id: number };
   message_id?: number;
 } | undefined) {
-  if (!message?.text) return NextResponse.json({ ok: true });
+  if (!message?.text || !message.chat?.id || !message.message_id) {
+    return NextResponse.json({ ok: true });
+  }
 
-  const urls = message.text.match(/https?:\/\/[^\s]+/g) || [];
-  if (urls.length === 0) return NextResponse.json({ ok: true });
+  const text = message.text.trim();
+  const chatId = message.chat.id;
+  const messageId = message.message_id;
+
+  // ── /today command: reply with today's planned tasks ────────────────────
+  if (/^\/today(@\w+)?\s*$/i.test(text)) {
+    await replyWithToday(String(chatId), messageId);
+    return NextResponse.json({ ok: true });
+  }
+
+  // ── /help command: a tiny cheat sheet ───────────────────────────────────
+  if (/^\/(help|start)(@\w+)?\s*$/i.test(text)) {
+    await sendTelegramReply(
+      String(chatId),
+      messageId,
+      [
+        "Niewdel bot:",
+        "",
+        "• Paste a YouTube / Instagram / TikTok URL: choose Digest or Inspiration.",
+        "• Send any other text: AI sorts it into a task in your Dump.",
+        "• /today: list today's planned tasks.",
+      ].join("\n"),
+    );
+    return NextResponse.json({ ok: true });
+  }
+
+  const urls = text.match(/https?:\/\/[^\s]+/g) || [];
+
+  // ── No URL? Drop the message into the AI dump as a task ─────────────────
+  if (urls.length === 0) {
+    await sendTelegramReply(String(chatId), messageId, "📝 Filing…");
+    try {
+      const result = await dumpTask(text);
+      if (!result.success) {
+        await sendTelegramReply(
+          String(chatId),
+          messageId,
+          `Couldn't file that: ${result.error}`,
+        );
+        return NextResponse.json({ ok: true });
+      }
+      const summary = [
+        `✅ *${escapeMd(result.task.title)}*`,
+        `Workspace: ${escapeMd(result.workspace_name)}`,
+        `Priority: ${result.task.priority}${result.task.estimated_minutes ? ` · ${result.task.estimated_minutes}m` : ""}`,
+      ].join("\n");
+      await sendTelegramReply(String(chatId), messageId, summary);
+    } catch (err) {
+      console.error("dump-from-telegram failed:", err);
+      await sendTelegramReply(
+        String(chatId),
+        messageId,
+        "Couldn't reach the AI right now. Try again in a sec.",
+      );
+    }
+    return NextResponse.json({ ok: true });
+  }
 
   const supabase = getSupabaseAdmin();
   const { data: users } = await supabase.auth.admin.listUsers();
@@ -60,9 +119,6 @@ async function handleMessage(message: {
     console.error("No user found in Supabase");
     return NextResponse.json({ ok: true });
   }
-
-  const chatId = message.chat!.id;
-  const messageId = message.message_id!;
 
   for (const url of urls) {
     const { source } = detectSource(url);
@@ -288,4 +344,46 @@ async function answerCallbackQuery(callbackQueryId: string, text?: string) {
 
 function escapeMd(text: string): string {
   return text.replace(/[_*`[\]]/g, (c) => `\\${c}`);
+}
+
+// ── /today helper ──────────────────────────────────────────────────────────
+// Pulls tasks where planned_date === today (or due_date < today for overdue)
+// and status !== done. Renders a compact Telegram-Markdown reply.
+
+async function replyWithToday(chatId: string, replyToMessageId: number) {
+  const supabase = getSupabaseAdmin();
+  const todayStr = localDateString();
+
+  const { data: tasks } = await supabase
+    .from("tasks")
+    .select("title, priority, planned_date, due_date, is_focus, estimated_minutes, workspaces(name)")
+    .neq("status", "done")
+    .or(`planned_date.eq.${todayStr},due_date.lt.${todayStr}`)
+    .order("is_focus", { ascending: false })
+    .order("position", { ascending: true });
+
+  if (!tasks || tasks.length === 0) {
+    await sendTelegramReply(
+      chatId,
+      replyToMessageId,
+      "✨ Clear schedule today. Nothing planned, nothing overdue.",
+    );
+    return;
+  }
+
+  const lines: string[] = ["*Today*"];
+  for (const t of tasks.slice(0, 25)) {
+    const overdue = t.due_date && t.due_date < todayStr;
+    const focus = t.is_focus ? "⭐ " : "";
+    const overdueMark = overdue ? " _(overdue)_" : "";
+    const est = t.estimated_minutes ? ` · ${t.estimated_minutes}m` : "";
+    const ws = (t.workspaces as unknown as { name: string } | null)?.name;
+    const wsTag = ws ? ` · ${escapeMd(ws)}` : "";
+    lines.push(`${focus}• ${escapeMd(t.title)}${wsTag}${est}${overdueMark}`);
+  }
+  if (tasks.length > 25) {
+    lines.push(`…and ${tasks.length - 25} more.`);
+  }
+
+  await sendTelegramReply(chatId, replyToMessageId, lines.join("\n"));
 }
