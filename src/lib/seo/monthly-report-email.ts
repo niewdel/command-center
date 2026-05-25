@@ -506,6 +506,156 @@ export function renderMonthlyReportEmail(
 </table>`;
   }
 
+  function buildAds(): string {
+    const ads = data.ads;
+    // Three render states. "ok" with real metrics. "not_configured" /
+    // "needs_reconnect" / "error" all render the same upsell placeholder
+    // so the client sees a polished "you could be running ads" block
+    // even when there's no data.
+    if (ads.state === "ok" && ads.metrics) {
+      const m = ads.metrics;
+      const fmtUsd = (n: number) =>
+        new Intl.NumberFormat("en-US", {
+          style: "currency",
+          currency: "USD",
+          maximumFractionDigits: 0,
+        }).format(n);
+      const fmtPct = (n: number) => `${(n * 100).toFixed(1)}%`;
+      const fmtCpc = (n: number) => `$${n.toFixed(2)}`;
+
+      const topRows = m.top_campaigns
+        .map(
+          (c) => `
+        <tr>
+          <td style="padding:10px 0;border-top:1px solid ${PAPER_EDGE};${FONT}font-size:13px;color:${INK};width:60%;word-break:break-word;">${escapeHtml(c.name)}</td>
+          <td style="padding:10px 8px;border-top:1px solid ${PAPER_EDGE};${FONT}font-size:13px;color:${INK};font-feature-settings:'tnum';white-space:nowrap;text-align:right;">${fmtUsd(c.cost)}</td>
+          <td style="padding:10px 0;border-top:1px solid ${PAPER_EDGE};${FONT}font-size:13px;color:${INK_SOFT};font-feature-settings:'tnum';white-space:nowrap;text-align:right;">${formatNumber(c.clicks)}</td>
+        </tr>`,
+        )
+        .join("");
+
+      return `
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+  <tr>
+    <td style="padding:0 32px 8px 32px;">
+      ${tag("07 · Google Ads")}
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:0 32px 16px 32px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:${PAPER_RAISED};border:1px solid ${PAPER_EDGE};border-radius:10px;margin-bottom:12px;">
+        <tr>
+          <td style="padding:18px;">
+            <p style="margin:0 0 4px 0;${MONO}font-size:10px;font-weight:600;color:${INK_SOFT};text-transform:uppercase;letter-spacing:0.18em;">Spend</p>
+            <p style="margin:0 0 4px 0;${FONT}font-size:36px;font-weight:700;color:${INK};font-feature-settings:'tnum';letter-spacing:-0.025em;">${fmtUsd(m.cost)}</p>
+            <p style="margin:0;${MONO}font-size:11px;color:${INK_FAINT};letter-spacing:0.04em;">${escapeHtml(m.period_start)} – ${escapeHtml(m.period_end)}</p>
+          </td>
+        </tr>
+      </table>
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+        <tr>
+          <td style="width:33.33%;padding-right:6px;" valign="top">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:${PAPER_RAISED};border:1px solid ${PAPER_EDGE};border-radius:10px;">
+              <tr>
+                <td style="padding:14px;">
+                  <p style="margin:0 0 4px 0;${MONO}font-size:10px;font-weight:600;color:${INK_SOFT};text-transform:uppercase;letter-spacing:0.18em;">Clicks</p>
+                  <p style="margin:0;${FONT}font-size:22px;font-weight:700;color:${INK};font-feature-settings:'tnum';">${formatNumber(m.clicks)}</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+          <td style="width:33.33%;padding-right:6px;" valign="top">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:${PAPER_RAISED};border:1px solid ${PAPER_EDGE};border-radius:10px;">
+              <tr>
+                <td style="padding:14px;">
+                  <p style="margin:0 0 4px 0;${MONO}font-size:10px;font-weight:600;color:${INK_SOFT};text-transform:uppercase;letter-spacing:0.18em;">Impressions</p>
+                  <p style="margin:0;${FONT}font-size:22px;font-weight:700;color:${INK};font-feature-settings:'tnum';">${formatNumber(m.impressions)}</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+          <td style="width:33.33%;" valign="top">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:${PAPER_RAISED};border:1px solid ${PAPER_EDGE};border-radius:10px;">
+              <tr>
+                <td style="padding:14px;">
+                  <p style="margin:0 0 4px 0;${MONO}font-size:10px;font-weight:600;color:${INK_SOFT};text-transform:uppercase;letter-spacing:0.18em;">CTR</p>
+                  <p style="margin:0;${FONT}font-size:22px;font-weight:700;color:${INK};font-feature-settings:'tnum';">${fmtPct(m.ctr)}</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:0 32px 16px 32px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+        <tr>
+          <td style="width:50%;padding-right:6px;" valign="top">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:${PAPER_RAISED};border:1px solid ${PAPER_EDGE};border-radius:10px;">
+              <tr>
+                <td style="padding:14px;">
+                  <p style="margin:0 0 4px 0;${MONO}font-size:10px;font-weight:600;color:${INK_SOFT};text-transform:uppercase;letter-spacing:0.18em;">Conversions</p>
+                  <p style="margin:0;${FONT}font-size:22px;font-weight:700;color:${INK};font-feature-settings:'tnum';">${m.conversions.toFixed(1)}</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+          <td style="width:50%;" valign="top">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:${PAPER_RAISED};border:1px solid ${PAPER_EDGE};border-radius:10px;">
+              <tr>
+                <td style="padding:14px;">
+                  <p style="margin:0 0 4px 0;${MONO}font-size:10px;font-weight:600;color:${INK_SOFT};text-transform:uppercase;letter-spacing:0.18em;">${m.cost_per_conversion != null ? "Cost / Conversion" : "Avg CPC"}</p>
+                  <p style="margin:0;${FONT}font-size:22px;font-weight:700;color:${INK};font-feature-settings:'tnum';">${m.cost_per_conversion != null ? fmtUsd(m.cost_per_conversion) : fmtCpc(m.avg_cpc)}</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+  ${m.top_campaigns.length > 0 ? `
+  <tr>
+    <td style="padding:0 32px 24px 32px;">
+      <p style="margin:0 0 10px 0;${MONO}font-size:10px;font-weight:600;color:${INK_SOFT};text-transform:uppercase;letter-spacing:0.18em;">Top Campaigns</p>
+      <table cellpadding="0" cellspacing="0" border="0" width="100%">
+        <thead>
+          <tr>
+            <th style="padding:0 0 6px 0;text-align:left;${MONO}font-size:10px;font-weight:600;color:${INK_SOFT};text-transform:uppercase;letter-spacing:0.18em;">Campaign</th>
+            <th style="padding:0 8px 6px 8px;text-align:right;${MONO}font-size:10px;font-weight:600;color:${INK_SOFT};text-transform:uppercase;letter-spacing:0.18em;">Spend</th>
+            <th style="padding:0 0 6px 0;text-align:right;${MONO}font-size:10px;font-weight:600;color:${INK_SOFT};text-transform:uppercase;letter-spacing:0.18em;">Clicks</th>
+          </tr>
+        </thead>
+        <tbody>${topRows}</tbody>
+      </table>
+    </td>
+  </tr>
+  ` : ""}
+</table>`;
+    }
+
+    // Placeholder / upsell. Same block for not_configured, needs_reconnect,
+    // and error — clients should never see internal plumbing state.
+    return `
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+  <tr>
+    <td style="padding:0 32px 24px 32px;">
+      ${tag("07 · Google Ads")}
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:${PAPER_RAISED};border:1px dashed ${PAPER_EDGE};border-radius:12px;">
+        <tr>
+          <td style="padding:22px 26px;">
+            <p style="margin:0 0 6px 0;${FONT}font-size:16px;font-weight:700;color:${INK};letter-spacing:-0.01em;">You're not running paid ads yet.</p>
+            <p style="margin:0;${FONT}font-size:14px;color:${INK_SOFT};line-height:1.6;">Search rankings build over months. Google Ads can drive qualified traffic in days. We run campaigns end-to-end: setup, creative, bidding, and weekly tuning. Reply if you want a quote.</p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>`;
+  }
+
   function buildAiSummary(): string {
     if (!data.ai_summary) return "";
     return `
@@ -559,6 +709,7 @@ export function renderMonthlyReportEmail(
     buildKeywordRankings(),
     buildWhatNeedsAttention(),
     buildResolved(),
+    buildAds(),
     buildAiSummary(),
     buildFooter(),
   ]

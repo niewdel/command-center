@@ -114,6 +114,16 @@ export interface ReportData {
     resolved: SeoResolvedRowOut[];
   };
 
+  /** Google Ads metrics for the window. `state` distinguishes "this client
+   *  isn't running paid ads" (placeholder/upsell in the report) from
+   *  "fetch failed" (silent for clients, surfaced in logs) from a real
+   *  payload. Only populated when seo_config.google_ads.customer_id is set
+   *  AND the operator has authorized the adwords OAuth scope. */
+  ads: {
+    state: "not_configured" | "needs_reconnect" | "error" | "ok";
+    metrics: import("@/lib/google/google-ads").AdsMetrics | null;
+  };
+
   history: ScoreHistoryPoint[];
   ai_summary: string | null;
 }
@@ -158,13 +168,16 @@ export async function getReportData(
   // ── Client row
   const { data: clientRow, error: clientErr } = await sb
     .from("clients")
-    .select("id, name, seo_config")
+    .select("id, name, workspace_id, seo_config")
     .eq("id", clientId)
     .single();
   if (clientErr || !clientRow) {
     throw new Error(`Client not found: ${clientId}`);
   }
-  const domain = (clientRow.seo_config as { domain?: string } | null)?.domain ?? "";
+  const seoConfig = (clientRow.seo_config as
+    | { domain?: string; google_ads?: { customer_id?: string; enabled?: boolean } }
+    | null) ?? null;
+  const domain = seoConfig?.domain ?? "";
 
   // ── Window bounds for time-filtered queries
   const windowMs = rangeWindowMs(range);
@@ -461,6 +474,16 @@ export async function getReportData(
     year: "numeric",
   });
 
+  // ── Google Ads (live fetch, wrapped so a failure here never breaks
+  // the report). For clients without a configured customer ID, returns
+  // state=not_configured so the report renders the upsell placeholder.
+  const ads = await loadAds({
+    clientId: clientRow.id as string,
+    workspaceId: clientRow.workspace_id as string,
+    googleAdsConfig: seoConfig?.google_ads,
+    rangeMs: rangeWindowMs(range) ?? 30 * 86_400_000,
+  });
+
   return {
     client: {
       id: clientRow.id as string,
@@ -483,7 +506,58 @@ export async function getReportData(
     keywords,
     top_pages,
     issues: { open_top, resolved },
+    ads,
     history,
     ai_summary: latest?.ai_summary ?? null,
   };
+}
+
+// ── Google Ads loader, isolated so a misconfigured customer ID or an
+// expired token can't take down the rest of the report. ────────────────
+async function loadAds(opts: {
+  clientId: string;
+  workspaceId: string;
+  googleAdsConfig?: { customer_id?: string; enabled?: boolean };
+  rangeMs: number;
+}): Promise<ReportData["ads"]> {
+  const customerId = opts.googleAdsConfig?.customer_id?.trim();
+  if (!customerId || opts.googleAdsConfig?.enabled === false) {
+    return { state: "not_configured", metrics: null };
+  }
+
+  // Lazy imports keep the report-data module from forcing Ads helpers into
+  // every bundle that touches it.
+  const { adsConfigured, fetchAdsMetrics, AdsPermissionError, AdsNotConfiguredError } =
+    await import("@/lib/google/google-ads");
+
+  if (!adsConfigured()) {
+    return { state: "not_configured", metrics: null };
+  }
+
+  const { getWorkspaceOwner } = await import("@/lib/seo/db");
+  const userId = await getWorkspaceOwner(opts.workspaceId);
+  if (!userId) return { state: "not_configured", metrics: null };
+
+  const end = new Date();
+  const start = new Date(Date.now() - opts.rangeMs);
+  const fmt = (d: Date) => d.toISOString().slice(0, 10);
+
+  try {
+    const metrics = await fetchAdsMetrics({
+      userId,
+      customerId,
+      start: fmt(start),
+      end: fmt(end),
+    });
+    return { state: "ok", metrics };
+  } catch (err) {
+    if (err instanceof AdsPermissionError) {
+      return { state: "needs_reconnect", metrics: null };
+    }
+    if (err instanceof AdsNotConfiguredError) {
+      return { state: "not_configured", metrics: null };
+    }
+    console.error("[google-ads] fetch failed:", err);
+    return { state: "error", metrics: null };
+  }
 }

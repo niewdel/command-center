@@ -5,6 +5,7 @@ import { TrafficSection } from "./traffic-section";
 import { KeywordsSection } from "./keywords-section";
 import { TopPagesSection } from "./top-pages-section";
 import { IssuesWinsSection } from "./issues-wins-section";
+import { AdsSection } from "./ads-section";
 import { TrendsSection } from "./trends-section";
 import { SummarySection } from "./summary-section";
 import { ReportFooter } from "./report-footer";
@@ -23,6 +24,7 @@ export function ClientReport({ data, mode = "standalone" }: Props) {
       <KeywordsSection data={data} />
       <TopPagesSection data={data} />
       <IssuesWinsSection data={data} />
+      <AdsSection data={data} />
       <TrendsSection data={data} />
       <SummarySection data={data} />
       <ReportFooter data={data} />

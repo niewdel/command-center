@@ -22,6 +22,12 @@ export const ANALYTICS_READONLY_SCOPE =
 // needed since Workspace handles SPF/DKIM/DMARC.
 export const GMAIL_SEND_SCOPE = "https://www.googleapis.com/auth/gmail.send";
 
+// Read campaign performance from accounts linked under the operator's
+// MCC. Used to pull Google Ads metrics into the monthly SEO report.
+// Requires GOOGLE_ADS_DEVELOPER_TOKEN + GOOGLE_ADS_LOGIN_CUSTOMER_ID
+// env vars set on the server.
+export const ADWORDS_SCOPE = "https://www.googleapis.com/auth/adwords";
+
 // ----- Service-role Supabase client (bypasses RLS for token writes) -----
 let _service: SupabaseClient | null = null;
 function getService(): SupabaseClient {

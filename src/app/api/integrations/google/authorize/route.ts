@@ -6,6 +6,7 @@ import {
   generateState,
   ANALYTICS_READONLY_SCOPE,
   GMAIL_SEND_SCOPE,
+  ADWORDS_SCOPE,
 } from "@/lib/google/oauth";
 
 export const dynamic = "force-dynamic";
@@ -39,6 +40,7 @@ export async function GET(_request: NextRequest) {
     scopes: [
       ANALYTICS_READONLY_SCOPE,
       GMAIL_SEND_SCOPE,
+      ADWORDS_SCOPE,
       "openid",
       "email",
     ],
