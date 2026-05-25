@@ -8,6 +8,8 @@ import { CommandPalette } from "@/components/search/command-palette";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ToastProvider } from "@/components/ui/toast";
 import { useNotifications, getNotificationStatus } from "@/lib/hooks/use-notifications";
+import { WorkspacesProvider } from "@/lib/providers/workspaces-provider";
+import { RealtimeProvider } from "@/lib/providers/realtime-provider";
 
 const AUTH_PAGES = ["/login", "/signup"];
 
@@ -45,11 +47,15 @@ export function AppShell({
   return (
     <ToastProvider>
       <TooltipProvider>
-        <Background />
-        <Sidebar />
-        <main className="relative z-10 md:ml-[var(--sidebar-width)] min-h-dvh pb-20 md:pb-0 safe-area-top pwa-top-pad">{children}</main>
-        <BottomNav />
-        <CommandPalette />
+        <RealtimeProvider>
+          <WorkspacesProvider>
+            <Background />
+            <Sidebar />
+            <main className="relative z-10 md:ml-[var(--sidebar-width)] min-h-dvh pb-20 md:pb-0 safe-area-top pwa-top-pad">{children}</main>
+            <BottomNav />
+            <CommandPalette />
+          </WorkspacesProvider>
+        </RealtimeProvider>
       </TooltipProvider>
     </ToastProvider>
   );

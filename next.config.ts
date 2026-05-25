@@ -1,10 +1,4 @@
 import type { NextConfig } from "next";
-import withPWAInit from "@ducanh2912/next-pwa";
-
-const withPWA = withPWAInit({
-  dest: "public",
-  disable: process.env.NODE_ENV === "development",
-});
 
 const nextConfig: NextConfig = {
   compress: true,
@@ -14,7 +8,7 @@ const nextConfig: NextConfig = {
   images: {
     formats: ["image/avif", "image/webp"],
   },
-  // Playwright pulls in chromium binary + native bindings — keep it external
+  // Playwright pulls in chromium binary + native bindings, keep it external
   // so Next.js doesn't try to bundle it into the server build.
   serverExternalPackages: ["playwright", "playwright-core"],
   experimental: {
@@ -22,4 +16,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withPWA(nextConfig);
+export default nextConfig;

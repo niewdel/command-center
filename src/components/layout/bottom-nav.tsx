@@ -20,9 +20,8 @@ import {
   TrendingUp,
   KanbanSquare,
 } from "lucide-react";
-import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/lib/supabase";
-import { Workspace } from "@/types/database";
+import { useState, useEffect } from "react";
+import { useWorkspaces } from "@/lib/providers/workspaces-provider";
 
 const mainTabs = [
   { name: "Today", href: "/dashboard", icon: LayoutDashboard },
@@ -48,19 +47,8 @@ export function BottomNav() {
   const pathname = usePathname();
   const [showWorkspaces, setShowWorkspaces] = useState(false);
   const [showMore, setShowMore] = useState(false);
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
-
-  const fetchWorkspaces = useCallback(async () => {
-    const { data } = await supabase
-      .from("workspaces")
-      .select("*")
-      .order("position", { ascending: true });
-    setWorkspaces(data || []);
-  }, []);
-
-  useEffect(() => {
-    fetchWorkspaces();
-  }, [fetchWorkspaces]);
+  // Shared with sidebar / pages via AppShell-level provider, no extra query.
+  const { workspaces } = useWorkspaces();
 
   // Close sheets when navigating
   useEffect(() => {

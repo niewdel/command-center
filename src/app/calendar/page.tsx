@@ -12,6 +12,7 @@ import { EventDetail } from "@/components/calendar/event-detail";
 import { CreateEventDialog } from "@/components/calendar/create-event-dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { triggerCalendarSync } from "@/lib/calendar-sync";
 import { CalendarDays, ChevronLeft, ChevronRight, LayoutList, Grid3X3, CalendarRange, Plus } from "lucide-react";
 
 type ViewMode = "day" | "week" | "month";
@@ -142,22 +143,19 @@ export default function CalendarPage() {
     return () => { supabase.removeChannel(channel); };
   }, [fetchData]);
 
-  // Auto-sync on load (deferred) + on tab focus
+  // Auto-sync on load (deferred) + on tab focus. Single-flight guard in
+  // triggerCalendarSync means dashboard + calendar in same session sync once.
   useEffect(() => {
-    const triggerSync = () => {
-      fetch("/api/integrations/calendar/sync-all", { method: "POST" }).catch(() => {});
-    };
-    // Defer initial sync to avoid blocking render
     let idleId: number | undefined;
     let timeout: ReturnType<typeof setTimeout> | undefined;
     if ("requestIdleCallback" in window) {
-      idleId = requestIdleCallback(() => triggerSync());
+      idleId = requestIdleCallback(() => triggerCalendarSync());
     } else {
-      timeout = setTimeout(triggerSync, 1000);
+      timeout = setTimeout(triggerCalendarSync, 1000);
     }
     // Re-sync when user returns to tab instead of polling
     const handleVisibility = () => {
-      if (document.visibilityState === "visible") triggerSync();
+      if (document.visibilityState === "visible") triggerCalendarSync();
     };
     document.addEventListener("visibilitychange", handleVisibility);
     return () => {

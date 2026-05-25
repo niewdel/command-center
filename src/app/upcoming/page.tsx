@@ -8,6 +8,7 @@ import { EditTaskDialog } from "@/components/tasks/edit-task-dialog";
 import { EventDetail } from "@/components/calendar/event-detail";
 import { cn, localDateString } from "@/lib/utils";
 import { PageLayout } from "@/components/layout/page-layout";
+import { useRealtime } from "@/lib/providers/realtime-provider";
 import { CalendarDays, Video, MapPin, Clock } from "lucide-react";
 
 function getDateStr(offset: number) {
@@ -134,20 +135,12 @@ export default function UpcomingPage() {
 
   useEffect(() => {
     fetchData();
-
-    const channel = supabase
-      .channel("upcoming-realtime")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "tasks" },
-        () => fetchData()
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, [fetchData]);
+
+  // Realtime hub: shared channel with dashboard. Eliminates the duplicate
+  // tasks subscription that used to be created every time the user
+  // navigated between Today and This Week.
+  useRealtime("tasks", fetchData);
 
   const workspaceMap = Object.fromEntries(
     workspaces.map((w) => [w.id, w])

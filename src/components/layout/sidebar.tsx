@@ -28,6 +28,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Workspace } from "@/types/database";
+import { useWorkspaces } from "@/lib/providers/workspaces-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -58,37 +59,21 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [quickAddOpen, setQuickAddOpen] = useState(false);
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  // Workspaces come from the AppShell-level WorkspacesProvider so we don't
+  // double-fetch with bottom-nav / dashboard. Refetch is wired for the
+  // edit dialog's onSaved callback.
+  const { workspaces, refetch: refetchWorkspaces } = useWorkspaces();
   const [showWorkspaceDialog, setShowWorkspaceDialog] = useState(false);
   const [editingWorkspace, setEditingWorkspace] = useState<Workspace | null>(null);
 
   // Computed after mount to avoid SSR/CSR hydration mismatch (server has no
-  // `navigator`, client does — would render different shortcut prefixes).
+  // `navigator`, client does, would render different shortcut prefixes).
   const [shortcutPrefix, setShortcutPrefix] = useState<string>("Ctrl+");
   useEffect(() => {
     if (typeof navigator !== "undefined" && /Mac/.test(navigator.userAgent)) {
       setShortcutPrefix("⌘");
     }
   }, []);
-
-  const fetchWorkspaces = useCallback(async () => {
-    const { data } = await supabase
-      .from("workspaces")
-      .select("*")
-      .order("position", { ascending: true });
-    setWorkspaces(data || []);
-  }, []);
-
-  useEffect(() => {
-    fetchWorkspaces();
-
-    const channel = supabase
-      .channel("workspaces-sidebar")
-      .on("postgres_changes", { event: "*", schema: "public", table: "workspaces" }, () => fetchWorkspaces())
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-  }, [fetchWorkspaces]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if ((e.metaKey || e.ctrlKey) && e.key === "n") {
@@ -253,7 +238,7 @@ export function Sidebar() {
           setShowWorkspaceDialog(false);
           setEditingWorkspace(null);
         }}
-        onSaved={fetchWorkspaces}
+        onSaved={refetchWorkspaces}
       />
     </>
   );
