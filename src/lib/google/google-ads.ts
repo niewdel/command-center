@@ -150,21 +150,42 @@ export async function fetchAdsMetrics(opts: {
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     // Three distinct failure classes, each implying a different operator
-    // action. Order matters: check the most-specific token-not-approved
-    // body marker BEFORE the generic 403 branch, since both return 403.
-    if (body.includes("DEVELOPER_TOKEN_NOT_APPROVED")) {
+    // action. Order matters: the most-specific markers go first.
+    //
+    //   DEVELOPER_TOKEN_NOT_APPROVED   token still in test mode
+    //   USER_PERMISSION_DENIED         normally an unlinked account, but
+    //                                  also the API's catch-all when the
+    //                                  token is unapproved and the caller
+    //                                  is querying a sub-account. Treat
+    //                                  as pending approval: once Basic
+    //                                  Access lands this resolves on its
+    //                                  own. If it doesn't, the operator
+    //                                  needs to re-check the MCC link.
+    //   invalid_scope                  OAuth scope actually missing,
+    //                                  legit reconnect.
+    if (
+      body.includes("DEVELOPER_TOKEN_NOT_APPROVED") ||
+      body.includes("USER_PERMISSION_DENIED")
+    ) {
       throw new AdsPendingApprovalError(
-        "Google Ads developer token is still in test mode. Basic Access approval pending from Google.",
+        "Google Ads API access is pending. Either the developer token is in test mode, or the client account is not yet linked to the operator MCC.",
       );
     }
     if (
-      res.status === 401 ||
-      res.status === 403 ||
-      body.includes("PERMISSION_DENIED") ||
-      body.includes("invalid_scope")
+      body.includes("invalid_scope") ||
+      res.status === 401
     ) {
       throw new AdsPermissionError(
         `Google Ads API rejected the request (${res.status}). The operator's Google connection likely needs the 'adwords' scope. Reconnect Google to fix.`,
+      );
+    }
+    if (res.status === 403 || body.includes("PERMISSION_DENIED")) {
+      // Generic 403 we couldn't classify: surface as pending so the
+      // operator doesn't get a confusing "Reconnect" prompt when the
+      // real cause might be unrelated to auth. Real auth issues come
+      // back as 401 / invalid_scope.
+      throw new AdsPendingApprovalError(
+        `Google Ads API rejected (${res.status}). Likely awaiting Basic Access approval.`,
       );
     }
     throw new Error(`Google Ads ${res.status}: ${body.slice(0, 400)}`);
