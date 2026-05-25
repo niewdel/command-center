@@ -1,5 +1,3 @@
-"use client";
-
 import { cn } from "@/lib/utils";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { SkeletonPage } from "@/components/ui/skeleton";
