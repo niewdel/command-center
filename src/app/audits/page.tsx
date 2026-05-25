@@ -17,7 +17,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/lib/supabase";
+import { useRealtime } from "@/lib/providers/realtime-provider";
 import { cn } from "@/lib/utils";
 
 type Audit = {
@@ -64,18 +64,10 @@ export default function AuditsPage() {
 
   useEffect(() => {
     fetchAudits();
-    const channel = supabase
-      .channel("audits-realtime")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "audits" },
-        () => fetchAudits()
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, [fetchAudits]);
+
+  // Shared realtime hub: reuses the "audits" channel across pages.
+  useRealtime("audits", fetchAudits);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

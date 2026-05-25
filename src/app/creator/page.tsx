@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { useRealtime } from "@/lib/providers/realtime-provider";
 import { CreatorIdea, CreatorHook, ContentDigest } from "@/types/database";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -91,10 +92,11 @@ export default function CreatorHubPage() {
 
   useEffect(() => {
     fetchAll();
-    const ch1 = supabase.channel("creator-ideas").on("postgres_changes", { event: "*", schema: "public", table: "creator_ideas" }, () => fetchAll()).subscribe();
-    const ch2 = supabase.channel("creator-hooks").on("postgres_changes", { event: "*", schema: "public", table: "creator_hooks" }, () => fetchAll()).subscribe();
-    return () => { supabase.removeChannel(ch1); supabase.removeChannel(ch2); };
   }, [fetchAll]);
+
+  // Shared realtime hub: one channel per table, reused across pages.
+  useRealtime("creator_ideas", fetchAll);
+  useRealtime("creator_hooks", fetchAll);
 
   const filteredIdeas = ideas.filter((i) => {
     if (filterStatus !== "all" && i.status !== filterStatus) return false;

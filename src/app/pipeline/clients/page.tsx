@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Mail, Phone, ExternalLink, UserPlus, Users as UsersIcon, Pencil } from "lucide-react";
 import { PageLayout } from "@/components/layout/page-layout";
 import { PipelineTabs } from "@/components/pipeline/pipeline-tabs";
-import { supabase } from "@/lib/supabase";
+import { useRealtime } from "@/lib/providers/realtime-provider";
 import { NewContactDialog } from "@/components/pipeline/new-contact-dialog";
 import { STAGE_LABEL, STAGE_COLOR, type DealStage, type CrmContact } from "@/types/pipeline";
 
@@ -31,14 +31,11 @@ export default function ClientsPage() {
 
   useEffect(() => {
     fetchContacts();
-    const ch = supabase
-      .channel("crm-contacts-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "crm_contacts" }, () => fetchContacts())
-      .subscribe();
-    return () => {
-      supabase.removeChannel(ch);
-    };
+    
   }, [fetchContacts]);
+
+  // Shared realtime hub: reuses the 'crm_contacts' channel across pages.
+  useRealtime("crm_contacts", fetchContacts);
 
   const filtered = search.trim()
     ? contacts.filter((c) => {

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Plus, KanbanSquare, Search } from "lucide-react";
 import { PageLayout } from "@/components/layout/page-layout";
 import { PipelineTabs } from "@/components/pipeline/pipeline-tabs";
-import { supabase } from "@/lib/supabase";
+import { useRealtime } from "@/lib/providers/realtime-provider";
 import { DEAL_STAGES, STAGE_LABEL, STAGE_COLOR, ACTIVE_STAGES, type DealStage, type DealWithLinks } from "@/types/pipeline";
 import { NewDealDialog } from "@/components/pipeline/new-deal-dialog";
 
@@ -32,14 +32,9 @@ export default function PipelinePage() {
 
   useEffect(() => {
     fetchDeals();
-    const ch = supabase
-      .channel("pipeline-deals-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "crm_deals" }, () => fetchDeals())
-      .subscribe();
-    return () => {
-      supabase.removeChannel(ch);
-    };
   }, [fetchDeals]);
+
+  useRealtime("crm_deals", fetchDeals);
 
   const handleMoveStage = useCallback(async (dealId: string, newStage: DealStage) => {
     // Optimistic

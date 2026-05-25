@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { PageLayout } from "@/components/layout/page-layout";
 import { LeadsTabs } from "@/components/leads/leads-tabs";
-import { supabase } from "@/lib/supabase";
+import { useRealtime } from "@/lib/providers/realtime-provider";
 import type { Prospect } from "@/app/api/leads/prospects/route";
 
 type Status = Prospect["status"];
@@ -75,14 +75,11 @@ export default function ProspectsPage() {
 
   useEffect(() => {
     fetchProspects();
-    const ch = supabase
-      .channel("prospects-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "contacts" }, () => fetchProspects())
-      .subscribe();
-    return () => {
-      supabase.removeChannel(ch);
-    };
+    
   }, [fetchProspects]);
+
+  // Shared realtime hub: reuses the 'contacts' channel across pages.
+  useRealtime("contacts", fetchProspects);
 
   const filtered = filter === "all" ? prospects : prospects.filter((p) => p.status === filter);
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
+import { useRealtime } from "@/lib/providers/realtime-provider";
 import { CalendarEvent, CalendarConnection, Task, RoutineTemplate, RoutineBlock } from "@/types/database";
 import { getRoutineForDate } from "@/lib/routines";
 import { PageLayout } from "@/components/layout/page-layout";
@@ -134,14 +135,10 @@ export default function CalendarPage() {
   useEffect(() => {
     setLoading(true);
     fetchData();
-
-    const channel = supabase
-      .channel("calendar-events")
-      .on("postgres_changes", { event: "*", schema: "public", table: "calendar_events" }, () => fetchData())
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
   }, [fetchData]);
+
+  // Shared realtime hub: one calendar_events channel reused across pages.
+  useRealtime("calendar_events", fetchData);
 
   // Auto-sync on load (deferred) + on tab focus. Single-flight guard in
   // triggerCalendarSync means dashboard + calendar in same session sync once.

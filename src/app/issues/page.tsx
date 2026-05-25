@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { supabase, getUserId } from "@/lib/supabase";
+import { useRealtime } from "@/lib/providers/realtime-provider";
 import { Issue, Workspace, Project, Client, Goal } from "@/types/database";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -124,16 +125,12 @@ export default function IssuesPage() {
 
   useEffect(() => {
     fetchData();
-
-    const channel = supabase
-      .channel("issues-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "issues" }, () => fetchData())
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, [fetchData]);
+
+  // Shared realtime hub: a single "issues" channel is reused across any
+  // page that subscribes, instead of being torn down and recreated on
+  // every nav.
+  useRealtime("issues", fetchData);
 
   const handleDelete = async (id: string) => {
     await supabase.from("issues").delete().eq("id", id);

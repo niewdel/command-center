@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { PageLayout } from "@/components/layout/page-layout";
 import { LeadsTabs } from "@/components/leads/leads-tabs";
-import { supabase } from "@/lib/supabase";
+import { useRealtime } from "@/lib/providers/realtime-provider";
 import type { LeadStats } from "@/types/leads";
 
 const mono = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
@@ -83,14 +83,10 @@ function LeadsStatsContent() {
 
   useEffect(() => {
     fetchAll();
-    const channel = supabase
-      .channel("lead-jobs-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "lead_jobs" }, () => fetchAll())
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, [fetchAll]);
+
+  // Shared realtime hub: one lead_jobs channel reused across pages.
+  useRealtime("lead_jobs", fetchAll);
 
   const activeJobs = jobs.filter((j) => ACTIVE_STATUSES.includes(j.status));
   const recentJobs = jobs.filter((j) => !ACTIVE_STATUSES.includes(j.status));

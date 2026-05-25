@@ -16,7 +16,7 @@ import { PageLayout } from "@/components/layout/page-layout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/lib/supabase";
+import { useRealtime } from "@/lib/providers/realtime-provider";
 import { cn } from "@/lib/utils";
 
 type SeoConfig = {
@@ -113,24 +113,11 @@ export default function SeoOverviewPage() {
 
   useEffect(() => {
     fetchClients();
-    // Realtime: refetch when any seo_jobs or seo_checks row changes
-    const ch = supabase
-      .channel("seo-overview")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "seo_jobs" },
-        () => fetchClients()
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "seo_checks" },
-        () => fetchClients()
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(ch);
-    };
   }, [fetchClients]);
+
+  // Shared realtime hub: refetch when any seo_jobs or seo_checks row changes.
+  useRealtime("seo_jobs", fetchClients);
+  useRealtime("seo_checks", fetchClients);
 
   const handleRun = async (clientId: string) => {
     setRunning((s) => ({ ...s, [clientId]: true }));

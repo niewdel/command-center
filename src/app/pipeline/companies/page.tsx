@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Building, ExternalLink, Plus, Pencil } from "lucide-react";
 import { PageLayout } from "@/components/layout/page-layout";
 import { PipelineTabs } from "@/components/pipeline/pipeline-tabs";
-import { supabase } from "@/lib/supabase";
+import { useRealtime } from "@/lib/providers/realtime-provider";
 import { NewCompanyDialog } from "@/components/pipeline/new-company-dialog";
 import { STAGE_COLOR, type DealStage, type CrmCompany } from "@/types/pipeline";
 
@@ -36,14 +36,11 @@ export default function CompaniesPage() {
 
   useEffect(() => {
     fetchCompanies();
-    const ch = supabase
-      .channel("crm-companies-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "crm_companies" }, () => fetchCompanies())
-      .subscribe();
-    return () => {
-      supabase.removeChannel(ch);
-    };
+    
   }, [fetchCompanies]);
+
+  // Shared realtime hub: reuses the 'crm_companies' channel across pages.
+  useRealtime("crm_companies", fetchCompanies);
 
   const filtered = search.trim()
     ? companies.filter((c) => {

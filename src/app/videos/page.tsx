@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { supabase } from "@/lib/supabase";
+import { useRealtime } from "@/lib/providers/realtime-provider";
 import { ContentDigest } from "@/types/database";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -125,9 +126,11 @@ function VideosContent() {
 
   useEffect(() => {
     fetchDigests();
-    const channel = supabase.channel("digests-realtime").on("postgres_changes", { event: "*", schema: "public", table: "content_digests" }, () => fetchDigests()).subscribe();
-    return () => { supabase.removeChannel(channel); };
+    
   }, [fetchDigests]);
+
+  // Shared realtime hub: reuses the 'content_digests' channel across pages.
+  useRealtime("content_digests", fetchDigests);
 
   const inViewMode = digests.filter((d) => (d.kind || "digest") === viewMode);
   const counts = { digest: digests.filter((d) => (d.kind || "digest") === "digest").length, inspiration: digests.filter((d) => d.kind === "inspiration").length };
