@@ -143,7 +143,7 @@ export default function CompaniesPage() {
                     <Pencil
                       size={12}
                       className="opacity-0 group-hover:opacity-60 transition-opacity mt-0.5"
-                      style={{ color: "rgba(245,245,245,0.7)" }}
+                      style={{ color: "var(--ink-soft)" }}
                       aria-hidden
                     />
                   </div>

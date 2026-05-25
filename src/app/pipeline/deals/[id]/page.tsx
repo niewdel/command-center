@@ -698,7 +698,7 @@ export default function DealDetailPage() {
                           </button>
                         </div>
                       </div>
-                      <div className="mt-1.5 space-y-0.5 text-[11px]" style={{ color: "rgba(245,245,245,0.55)" }}>
+                      <div className="mt-1.5 space-y-0.5 text-[11px]" style={{ color: "var(--ink-soft)" }}>
                         {c.email && (
                           <a href={`mailto:${c.email}`} onClick={(e) => e.stopPropagation()} className="flex items-center gap-1.5 hover:text-foreground">
                             <Mail size={10} style={{ color: "var(--rust)" }} /> {c.email}

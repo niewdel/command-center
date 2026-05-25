@@ -468,7 +468,7 @@ function ProspectCard({
                     </p>
                     <pre
                       className="text-xs whitespace-pre-wrap"
-                      style={{ color: "rgba(245,245,245,0.65)", lineHeight: 1.7, fontFamily: "inherit" }}
+                      style={{ color: "var(--ink-soft)", lineHeight: 1.7, fontFamily: "inherit" }}
                     >
                       {p.emails[activeEmail]?.body || ""}
                     </pre>

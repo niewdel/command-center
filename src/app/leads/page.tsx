@@ -275,7 +275,7 @@ function LeadsStatsContent() {
                           style={{ backgroundColor: STATUS_DOT[status] ?? "var(--ink-faint)" }}
                           aria-hidden
                         />
-                        <span className="capitalize" style={{ color: "rgba(245,245,245,0.75)" }}>
+                        <span className="capitalize" style={{ color: "var(--ink-soft)" }}>
                           {status.replace(/_/g, " ")}
                         </span>
                       </div>
@@ -309,7 +309,7 @@ function LeadsStatsContent() {
                 <ul className="space-y-2">
                   {Object.entries(stats.events).map(([type, count]) => (
                     <li key={type} className="flex items-center justify-between text-sm">
-                      <span className="capitalize" style={{ color: "rgba(245,245,245,0.75)" }}>
+                      <span className="capitalize" style={{ color: "var(--ink-soft)" }}>
                         {type.replace(/_/g, " ")}
                       </span>
                       <span

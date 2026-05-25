@@ -110,7 +110,7 @@ export default function ClientsPage() {
                       )}
                     </div>
                     {c.company && (
-                      <p className="text-[11px] mt-0.5 truncate" style={{ color: "rgba(245,245,245,0.55)" }}>
+                      <p className="text-[11px] mt-0.5 truncate" style={{ color: "var(--ink-soft)" }}>
                         {c.company.name}
                         {c.company.industry && <span style={{ color: "var(--ink-faint)" }}> · {c.company.industry}</span>}
                       </p>
@@ -155,7 +155,7 @@ export default function ClientsPage() {
                     <Pencil
                       size={12}
                       className="opacity-0 group-hover:opacity-60 transition-opacity mt-0.5"
-                      style={{ color: "rgba(245,245,245,0.7)" }}
+                      style={{ color: "var(--ink-soft)" }}
                       aria-hidden
                     />
                   </div>

@@ -1,11 +1,11 @@
 // src/components/seo/report/delta.tsx
 //
-// Editorial direction (v2): client-facing reports show progress, not
-// regression. When a metric moves the WRONG way we render a neutral
-// placeholder ("—") rather than a red down-arrow. Niewdel is responsible
-// for these numbers and the report shouldn't read as bad news.
+// Editorial direction (v2.1): show all deltas, but in warm semantic
+// colors. Improvement = sage (chart-2), regression = destructive,
+// no signal = muted. No emerald or neon red. Brand-consistent with
+// the email renderer in src/lib/seo/monthly-report-email.ts.
 //
-// `direction` controls whether higher or lower is the improvement.
+// `direction` controls whether higher or lower counts as improvement.
 
 interface DeltaProps {
   value: number | null;
@@ -29,17 +29,8 @@ export function Delta({
   }
   const isImprovement =
     direction === "higher-better" ? value > 0 : value < 0;
-
-  // Suppress regression. Render as if no signal.
-  if (!isImprovement) {
-    return (
-      <span className={`text-muted-foreground tabular-nums text-sm ${className}`}>
-        —
-      </span>
-    );
-  }
-
-  const arrow = "↑";
+  const color = isImprovement ? "text-[var(--chart-2)]" : "text-destructive";
+  const arrow = value > 0 ? "↑" : "↓";
   const abs = Math.abs(value);
   const formatted =
     format === "percent"
@@ -48,7 +39,7 @@ export function Delta({
         ? abs.toString()
         : abs.toLocaleString();
   return (
-    <span className={`text-[var(--chart-2)] tabular-nums text-sm font-data ${className}`}>
+    <span className={`${color} tabular-nums text-sm font-data ${className}`}>
       {arrow} {formatted}
     </span>
   );
