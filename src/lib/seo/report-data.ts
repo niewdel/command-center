@@ -374,12 +374,19 @@ export async function getReportData(
       period_end: trafficCur.period_end,
     };
 
-    const totalPageSessions = (trafficCur.top_pages ?? []).reduce(
-      (a, p) => a + p.sessions,
-      0
+    // Clean the rows before display:
+    //   1. Drop "(not set)" — GA noise from bots, blockers, or SPA routes
+    //      that fire pageviews before the URL resolves. Always 1-5% of
+    //      hits and never useful to surface.
+    //   2. Rename "/" to "Home" so clients see a label, not a slash.
+    //   3. Recalculate pct_of_total against the cleaned total so the
+    //      column adds up after the (not set) row is gone.
+    const cleaned = (trafficCur.top_pages ?? []).filter(
+      (p) => p.path !== "(not set)" && p.path?.trim() !== "",
     );
-    top_pages = (trafficCur.top_pages ?? []).slice(0, 5).map((p) => ({
-      path: p.path,
+    const totalPageSessions = cleaned.reduce((a, p) => a + p.sessions, 0);
+    top_pages = cleaned.slice(0, 5).map((p) => ({
+      path: p.path === "/" ? "Home" : p.path,
       sessions: p.sessions,
       pct_of_total:
         totalPageSessions > 0
