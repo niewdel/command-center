@@ -142,7 +142,7 @@ export async function fetchAdsMetrics(opts: {
         "login-customer-id": loginCustomerId,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ query, pageSize: 1000 }),
+      body: JSON.stringify({ query }),
       signal: AbortSignal.timeout(20_000),
     },
   );
