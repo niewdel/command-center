@@ -12,7 +12,6 @@ import {
   getWorkspaceOwner,
   insertTrafficSnapshot,
 } from "./db";
-import { sendReportEmail } from "./send-report";
 import { fetchTrafficSnapshot } from "@/lib/google/ga4";
 import { getConnection } from "@/lib/google/oauth";
 import {
@@ -319,62 +318,15 @@ export async function runWeeklyCheck(jobId: string): Promise<void> {
     }
   }
 
-  // ------- Stage 7: Weekly digest email -------
-  // Auto-task creation was deliberately removed — Justin's workflow is to
-  // copy the fix-plan markdown into Claude Code in the client's repo. The
-  // resolveMissingIssues call above already auto-marks issues as 'fixed'
-  // when their fingerprints don't appear in the next run, so Claude's work
-  // gets credited automatically without any manual button-clicking.
-  const dryRun = client.seo_config.dry_run === true;
-  let digestSent = false;
-  let digestError: string | null = null;
-
-  // Weekly digest email — fires only when not dry_run, contact_email configured,
-  // Resend configured, and there's something worth reporting (new criticals/highs
-  // OR notable score regression).
-  const contactEmail = client.seo_config.contact_email;
-  const hasRegression =
-    (diff.score_deltas?.technical ?? 0) <= -5 ||
-    (diff.score_deltas?.onpage ?? 0) <= -5 ||
-    (diff.score_deltas?.lighthouse_mobile ?? 0) <= -5;
-  const shouldDigest =
-    !dryRun &&
-    contactEmail &&
-    (newSevereCount > 0 || hasRegression);
-
-  if (shouldDigest && contactEmail) {
-    const dashboardBase =
-      process.env.NEXT_PUBLIC_APP_URL ?? process.env.APP_URL ?? "";
-    const link = dashboardBase
-      ? `${dashboardBase.replace(/\/$/, "")}/seo/clients/${job.client_id}`
-      : null;
-    const result = await sendReportEmail({
-      workspace_id: job.workspace_id,
-      to: contactEmail,
-      subject: `${client.name}: ${newSevereCount} new SEO issue${newSevereCount === 1 ? "" : "s"}`,
-      html: buildDigestHtml({
-        clientName: client.name,
-        domain,
-        newCount: newSevereCount,
-        resolvedCount,
-        scores,
-        deltas: diff.score_deltas ?? {},
-        topIssues,
-        dashboardUrl: link,
-        contactName: client.seo_config.contact_name ?? null,
-      }),
-      from_name: "Niewdel",
-    });
-    if (result.ok) {
-      digestSent = true;
-      log(`Sent weekly digest to ${contactEmail} via ${result.via}`);
-    } else {
-      digestError = result.error ?? "send failed";
-      log(`Digest email failed (${result.via}): ${digestError}`);
-    }
-  }
-
   // ------- Done -------
+  // Weekly runs never send email. Clients only receive the monthly report,
+  // which aggregates the last ~4 weekly check runs via getReportData("30d").
+  // Auto-task creation was also deliberately removed — Justin's workflow is
+  // to copy the fix-plan markdown into Claude Code in the client's repo. The
+  // resolveMissingIssues call above auto-marks issues as 'fixed' when their
+  // fingerprints don't appear in the next run, so Claude's work gets credited
+  // automatically without any manual button-clicking.
+  const dryRun = client.seo_config.dry_run === true;
   const elapsedMs = Date.now() - t0;
   await updateSeoJob(jobId, {
     status: "complete",
@@ -386,8 +338,6 @@ export async function runWeeklyCheck(jobId: string): Promise<void> {
       psi_calls: psiMobile.length + psiDesktop.length,
       issues_total: drafts.length,
       issues_new: newCount,
-      digest_sent: digestSent,
-      digest_error: digestError,
       dry_run: dryRun,
       traffic_captured: trafficCaptured,
       traffic_error: trafficError,
@@ -402,131 +352,3 @@ export async function runWeeklyCheck(jobId: string): Promise<void> {
   );
 }
 
-// -----------------------------------------------------------------------------
-// Weekly digest email body
-// -----------------------------------------------------------------------------
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-function severityColor(sev: string): string {
-  switch (sev) {
-    case "critical":
-      return "#EF4444";
-    case "high":
-      return "#F59E0B";
-    default:
-      return "#9CA3AF";
-  }
-}
-
-function deltaSpan(d: number | null | undefined): string {
-  if (d == null || d === 0) return "";
-  const sign = d > 0 ? "+" : "";
-  const color = d > 0 ? "#10B981" : "#EF4444";
-  return ` <span style="color:${color};font-size:11px;">(${sign}${d})</span>`;
-}
-
-interface DigestArgs {
-  clientName: string;
-  domain: string;
-  newCount: number;
-  resolvedCount: number;
-  scores: {
-    technical: number;
-    onpage: number;
-    lighthouse_mobile: number | null;
-    lighthouse_desktop: number | null;
-  };
-  deltas: {
-    technical?: number | null;
-    onpage?: number | null;
-    lighthouse_mobile?: number | null;
-    lighthouse_desktop?: number | null;
-  };
-  topIssues: Array<{
-    severity: string;
-    title: string;
-    page_url: string | null;
-  }>;
-  dashboardUrl: string | null;
-  contactName: string | null;
-}
-
-function buildDigestHtml(a: DigestArgs): string {
-  const issuesHtml = a.topIssues
-    .map(
-      (i) => `
-      <tr>
-        <td style="padding:6px 0;vertical-align:top;width:80px;">
-          <span style="display:inline-block;padding:1px 6px;font-size:10px;text-transform:uppercase;background:${severityColor(i.severity)}22;color:${severityColor(i.severity)};border-radius:3px;">${i.severity}</span>
-        </td>
-        <td style="padding:6px 0;font-size:13px;">
-          ${escapeHtml(i.title)}
-          ${i.page_url ? `<div style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#6B7280;">${escapeHtml(i.page_url)}</div>` : ""}
-        </td>
-      </tr>`
-    )
-    .join("");
-
-  return `<!DOCTYPE html>
-<html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Inter',system-ui,sans-serif;background:#F9FAFB;margin:0;padding:24px;">
-  <div style="max-width:560px;margin:0 auto;background:white;border-radius:12px;padding:28px;border:1px solid #E5E7EB;">
-    <p style="margin:0 0 6px 0;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:#6B7280;">Weekly SEO digest</p>
-    <h1 style="margin:0 0 4px 0;font-size:22px;color:#111827;">${escapeHtml(a.clientName)}</h1>
-    <p style="margin:0 0 20px 0;color:#6B7280;font-size:13px;">${escapeHtml(a.domain)}</p>
-    <p style="margin:0 0 18px 0;font-size:14px;color:#111827;">
-      Hi${a.contactName ? ` ${escapeHtml(a.contactName)}` : ""}, this week's check found
-      <strong>${a.newCount}</strong> new ${a.newCount === 1 ? "issue" : "issues"} of high-or-critical severity${a.resolvedCount > 0 ? `, and resolved <strong>${a.resolvedCount}</strong>` : ""}.
-    </p>
-
-    <table style="width:100%;border-collapse:collapse;margin-bottom:18px;">
-      <tr>
-        <td style="padding:10px;background:#F3F4F6;border-radius:6px;text-align:center;width:25%;">
-          <div style="font-size:10px;color:#6B7280;text-transform:uppercase;letter-spacing:0.06em;">Technical</div>
-          <div style="font-size:22px;font-weight:600;color:#111827;">${a.scores.technical}${deltaSpan(a.deltas.technical)}</div>
-        </td>
-        <td style="width:6px;"></td>
-        <td style="padding:10px;background:#F3F4F6;border-radius:6px;text-align:center;width:25%;">
-          <div style="font-size:10px;color:#6B7280;text-transform:uppercase;letter-spacing:0.06em;">On-page</div>
-          <div style="font-size:22px;font-weight:600;color:#111827;">${a.scores.onpage}${deltaSpan(a.deltas.onpage)}</div>
-        </td>
-        <td style="width:6px;"></td>
-        <td style="padding:10px;background:#F3F4F6;border-radius:6px;text-align:center;width:25%;">
-          <div style="font-size:10px;color:#6B7280;text-transform:uppercase;letter-spacing:0.06em;">Mobile</div>
-          <div style="font-size:22px;font-weight:600;color:#111827;">${a.scores.lighthouse_mobile ?? "n/a"}${deltaSpan(a.deltas.lighthouse_mobile)}</div>
-        </td>
-        <td style="width:6px;"></td>
-        <td style="padding:10px;background:#F3F4F6;border-radius:6px;text-align:center;width:25%;">
-          <div style="font-size:10px;color:#6B7280;text-transform:uppercase;letter-spacing:0.06em;">Desktop</div>
-          <div style="font-size:22px;font-weight:600;color:#111827;">${a.scores.lighthouse_desktop ?? "n/a"}${deltaSpan(a.deltas.lighthouse_desktop)}</div>
-        </td>
-      </tr>
-    </table>
-
-    ${
-      a.topIssues.length > 0
-        ? `<h2 style="margin:0 0 8px 0;font-size:13px;color:#111827;text-transform:uppercase;letter-spacing:0.06em;">Top issues</h2>
-       <table style="width:100%;border-collapse:collapse;border-top:1px solid #E5E7EB;">${issuesHtml}</table>`
-        : ""
-    }
-
-    ${
-      a.dashboardUrl
-        ? `<div style="margin-top:24px;text-align:center;">
-        <a href="${a.dashboardUrl}" style="display:inline-block;padding:10px 20px;background:#111827;color:white;text-decoration:none;border-radius:6px;font-size:13px;">View full report &rarr;</a>
-      </div>`
-        : ""
-    }
-
-    <p style="margin:24px 0 0 0;padding-top:16px;border-top:1px solid #E5E7EB;font-size:11px;color:#9CA3AF;text-align:center;">
-      Sent by Command Center SEO Agent
-    </p>
-  </div>
-</body></html>`;
-}
