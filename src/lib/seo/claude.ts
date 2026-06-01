@@ -137,7 +137,9 @@ End with a single short recommendation or affirmation framed as something Niewde
 
 CRITICAL CONTENT RULE: Never tell the client to "talk to your developer", "reach out to your dev team", "have your engineer fix X", "ask IT to update Y", "coordinate with your tech team", or any phrasing that implies a third party will do the work. Every technical recommendation must read as something Niewdel is owning. This rule has zero exceptions.
 
-CRITICAL FORMATTING RULE: Never use em dashes or en dashes anywhere in your output. Use periods, commas, colons, semicolons, parentheses, or restructured sentences instead. This rule has zero exceptions.`;
+CRITICAL FORMATTING RULE: Never use em dashes or en dashes anywhere in your output. Use periods, commas, colons, semicolons, parentheses, or restructured sentences instead. This rule has zero exceptions.
+
+CRITICAL OPENING RULE: Do NOT start with a greeting. No "Hi Kyle,", "Hey Kyle,", "Hello,", or any salutation. The email template already renders "Hi {name}," above your prose, so a greeting from you produces a duplicate. Start directly with the period summary sentence (e.g. "May was a steady month for hdgrading.com..."). This rule has zero exceptions.`;
 
 interface EmailSummaryInput {
   domain: string;
@@ -234,5 +236,15 @@ export async function generateEmailSummary(
 
   const textBlock = response.content.find((b) => b.type === "text");
   const raw = textBlock && "text" in textBlock ? textBlock.text.trim() : "";
-  return stripDashes(raw);
+  return stripDashes(stripLeadingGreeting(raw));
+}
+
+// Defensive: the email template renders "Hi {name}," above this prose, so any
+// greeting Claude emits creates a visible duplicate (see kharrison@hdgrading
+// May 2026 send). The system prompt forbids it; this strips it if it slips
+// through anyway.
+function stripLeadingGreeting(s: string): string {
+  return s
+    .replace(/^\s*(hi|hey|hello)(\s+[^,.\n]+)?[,.]?\s+/i, "")
+    .trimStart();
 }
