@@ -79,7 +79,7 @@ console.log(`  job ${job.id}\n`);
 
 // 3. Invoke runMonthlyReport with overrideEmail
 process.env.APP_URL ??= "https://app.niewdel.com";
-const { runMonthlyReport } = await import("../src/lib/seo/monthly-report.ts");
+const { runMonthlyReport } = await import("../src/lib/seo/monthly-report");
 await runMonthlyReport(job.id, { overrideEmail: recipient });
 
 // 4. Print final job state
