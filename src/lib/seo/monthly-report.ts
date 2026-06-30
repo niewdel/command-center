@@ -172,8 +172,8 @@ export async function runMonthlyReport(
     ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
   <tr>
     <td style="padding:32px 32px 0 32px;">
-      <p style="${FONT}font-size:14px;color:#0f172a;margin:0 0 12px 0;">${greeting}</p>
-      <p style="${FONT}font-size:14px;color:#334155;line-height:1.6;margin:0;">${summaryProse.replace(/\n\n+/g, `</p><p style="${FONT}font-size:14px;color:#334155;line-height:1.6;margin:12px 0 0 0;">`).replace(/\n/g, "<br/>")}</p>
+      <p style="${FONT}font-size:14px;color:#F5F5F5;margin:0 0 12px 0;">${greeting}</p>
+      <p style="${FONT}font-size:14px;color:#C7CCD1;line-height:1.6;margin:0;">${summaryProse.replace(/\n\n+/g, `</p><p style="${FONT}font-size:14px;color:#C7CCD1;line-height:1.6;margin:12px 0 0 0;">`).replace(/\n/g, "<br/>")}</p>
     </td>
   </tr>
 </table>`

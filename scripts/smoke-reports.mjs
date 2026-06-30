@@ -12,7 +12,9 @@ import { generateFixPlanHtml } from "../src/lib/audit/report-fix-html.ts";
 import { renderMonthlyReportEmail } from "../src/lib/seo/monthly-report-email.ts";
 import { sendEmail } from "../src/lib/email/resend.ts";
 
+const FROM = "noreply@niewdel.com";
 const TO = "niewdel@gmail.com";
+const INTERNAL_BCC = ["info@niewdel.com", "sales@niewdel.com"];
 
 // ── Audit stub for niewdel.com ─────────────────────────────────────────────
 
@@ -366,6 +368,26 @@ const seoDataMixed = {
     ],
   },
   history: [],
+  ads: {
+    state: "ok",
+    metrics: {
+      period_start: "Jun 1",
+      period_end: "Jun 30",
+      clicks: 412,
+      impressions: 18230,
+      cost: 1840,
+      ctr: 0.0226,
+      avg_cpc: 4.47,
+      conversions: 23.0,
+      cost_per_conversion: 80,
+      top_campaigns: [
+        { name: "Search · Automation Services", cost: 980, clicks: 214, conversions: 14 },
+        { name: "Search · AI Consulting NC", cost: 540, clicks: 121, conversions: 6 },
+        { name: "Performance Max · Brand", cost: 320, clicks: 77, conversions: 3 },
+      ],
+    },
+  },
+  leads: null,
   ai_summary:
     "Search traffic climbed about 28 percent this period, mostly from local searches finding the services page. The site is loading faster on mobile after we compressed the hero images. Next month we'll focus on getting the homepage ranking for two more high-intent phrases.",
 };
@@ -400,6 +422,8 @@ const seoDataHeadsDown = {
     ],
   },
   issues: { open_top: [], resolved: [] },
+  ads: { state: "not_configured", metrics: null },
+  leads: null,
   ai_summary:
     "This was a quieter month while search algorithms shifted. We've laid groundwork on three pages that will surface in metrics over the next few weeks.",
 };
@@ -409,22 +433,22 @@ const seoDataHeadsDown = {
 async function main() {
   const reports = [
     {
-      subject: "[Smoke] Audit Report, Niewdel",
+      subject: "[Test · v3 brand] Audit Report, Niewdel",
       html: generateHtmlReport(auditResult),
       label: "audit",
     },
     {
-      subject: "[Smoke] Fix Plan, Niewdel",
+      subject: "[Test · v3 brand] Fix Plan, Niewdel",
       html: generateFixPlanHtml(fixPlan),
       label: "fix plan",
     },
     {
-      subject: "[Smoke] Monthly SEO, Niewdel (wins variant)",
+      subject: "[Test · v3 brand] Monthly SEO, Niewdel (wins variant)",
       html: renderMonthlyReportEmail(seoDataMixed),
       label: "monthly SEO (wins)",
     },
     {
-      subject: "[Smoke] Monthly SEO, Niewdel (heads-down variant)",
+      subject: "[Test · v3 brand] Monthly SEO, Niewdel (heads-down variant)",
       html: renderMonthlyReportEmail(seoDataHeadsDown),
       label: "monthly SEO (heads-down)",
     },
@@ -432,8 +456,13 @@ async function main() {
 
   for (const r of reports) {
     try {
+      // Mirrors the production report policy: from noreply@niewdel.com,
+      // info@ + sales@ always BCC'd. The niewdel.com domain is verified in
+      // Resend, so this delivers from noreply@ to any recipient.
       const result = await sendEmail({
+        from: FROM,
         to: TO,
+        bcc: INTERNAL_BCC,
         subject: r.subject,
         html: r.html,
       });

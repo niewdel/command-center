@@ -27,6 +27,19 @@ interface SendReportArgs {
   bcc_owner?: boolean;
 }
 
+// Report email policy (no exceptions):
+//   - From is ALWAYS noreply@niewdel.com, regardless of send path.
+//   - info@ and sales@ are ALWAYS copied (BCC, so clients never see them).
+//   - Reply-To points at a monitored mailbox so "just reply" still works
+//     even though the From is an unmonitored noreply address.
+// Delivery FROM noreply@niewdel.com requires either (a) noreply@niewdel.com
+// configured as a Gmail "send-as" alias on the connected Workspace account,
+// or (b) a verified niewdel.com domain in Resend. Without one of those the
+// send will fail rather than silently fall back to a personal address.
+const REPORT_FROM = "noreply@niewdel.com";
+const REPORT_REPLY_TO = "info@niewdel.com";
+const INTERNAL_RECIPIENTS = ["info@niewdel.com", "sales@niewdel.com"];
+
 interface SendResult {
   ok: boolean;
   via: "gmail" | "resend" | "none";
@@ -49,27 +62,63 @@ export async function sendReportEmail(args: SendReportArgs): Promise<SendResult>
     }
   }
 
-  // Build the BCC list: owner email, but only if it's not already the To
-  // (e.g. when the operator IS the client's contact_email — Niewdel) and
-  // the caller hasn't opted out via bcc_owner: false.
+  // Build the BCC list:
+  //   - info@ and sales@ are ALWAYS copied on outbound reports (no exceptions).
+  //   - the workspace owner is copied unless they're the To address
+  //     (e.g. when the operator IS the client's contact_email — Niewdel)
+  //     or the caller opted out via bcc_owner: false.
+  // Skip any address that equals the To so we never double-send.
+  const toLower = args.to.toLowerCase();
   const bccOwner = args.bcc_owner !== false;
-  const bcc =
+  const bccSet = new Set<string>();
+  for (const addr of INTERNAL_RECIPIENTS) {
+    if (addr.toLowerCase() !== toLower) bccSet.add(addr);
+  }
+  if (
     bccOwner &&
     ownerEmail &&
-    ownerEmail.toLowerCase() !== args.to.toLowerCase()
-      ? [ownerEmail]
-      : undefined;
+    ownerEmail.toLowerCase() !== toLower &&
+    !INTERNAL_RECIPIENTS.some((a) => a.toLowerCase() === ownerEmail!.toLowerCase())
+  ) {
+    bccSet.add(ownerEmail);
+  }
+  const bcc = bccSet.size > 0 ? [...bccSet] : undefined;
 
-  // Try Gmail first.
-  try {
-    if (ownerId) {
-      const result = await sendGmail({
-        user_id: ownerId,
+  // Resend is the PRIMARY path for reports. The niewdel.com domain is
+  // verified in Resend, so it sends from noreply@niewdel.com exactly as set
+  // and delivers to any recipient. Gmail is only a fallback, because it
+  // sends from the connected personal mailbox and may silently rewrite the
+  // From unless noreply@ is a configured send-as alias — which would break
+  // the "always from noreply@" rule.
+  let resendError: string | null = null;
+  if (isEmailConfigured()) {
+    try {
+      const result = await sendResend({
+        from: REPORT_FROM,
         to: args.to,
         bcc,
         subject: args.subject,
         html: args.html,
-        reply_to: args.reply_to,
+        replyTo: args.reply_to ?? REPORT_REPLY_TO,
+      });
+      return { ok: true, via: "resend", message_id: result.id };
+    } catch (err) {
+      resendError = err instanceof Error ? err.message : String(err);
+      console.warn("[send-report] Resend failed, trying Gmail:", resendError);
+    }
+  }
+
+  // Gmail fallback.
+  try {
+    if (ownerId) {
+      const result = await sendGmail({
+        user_id: ownerId,
+        from: REPORT_FROM,
+        to: args.to,
+        bcc,
+        subject: args.subject,
+        html: args.html,
+        reply_to: args.reply_to ?? REPORT_REPLY_TO,
         from_name: args.from_name,
       });
       return { ok: true, via: "gmail", message_id: result.id };
@@ -77,35 +126,15 @@ export async function sendReportEmail(args: SendReportArgs): Promise<SendResult>
   } catch (err) {
     if (!(err instanceof GmailScopeMissingError)) {
       console.warn(
-        "[send-report] Gmail send failed, falling back to Resend:",
+        "[send-report] Gmail fallback also failed:",
         err instanceof Error ? err.message : String(err)
       );
     }
-    // Fall through to Resend
   }
 
-  // Resend fallback.
-  if (!isEmailConfigured()) {
-    return {
-      ok: false,
-      via: "none",
-      error: "Neither Gmail nor Resend is configured",
-    };
-  }
-  try {
-    const result = await sendResend({
-      to: args.to,
-      bcc,
-      subject: args.subject,
-      html: args.html,
-      replyTo: args.reply_to,
-    });
-    return { ok: true, via: "resend", message_id: result.id };
-  } catch (err) {
-    return {
-      ok: false,
-      via: "resend",
-      error: err instanceof Error ? err.message : String(err),
-    };
-  }
+  return {
+    ok: false,
+    via: "none",
+    error: resendError ?? "Neither Resend nor Gmail is configured",
+  };
 }
