@@ -1,4 +1,4 @@
-// Google Ads API v18 fetcher.
+// Google Ads API fetcher.
 //
 // Authenticates as the operator's MCC (login-customer-id header) and pulls
 // campaign performance from a linked sub-account (the customer_id in the
@@ -14,7 +14,11 @@
 
 import { getValidAccessToken } from "./oauth";
 
-const API_VERSION = "v20";
+// Google moved to a monthly release cadence in 2026, and each major version
+// is hard-blocked ~1 year after launch (v20 was sunset June 2026). Pin the
+// latest stable here, but allow an env override so the next sunset can be
+// handled by setting GOOGLE_ADS_API_VERSION in Railway without a redeploy.
+const API_VERSION = process.env.GOOGLE_ADS_API_VERSION?.trim() || "v24";
 const API_BASE = `https://googleads.googleapis.com/${API_VERSION}`;
 
 export class AdsNotConfiguredError extends Error {

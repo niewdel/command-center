@@ -18,6 +18,7 @@ for (const line of readFileSync(path.join(ROOT, ".env.local"), "utf8").split("\n
   if (!(k in process.env)) process.env[k] = v;
 }
 
+const API_VERSION = process.env.GOOGLE_ADS_API_VERSION?.trim() || "v24";
 const MCC = process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID.trim();
 const FRANKY = "6974976770";
 const DEV = process.env.GOOGLE_ADS_DEVELOPER_TOKEN.trim();
@@ -57,7 +58,7 @@ async function probe(label, cid, useLoginHeader) {
   };
   if (useLoginHeader) headers["login-customer-id"] = MCC;
   const res = await fetch(
-    `https://googleads.googleapis.com/v20/customers/${cid}/googleAds:search`,
+    `https://googleads.googleapis.com/${API_VERSION}/customers/${cid}/googleAds:search`,
     { method: "POST", headers, body: JSON.stringify({ query: Q }) }
   );
   const body = await res.text();

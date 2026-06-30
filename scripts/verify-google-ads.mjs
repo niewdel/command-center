@@ -32,6 +32,8 @@ function loadEnv() {
 }
 loadEnv();
 
+const API_VERSION = process.env.GOOGLE_ADS_API_VERSION?.trim() || "v24";
+
 const {
   GOOGLE_ADS_DEVELOPER_TOKEN,
   GOOGLE_ADS_LOGIN_CUSTOMER_ID,
@@ -121,7 +123,7 @@ console.log(`  scope on token   ${tok.scope.includes("adwords") ? "includes adwo
 
 // ── List accessible Google Ads customers ───────────────────────────────────
 console.log("Step 4. listAccessibleCustomers (sanity: token + dev token both work)");
-const lacRes = await fetch("https://googleads.googleapis.com/v20/customers:listAccessibleCustomers", {
+const lacRes = await fetch(`https://googleads.googleapis.com/${API_VERSION}/customers:listAccessibleCustomers`, {
   headers: {
     Authorization: `Bearer ${tok.access_token}`,
     "developer-token": devToken,
@@ -171,7 +173,7 @@ for (const c of clients) {
 
   try {
     const res = await fetch(
-      `https://googleads.googleapis.com/v20/customers/${cid}/googleAds:search`,
+      `https://googleads.googleapis.com/${API_VERSION}/customers/${cid}/googleAds:search`,
       {
         method: "POST",
         headers: {
