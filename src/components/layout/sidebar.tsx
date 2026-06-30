@@ -87,9 +87,8 @@ export function Sidebar() {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
-  const handleLock = () => {
-    document.cookie = "cc-auth=; path=/; max-age=0";
-    document.cookie = "cc-auth-fresh=; path=/; max-age=0";
+  const handleLock = async () => {
+    await supabase.auth.signOut();
     router.push("/login");
     router.refresh();
   };

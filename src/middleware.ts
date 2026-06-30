@@ -1,97 +1,53 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-// How long to trust a successful auth refresh before re-running it. Supabase
-// access tokens last ~1 hour, so 5 minutes is a safe ceiling — worst case the
-// refresh runs 12×/hour instead of every page navigation. Saves 200–400ms
-// of Supabase round-trip latency on every cached request.
-const AUTH_FRESHNESS_COOKIE = "cc-auth-fresh";
-const AUTH_FRESHNESS_TTL_S = 5 * 60;
+// Only this account may enter the app. Even if someone self-registers through
+// the public anon key, their session is rejected here — and RLS would show
+// them nothing regardless. Override per-environment with ALLOWED_LOGIN_EMAIL.
+const ALLOWED_EMAIL = (
+  process.env.ALLOWED_LOGIN_EMAIL || "justin@niewdel.com"
+).toLowerCase();
 
 export async function middleware(request: NextRequest) {
-  const isAuthPage = request.nextUrl.pathname.startsWith("/login");
+  const path = request.nextUrl.pathname;
 
-  // Public routes — webhooks, processing endpoints, PIN check
+  // Public auth pages — sign in, request reset, set a new password.
+  const isAuthPage = path === "/login" || path.startsWith("/login/");
+
+  // Self-authenticating platform endpoints. Cron fires these over loopback
+  // with CRON_SECRET; webhooks/digest verify their own signatures/secrets.
+  // The app gate must not block them or the SEO pipeline stops running.
   const isPublicApi =
-    request.nextUrl.pathname.startsWith("/api/digest/") ||
-    request.nextUrl.pathname.startsWith("/api/webhooks/") ||
-    request.nextUrl.pathname.startsWith("/api/cron/") ||
-    request.nextUrl.pathname.startsWith("/api/auth/") ||
-    request.nextUrl.pathname.startsWith("/api/health");
+    path.startsWith("/api/digest/") ||
+    path.startsWith("/api/webhooks/") ||
+    path.startsWith("/api/cron/") ||
+    path.startsWith("/api/health");
 
-  // Token-protected public access to the SEO client report — used for
-  // Playwright PDF generation (print=1) and client-facing magic links
-  // (view=1). The route re-validates the token; middleware just lets the
-  // request bypass PIN + Supabase auth when the params are present.
-  const reportPathMatches = /^\/seo\/clients\/[^/]+\/report\/?$/.test(
-    request.nextUrl.pathname
-  );
+  // Token-protected, client-facing SEO report (magic link + Playwright print).
+  // Stays reachable without a login so clients can view their own report.
+  const reportPathMatches = /^\/seo\/clients\/[^/]+\/report\/?$/.test(path);
   const hasToken = !!request.nextUrl.searchParams.get("token");
   const isReportPrint =
-    reportPathMatches && request.nextUrl.searchParams.get("print") === "1" && hasToken;
+    reportPathMatches &&
+    request.nextUrl.searchParams.get("print") === "1" &&
+    hasToken;
   const isReportView =
-    reportPathMatches && request.nextUrl.searchParams.get("view") === "1" && hasToken;
+    reportPathMatches &&
+    request.nextUrl.searchParams.get("view") === "1" &&
+    hasToken;
   const isReportPublic = isReportPrint || isReportView;
 
-  // ── Under construction gate ──
-  // The personal operator app is paused while it's rebuilt as the Niewdel
-  // client app. All routes and code stay in place — flip this to false to
-  // bring the full app back. The client-facing SEO pipeline stays live:
-  // token-protected report links + public APIs (cron monthly emails,
-  // webhooks, auth, health) pass straight through to their normal handling.
-  const UNDER_CONSTRUCTION = true;
-  if (UNDER_CONSTRUCTION) {
-    const isComingSoon = request.nextUrl.pathname === "/coming-soon";
-    const stayLive = isPublicApi || isReportPublic;
-    if (isComingSoon) {
-      const headers = new Headers(request.headers);
-      headers.set("x-cc-bare-shell", "1");
-      return NextResponse.next({ request: { headers } });
-    }
-    if (!stayLive) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/coming-soon";
-      const headers = new Headers(request.headers);
-      headers.set("x-cc-bare-shell", "1");
-      return NextResponse.rewrite(url, { request: { headers } });
-    }
-    // stayLive routes fall through to the normal auth handling below.
-  }
-
-  // Signal to the root layout (server component) to strip ALL operator chrome
-  // for token-protected views, so the client-facing magic link page renders
-  // standalone with no sidebar, bottom nav, or command palette leaking your
-  // other tools.
+  // Strip ALL operator chrome for the token-gated client report so the
+  // recipient sees only their own scoped report.
   const propagatedHeaders = new Headers(request.headers);
-  if (isReportPublic) {
-    propagatedHeaders.set("x-cc-bare-shell", "1");
-  }
+  if (isReportPublic) propagatedHeaders.set("x-cc-bare-shell", "1");
 
-  const hasPin = request.cookies.get("cc-auth")?.value === "authenticated";
-  const authIsFresh =
-    request.cookies.get(AUTH_FRESHNESS_COOKIE)?.value === "1";
-
-  // PIN gate
-  if (!hasPin && !isAuthPage && !isPublicApi && !isReportPublic) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
-  }
-  if (hasPin && isAuthPage) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
-    return NextResponse.redirect(url);
-  }
-
-  // Skip the Supabase round-trip on most requests:
-  //   - public APIs / login page never need it
-  //   - authenticated requests with a fresh auth cookie skip it too
-  // The /api/auth/pin route stamps the freshness cookie after a successful
-  // sign-in, so the first navigation after PIN entry also skips this block.
-  if (!hasPin || isAuthPage || isPublicApi || isReportPublic || authIsFresh) {
+  // Public routes pass straight through, no session required.
+  if (isAuthPage || isPublicApi || isReportPublic) {
     return NextResponse.next({ request: { headers: propagatedHeaders } });
   }
 
+  // Everything else requires the one allow-listed Supabase session.
   let response = NextResponse.next({ request: { headers: propagatedHeaders } });
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -105,9 +61,7 @@ export async function middleware(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           );
-          response = NextResponse.next({
-            request: { headers: propagatedHeaders },
-          });
+          response = NextResponse.next({ request: { headers: propagatedHeaders } });
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options)
           );
@@ -116,30 +70,18 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Touch the session so @supabase/ssr refreshes cookies if needed.
-  const { data: { user } } = await supabase.auth.getUser();
+  // getUser() validates the JWT with Supabase — authoritative, not just a
+  // cookie read. Cheap enough for a single-operator app.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  // If PIN is valid but Supabase session is missing (expired refresh token,
-  // first load after migration, etc.), silently re-sign-in so RLS unlocks.
-  if (!user) {
-    const email = process.env.SUPABASE_USER_EMAIL;
-    const password = process.env.SUPABASE_USER_PASSWORD;
-    if (email && password) {
-      await supabase.auth.signInWithPassword({ email, password });
-    }
+  if (!user || (user.email ?? "").toLowerCase() !== ALLOWED_EMAIL) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.search = "";
+    return NextResponse.redirect(url);
   }
-
-  // Stamp the freshness cookie so subsequent requests skip this block until
-  // it expires. NextResponse.next() above may have been overwritten by the
-  // Supabase setAll callback — re-attach the cookie to whatever `response`
-  // currently points to.
-  response.cookies.set(AUTH_FRESHNESS_COOKIE, "1", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: AUTH_FRESHNESS_TTL_S,
-  });
 
   return response;
 }
