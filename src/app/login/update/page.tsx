@@ -24,22 +24,39 @@ export default function UpdatePasswordPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // The recovery link drops a session into the URL hash; the browser client
-  // parses it on load (detectSessionInUrl) and fires PASSWORD_RECOVERY. Accept
-  // either that event or an already-present session as proof the link is valid.
+  // The recovery link lands here with the session in the URL hash
+  // (#access_token=...&refresh_token=...) or, if the link was bad, an error
+  // (#error_code=...). Apply the tokens explicitly rather than relying on the
+  // client's auto-detect, which is flow/timing dependent.
   useEffect(() => {
-    let settled = false;
-    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "PASSWORD_RECOVERY" || session) {
-        settled = true;
-        setStatus("ready");
+    async function init() {
+      const raw = window.location.hash.startsWith("#")
+        ? window.location.hash.slice(1)
+        : "";
+      const params = new URLSearchParams(raw);
+
+      if (params.get("error_code") || params.get("error")) {
+        setStatus("invalid");
+        return;
       }
-    });
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) { settled = true; setStatus("ready"); }
-    });
-    const t = setTimeout(() => { if (!settled) setStatus("invalid"); }, 2500);
-    return () => { sub.subscription.unsubscribe(); clearTimeout(t); };
+
+      const access_token = params.get("access_token");
+      const refresh_token = params.get("refresh_token");
+      if (access_token && refresh_token) {
+        const { error: sessErr } = await supabase.auth.setSession({
+          access_token,
+          refresh_token,
+        });
+        // Clear the tokens out of the address bar.
+        window.history.replaceState(null, "", window.location.pathname);
+        if (!sessErr) { setStatus("ready"); return; }
+      }
+
+      // Auto-detect may have already consumed the hash — check for a session.
+      const { data } = await supabase.auth.getSession();
+      setStatus(data.session ? "ready" : "invalid");
+    }
+    init();
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
