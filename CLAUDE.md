@@ -1,5 +1,7 @@
 # COMMAND CENTER — Project Instruction Manual
 
+> **Brain context** lives at `~/Developer/obsidian-brain/Projects/command-center/`. Read its `README.md` first for status, next steps, and decisions. Strategic notes, specs, and decisions go to the brain. Code-only concerns (build, deps, structure) stay here.
+
 ## Project Description
 Command Center is a unified operations platform that consolidates CRM data, calendars, email, messaging, and task management into a single interface. Built as a personal tool for a solo operator managing multiple businesses, architected for future SaaS resale. Data lives where it lives — Command Center reads, summarizes, and links it.
 
