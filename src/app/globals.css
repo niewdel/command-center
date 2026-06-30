@@ -7,9 +7,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --font-sans: var(--font-inter), system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), monospace;
-  --font-heading: var(--font-geist-sans), system-ui, sans-serif;
+  --font-heading: var(--font-montserrat), system-ui, sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -53,23 +53,27 @@
    Accent (Rust): #C84B31  ·  Hot #E36548  ·  Deep #8F3623
    Cyan / teal / neon blue are explicitly NOT part of this brand. */
 :root {
-  /* Surfaces — warm Paper hierarchy, each tinted toward 75° (warm yellow) */
-  --paper: oklch(0.953 0.012 75);          /* #F5F1EA — primary background */
-  --paper-raised: oklch(0.975 0.008 75);   /* slight elevation: cards, popovers */
-  --paper-sunken: oklch(0.928 0.014 75);   /* sunken: sidebar, inputs, hover */
-  --paper-edge: oklch(0.880 0.014 75);     /* borders */
+  /* ── Niewdel v3 — Jet / Onyx / Blue (dark-first) ──
+     Variable names kept from the prior palette to avoid a repo-wide rename;
+     values are now the v3 brand system. */
 
-  /* Ink — warm dark for text + inverted surfaces */
-  --ink: oklch(0.205 0.013 50);            /* #1A1410 — body text */
-  --ink-soft: oklch(0.45 0.013 50);        /* secondary text, captions */
-  --ink-faint: oklch(0.65 0.010 60);       /* tertiary text, placeholders */
-  --jet: oklch(0.165 0.005 50);            /* #0D0D0D — inverted surface */
+  /* Surfaces — Jet base, building up through Onyx + elevated cards */
+  --paper: #0D0D0D;          /* Jet Black — primary background */
+  --paper-raised: #1A1A1A;   /* Onyx — cards, popovers */
+  --paper-sunken: #141719;   /* elevated — sidebar, inputs, hover */
+  --paper-edge: #262B2E;     /* hairline borders */
 
-  /* Rust accent — emphasis only, never body text */
-  --rust: oklch(0.555 0.155 32);           /* #C84B31 — CTAs + active */
-  --rust-hot: oklch(0.655 0.160 35);       /* #E36548 — hover */
-  --rust-deep: oklch(0.420 0.130 30);      /* #8F3623 — pressed */
-  --rust-tint: oklch(0.555 0.155 32 / 0.10); /* selection + active background */
+  /* Text — Cloud White stepping down to faint */
+  --ink: #F5F5F5;            /* Cloud White — body text */
+  --ink-soft: #9AA3A8;       /* muted — secondary text, captions */
+  --ink-faint: #5C666D;      /* faint — tertiary text, placeholders */
+  --jet: #1A1A1A;            /* near-black surface */
+
+  /* Niewdel Blue — the single accent, emphasis only */
+  --rust: #3B86DB;           /* Niewdel Blue — CTAs + active */
+  --rust-hot: #5A9BE6;       /* lighter blue — hover */
+  --rust-deep: #1B4D8F;      /* Deep Navy — pressed */
+  --rust-tint: rgba(59, 134, 219, 0.14); /* selection + active background */
 
   /* ── shadcn role mapping ── */
   --background: var(--paper);
@@ -81,7 +85,7 @@
   --popover-foreground: var(--ink);
 
   --primary: var(--rust);
-  --primary-foreground: var(--paper);
+  --primary-foreground: #FFFFFF;
 
   --secondary: var(--paper-sunken);
   --secondary-foreground: var(--ink);
@@ -92,7 +96,7 @@
   --accent: var(--paper-sunken);
   --accent-foreground: var(--ink);
 
-  --destructive: oklch(0.55 0.20 25);      /* warm red, distinct from rust accent */
+  --destructive: #C0413A;                  /* brand error red */
 
   --border: var(--paper-edge);
   --input: var(--paper-edge);
@@ -105,11 +109,11 @@
   --sidebar-width: 240px;
 
   /* Sidebar — slightly sunken paper to delineate from main */
-  --sidebar: var(--paper-sunken);
+  --sidebar: #0D0D0D;
   --sidebar-foreground: var(--ink);
   --sidebar-primary: var(--rust);
-  --sidebar-primary-foreground: var(--paper);
-  --sidebar-accent: oklch(0.90 0.014 75);  /* hovered nav row */
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #1A1A1A;               /* hovered nav row */
   --sidebar-accent-foreground: var(--ink);
   --sidebar-border: var(--paper-edge);
   --sidebar-ring: var(--rust);
@@ -136,7 +140,7 @@
     @apply text-foreground;
   }
   html {
-    color-scheme: light;
+    color-scheme: dark;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -180,6 +184,16 @@
     font-size: 0.6875rem;
     letter-spacing: 0.22em;
     color: var(--ink-soft);
+  }
+
+  /* Brand v3 eyebrow — Montserrat 700, uppercase, +0.2em, Niewdel Blue. */
+  .eyebrow-blue {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.6875rem;       /* 11px */
+    letter-spacing: 0.2em;
+    color: var(--rust);
   }
 
   /* iOS safe areas for notch / home indicator */

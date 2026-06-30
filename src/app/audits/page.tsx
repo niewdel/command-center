@@ -98,8 +98,8 @@ export default function AuditsPage() {
 
   return (
     <PageLayout
-      title="Website Scoring"
-      eyebrow="Tool · Site Audit"
+      title="Website Scoring Agent"
+      eyebrow="Agent · Site Audit"
       description="Run a website audit: crawl, score, and render a sales-ready report."
       icon={Gauge}
       maxWidth="xl"

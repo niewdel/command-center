@@ -1,8 +1,20 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
-import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
+import { Montserrat, Inter } from "next/font/google";
 import "./globals.css";
+
+// Brand v3 type system: Montserrat for structure, Inter for reading.
+const montserrat = Montserrat({
+  subsets: ["latin"],
+  weight: ["400", "600", "700", "800"],
+  variable: "--font-montserrat",
+});
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-inter",
+});
 import { AppShell } from "@/components/layout/app-shell";
 
 export const metadata: Metadata = {
@@ -46,7 +58,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className={`${GeistSans.variable} ${GeistMono.variable} h-full antialiased bg-background`}
+      className={`${inter.variable} ${montserrat.variable} ${GeistMono.variable} h-full antialiased bg-background`}
     >
       <body className="min-h-full font-sans text-foreground">
         <AppShell bareShell={bareShell}>{children}</AppShell>
