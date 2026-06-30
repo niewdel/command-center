@@ -21,6 +21,25 @@ export interface SeoConfig {
   // each weekly_check when this is set AND the user has a connected
   // google_oauth_connections row.
   ga4_property_id?: string;
+
+  // Google Ads — per-client sub-account. Operator-level dev token + MCC login
+  // ID come from env; this just names which linked account to read.
+  google_ads?: {
+    customer_id?: string;            // 10-digit, no hyphens
+    enabled?: boolean;
+  };
+
+  // Maps this client's GA4 event names to lead types so the Leads panel can
+  // count booking / contact / call / email actions and attribute them by
+  // channel. Event names vary per site (e.g. an Urable booking widget fires
+  // "urable_click"; a tap-to-call fires "phone_tap"). Each type maps to one
+  // or more event names.
+  lead_events?: {
+    booking?: string[];
+    contact?: string[];
+    call?: string[];
+    email?: string[];
+  };
 }
 
 export type SeoJobType =

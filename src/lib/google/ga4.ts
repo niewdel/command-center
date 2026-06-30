@@ -238,3 +238,95 @@ export async function fetchTrafficSnapshot(opts: {
     top_sources: topSources,
   };
 }
+
+// ============================================================
+// Data API — lead events attributed by acquisition channel
+// ============================================================
+
+export type LeadType = "booking" | "contact" | "call" | "email";
+
+export interface LeadsByChannel {
+  start_date: string;
+  end_date: string;
+  total: number;
+  // Per lead type: total count + count per channel.
+  by_type: Record<LeadType, { total: number; channels: Record<string, number> }>;
+  // Total leads per channel, across all types.
+  by_channel: Record<string, number>;
+}
+
+function emptyByType(): LeadsByChannel["by_type"] {
+  return {
+    booking: { total: 0, channels: {} },
+    contact: { total: 0, channels: {} },
+    call: { total: 0, channels: {} },
+    email: { total: 0, channels: {} },
+  };
+}
+
+// Count this client's lead events (mapped to types) broken down by GA4's
+// default channel grouping, over a date window. Reads raw events directly —
+// it does NOT depend on the events being marked as "key events" in the GA4
+// property, so attribution works even when conversions aren't configured.
+export async function fetchLeadsByChannel(opts: {
+  user_id: string;
+  property_id: string;
+  lead_events: Partial<Record<LeadType, string[]>>;
+  start_date: string; // YYYY-MM-DD
+  end_date: string;   // YYYY-MM-DD
+}): Promise<LeadsByChannel> {
+  const by_type = emptyByType();
+  const by_channel: Record<string, number> = {};
+
+  // Reverse-map every configured event name to its lead type.
+  const eventToType = new Map<string, LeadType>();
+  const allEvents: string[] = [];
+  for (const type of Object.keys(opts.lead_events) as LeadType[]) {
+    for (const ev of opts.lead_events[type] ?? []) {
+      if (!ev) continue;
+      eventToType.set(ev, type);
+      allEvents.push(ev);
+    }
+  }
+
+  const base = {
+    start_date: opts.start_date,
+    end_date: opts.end_date,
+    total: 0,
+    by_type,
+    by_channel,
+  };
+  if (allEvents.length === 0) return base;
+
+  const token = await getValidAccessToken(opts.user_id);
+  const data = await runReport(token, opts.property_id, {
+    dateRanges: [{ startDate: opts.start_date, endDate: opts.end_date }],
+    dimensions: [
+      { name: "eventName" },
+      { name: "sessionDefaultChannelGroup" },
+    ],
+    metrics: [{ name: "eventCount" }],
+    dimensionFilter: {
+      filter: {
+        fieldName: "eventName",
+        inListFilter: { values: allEvents },
+      },
+    },
+    limit: 250,
+  });
+
+  let total = 0;
+  for (const row of data.rows ?? []) {
+    const eventName = row.dimensionValues?.[0]?.value ?? "";
+    const channel = row.dimensionValues?.[1]?.value || "(unknown)";
+    const count = num(row.metricValues?.[0]?.value);
+    const type = eventToType.get(eventName);
+    if (!type || count === 0) continue;
+    by_type[type].total += count;
+    by_type[type].channels[channel] = (by_type[type].channels[channel] ?? 0) + count;
+    by_channel[channel] = (by_channel[channel] ?? 0) + count;
+    total += count;
+  }
+
+  return { ...base, total };
+}

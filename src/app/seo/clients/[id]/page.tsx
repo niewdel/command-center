@@ -35,6 +35,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { ClientReport } from "@/components/seo/report";
+import { LeadsPanel } from "@/components/seo/leads-panel";
 import type { ReportData } from "@/lib/seo/report-data";
 
 type SeoConfig = {
@@ -603,6 +604,9 @@ export default function SeoClientDetailPage({
           </span>
         </Card>
       )}
+
+      {/* Leads — booking / contact / call actions attributed by channel */}
+      <LeadsPanel clientId={id} />
 
       {/* Embedded report — same components as the standalone /report route */}
       {reportData && (
