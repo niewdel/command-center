@@ -136,6 +136,26 @@ export interface ReportData {
     state: "not_configured" | "needs_reconnect" | "error" | "ok";
     metrics: AdsMetricsView | null;
   };
+  leads: LeadsReportView | null;
   history: ScoreHistoryPoint[];
   ai_summary: string | null;
+}
+
+export type LeadTypeKey = "booking" | "contact" | "call" | "email";
+
+// Client-facing leads view for the report (mirrors lib/seo/leads LeadsSummary,
+// but typed here so report-types stays free of server-only deps).
+export interface LeadsReportView {
+  range_days: number;
+  total_leads: number;
+  prior_total_leads: number | null;
+  by_type: Array<{
+    type: LeadTypeKey;
+    total: number;
+    channels: Array<{ channel: string; count: number }>;
+  }>;
+  by_channel: Array<{ channel: string; count: number }>;
+  ad_spend: number | null;
+  paid_leads: number;
+  cost_per_lead: number | null;
 }

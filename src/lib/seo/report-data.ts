@@ -4,6 +4,7 @@
 // bundle. Re-exported here for backward compat with existing imports.
 
 import { getServiceClient } from "./db";
+import { getLeadsSummary } from "./leads";
 
 export type {
   ReportRange,
@@ -15,6 +16,8 @@ export type {
   SeoIssueRowOut,
   SeoResolvedRowOut,
   AdsMetricsView,
+  LeadsReportView,
+  LeadTypeKey,
 } from "./report-types";
 export { REPORT_RANGES, RANGE_LABEL } from "./report-types";
 
@@ -392,6 +395,32 @@ export async function getReportData(
     rangeMs: rangeWindowMs(range) ?? 30 * 86_400_000,
   });
 
+  // Leads — booking/contact/call by channel. Isolated like ads so a GA4 or
+  // Ads hiccup can't take down the rest of the report. Only surfaced when
+  // there's real data to show.
+  const rangeDays = range === "90d" ? 90 : range === "life" ? 365 : 30;
+  let leads: ReportData["leads"] = null;
+  try {
+    const summary = await getLeadsSummary(clientId, rangeDays);
+    if (summary.configured && summary.total_leads > 0) {
+      leads = {
+        range_days: summary.range_days,
+        total_leads: summary.total_leads,
+        prior_total_leads: summary.prior_total_leads,
+        by_type: summary.by_type,
+        by_channel: summary.by_channel,
+        ad_spend: summary.ad_spend,
+        paid_leads: summary.paid_leads,
+        cost_per_lead: summary.cost_per_lead,
+      };
+    }
+  } catch (err) {
+    console.error(
+      "[report-data] leads fetch failed:",
+      err instanceof Error ? err.message : err
+    );
+  }
+
   return {
     client: {
       id: clientRow.id as string,
@@ -415,6 +444,7 @@ export async function getReportData(
     top_pages,
     issues: { open_top, resolved },
     ads,
+    leads,
     history,
     ai_summary: latest?.ai_summary ?? null,
   };
