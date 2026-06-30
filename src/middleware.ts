@@ -1,12 +1,19 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-// Only this account may enter the app. Even if someone self-registers through
-// the public anon key, their session is rejected here — and RLS would show
-// them nothing regardless. Override per-environment with ALLOWED_LOGIN_EMAIL.
-const ALLOWED_EMAIL = (
-  process.env.ALLOWED_LOGIN_EMAIL || "justin@niewdel.com"
-).toLowerCase();
+// Accounts allowed into the app. Comma-separated list via ALLOWED_LOGIN_EMAILS
+// (legacy ALLOWED_LOGIN_EMAIL still works). Anyone else — even a self-registered
+// anon session — is rejected here, and RLS would show them nothing regardless.
+const ALLOWED_EMAILS = new Set(
+  (
+    process.env.ALLOWED_LOGIN_EMAILS ||
+    process.env.ALLOWED_LOGIN_EMAIL ||
+    "justin@niewdel.com,dillon@niewdel.com"
+  )
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean)
+);
 
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
@@ -76,7 +83,7 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user || (user.email ?? "").toLowerCase() !== ALLOWED_EMAIL) {
+  if (!user || !ALLOWED_EMAILS.has((user.email ?? "").toLowerCase())) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.search = "";
