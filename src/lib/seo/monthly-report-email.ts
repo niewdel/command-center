@@ -26,6 +26,7 @@
 //     not client deliverables.
 
 import type { ReportData } from "./report-data";
+import { humanizePath } from "./page-name";
 
 // ── Brand colors, email-safe hex (Niewdel v3.0, dark-first) ─────────────────
 const BG = "#0D0D0D"; // Jet Black — page background
@@ -38,8 +39,8 @@ const FAINT = "#5C666D"; // faint text / captions
 const BLUE = "#3B86DB"; // Niewdel Blue — the single accent
 const BLUE_SOFT = "#9DBEE8"; // light blue for eyebrows on Navy/dark fills
 const NAVY = "#1B4D8F"; // Deep Navy — score-hero fill, depth
-const SUCCESS = "#2E7D5B"; // improvement
-const ERROR = "#C0413B"; // regression
+const SUCCESS = "#35B37E"; // improvement — matches web --pos
+const ERROR = "#D85A52"; // regression — matches web --neg
 
 const FONT =
   "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;";
@@ -96,7 +97,8 @@ export function renderMonthlyReportEmail(
   <tr>
     <td style="padding:40px 32px 24px 32px;">
       ${tag(`SEO Report · ${escapeHtml(data.client.period_label)}`)}
-      <h1 style="margin:0 0 6px 0;${FONT}font-size:30px;font-weight:700;color:${TEXT};line-height:1.15;letter-spacing:-0.015em;">${escapeHtml(data.client.name)}</h1>
+      <h1 style="margin:0 0 12px 0;${FONT}font-size:30px;font-weight:700;color:${TEXT};line-height:1.15;letter-spacing:-0.015em;">${escapeHtml(data.client.name)}<span style="color:${BLUE};">.</span></h1>
+      <div style="width:40px;height:3px;background:${BLUE};background:linear-gradient(135deg,${BLUE},${NAVY});border-radius:2px;margin:0 0 12px 0;font-size:0;line-height:0;">&nbsp;</div>
       <p style="margin:0;${FONT}font-size:14px;color:${MUTED};">${escapeHtml(data.client.domain)}</p>
     </td>
   </tr>
@@ -187,7 +189,7 @@ export function renderMonthlyReportEmail(
       .map(
         (p) => `
       <tr>
-        <td style="padding:10px 0;border-top:1px solid ${LINE};${FONT}font-size:13px;color:${TEXT};width:60%;word-break:break-all;">${escapeHtml(p.path)}</td>
+        <td style="padding:10px 0;border-top:1px solid ${LINE};${FONT}font-size:13px;color:${TEXT};width:60%;word-break:break-word;">${escapeHtml(humanizePath(p.path))}</td>
         <td style="padding:10px 8px;border-top:1px solid ${LINE};${FONT}font-size:13px;color:${TEXT};font-feature-settings:'tnum';white-space:nowrap;text-align:right;">${formatNumber(p.sessions)}</td>
         <td style="padding:10px 0;border-top:1px solid ${LINE};${FONT}font-size:13px;color:${MUTED};font-feature-settings:'tnum';white-space:nowrap;text-align:right;">${p.pct_of_total}%</td>
       </tr>`,
@@ -502,7 +504,7 @@ export function renderMonthlyReportEmail(
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
         <tr>
           <td style="vertical-align:middle;">
-            <p style="margin:0;${FONT}font-size:15px;font-weight:700;color:${TEXT};letter-spacing:-0.01em;">niewdel</p>
+            <p style="margin:0;${FONT}font-size:15px;font-weight:700;color:${TEXT};letter-spacing:-0.01em;"><span style="color:${BLUE};">&#8226;</span> niewdel</p>
           </td>
           <td style="text-align:right;vertical-align:middle;">
             <p style="margin:0;${FONT}font-size:11px;color:${MUTED};letter-spacing:0.04em;">${escapeHtml(generatedDate)}</p>

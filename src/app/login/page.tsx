@@ -74,11 +74,11 @@ export default function LoginPage() {
           priority
         />
         <div className="lg-brand-foot">
-          <p className="lg-eyebrow">The studio</p>
+          <p className="lg-eyebrow">Growth services</p>
           <p className="lg-brand-line">
-            We build what you can&rsquo;t imagine yet.
+            We build what you{" "}
+            <span className="lg-brand-accent">can&rsquo;t imagine</span> yet.
           </p>
-          <p className="lg-brand-meta">Charlotte, NC</p>
         </div>
       </aside>
 
@@ -215,22 +215,20 @@ export default function LoginPage() {
           width: 150px;
           height: auto;
         }
-        .lg-brand-foot { position: relative; max-width: 30ch; }
+        .lg-brand-foot { position: relative; }
         .lg-brand-line {
           margin: 12px 0 0;
           font-family: var(--font-montserrat), system-ui, sans-serif;
           font-weight: 700;
-          font-size: clamp(1.5rem, 2.6vw, 2rem);
+          /* Sized + nowrap to keep the full tagline on a single line; scales
+             with the panel down to the 880px breakpoint where it's hidden. */
+          font-size: clamp(1.1rem, 2.05vw, 1.9rem);
           line-height: 1.15;
           letter-spacing: -0.02em;
           color: var(--cloud);
-          text-wrap: balance;
+          white-space: nowrap;
         }
-        .lg-brand-meta {
-          margin: 16px 0 0;
-          font-size: 12px;
-          color: var(--faint);
-        }
+        .lg-brand-accent { color: var(--blue); }
 
         /* ── Shared brand bits ── */
         .lg-eyebrow {

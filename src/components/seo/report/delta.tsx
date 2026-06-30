@@ -1,9 +1,8 @@
 // src/components/seo/report/delta.tsx
 //
-// Editorial direction (v2.1): show all deltas, but in warm semantic
-// colors. Improvement = sage (chart-2), regression = destructive,
-// no signal = muted. No emerald or neon red. Brand-consistent with
-// the email renderer in src/lib/seo/monthly-report-email.ts.
+// Brand v3 signals: improvement = green (--pos), regression = red (--neg),
+// no signal = muted. No brown, emerald, or neon. Matches the email renderer
+// in src/lib/seo/monthly-report-email.ts.
 //
 // `direction` controls whether higher or lower counts as improvement.
 
@@ -29,7 +28,7 @@ export function Delta({
   }
   const isImprovement =
     direction === "higher-better" ? value > 0 : value < 0;
-  const color = isImprovement ? "text-[var(--chart-2)]" : "text-destructive";
+  const color = isImprovement ? "text-[var(--pos)]" : "text-[var(--neg)]";
   const arrow = value > 0 ? "↑" : "↓";
   const abs = Math.abs(value);
   const formatted =

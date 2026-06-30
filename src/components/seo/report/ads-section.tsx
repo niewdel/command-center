@@ -26,44 +26,44 @@ export function AdsSection({ data }: { data: ReportData }) {
   if (ads.state === "ok" && ads.metrics) {
     const m = ads.metrics;
     return (
-      <Section title="07 · Google Ads">
-        <div className="col-span-12 bg-card border border-border rounded-lg p-6">
-          <div className="mono-tag-muted mb-2">Spend</div>
+      <Section title="Google Ads">
+        <div className="col-span-12 report-card p-6">
+          <div className="report-label mb-2">Spend</div>
           <div className="text-4xl font-bold text-foreground font-data tracking-tight">
             {fmtUsd(m.cost)}
           </div>
-          <div className="text-[11px] text-muted-foreground mt-2 font-mono tracking-wider">
+          <div className="text-[11px] text-muted-foreground mt-2 font-data tracking-wider">
             {m.period_start} – {m.period_end}
           </div>
         </div>
 
-        <div className="col-span-12 md:col-span-4 bg-card border border-border rounded-lg p-4">
-          <div className="mono-tag-muted mb-1">Clicks</div>
+        <div className="col-span-12 md:col-span-4 report-card p-6">
+          <div className="report-label mb-1">Clicks</div>
           <div className="text-2xl font-bold text-foreground font-data tabular-nums">
             {m.clicks.toLocaleString()}
           </div>
         </div>
-        <div className="col-span-12 md:col-span-4 bg-card border border-border rounded-lg p-4">
-          <div className="mono-tag-muted mb-1">Impressions</div>
+        <div className="col-span-12 md:col-span-4 report-card p-6">
+          <div className="report-label mb-1">Impressions</div>
           <div className="text-2xl font-bold text-foreground font-data tabular-nums">
             {m.impressions.toLocaleString()}
           </div>
         </div>
-        <div className="col-span-12 md:col-span-4 bg-card border border-border rounded-lg p-4">
-          <div className="mono-tag-muted mb-1">CTR</div>
+        <div className="col-span-12 md:col-span-4 report-card p-6">
+          <div className="report-label mb-1">CTR</div>
           <div className="text-2xl font-bold text-foreground font-data tabular-nums">
             {fmtPct(m.ctr)}
           </div>
         </div>
 
-        <div className="col-span-6 bg-card border border-border rounded-lg p-4">
-          <div className="mono-tag-muted mb-1">Conversions</div>
+        <div className="col-span-6 report-card p-6">
+          <div className="report-label mb-1">Conversions</div>
           <div className="text-2xl font-bold text-foreground font-data tabular-nums">
             {m.conversions.toFixed(1)}
           </div>
         </div>
-        <div className="col-span-6 bg-card border border-border rounded-lg p-4">
-          <div className="mono-tag-muted mb-1">
+        <div className="col-span-6 report-card p-6">
+          <div className="report-label mb-1">
             {m.cost_per_conversion != null ? "Cost / Conversion" : "Avg CPC"}
           </div>
           <div className="text-2xl font-bold text-foreground font-data tabular-nums">
@@ -74,14 +74,14 @@ export function AdsSection({ data }: { data: ReportData }) {
         </div>
 
         {m.top_campaigns.length > 0 && (
-          <div className="col-span-12 bg-card border border-border rounded-lg p-6">
-            <div className="mono-tag-muted mb-3">Top Campaigns</div>
+          <div className="col-span-12 report-card p-6">
+            <div className="report-label mb-3">Top Campaigns</div>
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="text-left mono-tag-muted pb-2">Campaign</th>
-                  <th className="text-right mono-tag-muted pb-2">Spend</th>
-                  <th className="text-right mono-tag-muted pb-2">Clicks</th>
+                  <th className="text-left report-label pb-2">Campaign</th>
+                  <th className="text-right report-label pb-2">Spend</th>
+                  <th className="text-right report-label pb-2">Clicks</th>
                 </tr>
               </thead>
               <tbody>
@@ -108,8 +108,8 @@ export function AdsSection({ data }: { data: ReportData }) {
   // we only report on existing ones, so the CTA asks the client to grant
   // us manager access rather than offering campaign management.
   return (
-    <Section title="07 · Google Ads">
-      <div className="col-span-12 bg-card border border-dashed border-border rounded-lg p-6">
+    <Section title="Google Ads">
+      <div className="col-span-12 report-card p-6 border-dashed">
         <p className="text-base font-bold text-foreground tracking-tight mb-2">
           Link your Google Ads.
         </p>

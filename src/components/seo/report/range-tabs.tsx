@@ -21,7 +21,7 @@ export function RangeTabs({ active }: { active: ReportRange }) {
   }
 
   return (
-    <div className="inline-flex items-center gap-1 rounded-lg bg-card border border-border p-1">
+    <div className="inline-flex items-center gap-1 rounded-full bg-card border border-border p-1">
       {TABS.map((t) => {
         const isActive = t.key === active;
         return (
@@ -31,8 +31,8 @@ export function RangeTabs({ active }: { active: ReportRange }) {
             onClick={() => go(t.key)}
             className={
               isActive
-                ? "rounded px-3 py-1 text-sm bg-foreground text-background"
-                : "rounded px-3 py-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                ? "rounded-full px-4 py-1 text-sm font-semibold bg-[var(--rust)] text-white"
+                : "rounded-full px-4 py-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
             }
           >
             {t.label}

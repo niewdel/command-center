@@ -14,20 +14,25 @@ const TYPE_LABEL: Record<LeadTypeKey, string> = {
   email: "Email clicks",
 };
 
+// Blue = paid, green = organic, gray = owned/other. One coherent system
+// instead of a rainbow, so the channel bars read on-brand at a glance.
 const CHANNEL_COLORS: Record<string, string> = {
+  // Paid — blue family
   "Paid Search": "#3B86DB",
   "Paid Social": "#5A9BE6",
   "Paid Shopping": "#2D6CC0",
   "Paid Video": "#6FA6E6",
   "Cross-network": "#1B4D8F",
   Display: "#4F92E0",
-  "Organic Search": "#2E9E6B",
-  "Organic Social": "#3FA79F",
-  "Organic Video": "#4FB58A",
+  // Organic — green family
+  "Organic Search": "#35B37E",
+  "Organic Social": "#4FC196",
+  "Organic Video": "#2A8C63",
+  // Owned / other — muted ink
   Direct: "#6B757C",
-  Referral: "#B8841A",
-  Email: "#9A7BD0",
-  Affiliates: "#A06A4A",
+  Referral: "#8B95A0",
+  Email: "#9AA3A8",
+  Affiliates: "#5C666D",
 };
 const FALLBACK = "#3A4046";
 const channelColor = (c: string) => CHANNEL_COLORS[c] ?? FALLBACK;
@@ -55,24 +60,24 @@ export function LeadsSection({ data }: { data: ReportData }) {
   return (
     <Section title="Leads">
       {/* Top stats */}
-      <div className="col-span-12 md:col-span-4 bg-card border border-border rounded-lg p-4">
-        <div className="mono-tag-muted mb-1">Total Leads</div>
-        <div className="text-3xl font-bold text-foreground font-data tabular-nums">
+      <div className="col-span-12 md:col-span-4 report-card p-6">
+        <div className="report-label mb-2">Total Leads</div>
+        <div className="text-3xl font-bold text-foreground font-data tabular-nums tracking-tight">
           {leads.total_leads.toLocaleString()}
         </div>
         {delta != null && (
           <div
-            className={`text-[11px] mt-1 font-medium ${
-              delta >= 0 ? "text-emerald-400" : "text-rose-400"
+            className={`text-[11px] mt-1 font-medium font-data tabular-nums ${
+              delta >= 0 ? "text-[var(--pos)]" : "text-[var(--neg)]"
             }`}
           >
             {delta >= 0 ? "↑" : "↓"} {Math.abs(delta)}% vs prior {leads.range_days}d
           </div>
         )}
       </div>
-      <div className="col-span-12 md:col-span-4 bg-card border border-border rounded-lg p-4">
-        <div className="mono-tag-muted mb-1">Ad Spend</div>
-        <div className="text-3xl font-bold text-foreground font-data tabular-nums">
+      <div className="col-span-12 md:col-span-4 report-card p-6">
+        <div className="report-label mb-2">Ad Spend</div>
+        <div className="text-3xl font-bold text-foreground font-data tabular-nums tracking-tight">
           {leads.ad_spend != null ? money(leads.ad_spend) : "—"}
         </div>
         <div className="text-[11px] text-muted-foreground mt-1">
@@ -80,9 +85,9 @@ export function LeadsSection({ data }: { data: ReportData }) {
           {leads.paid_leads === 1 ? "" : "s"}
         </div>
       </div>
-      <div className="col-span-12 md:col-span-4 bg-card border border-border rounded-lg p-4">
-        <div className="mono-tag-muted mb-1">Cost / Lead</div>
-        <div className="text-3xl font-bold text-foreground font-data tabular-nums">
+      <div className="col-span-12 md:col-span-4 report-card p-6">
+        <div className="report-label mb-2">Cost / Lead</div>
+        <div className="text-3xl font-bold text-foreground font-data tabular-nums tracking-tight">
           {leads.cost_per_lead != null ? money(leads.cost_per_lead) : "—"}
         </div>
         <div className="text-[11px] text-muted-foreground mt-1">
@@ -91,7 +96,7 @@ export function LeadsSection({ data }: { data: ReportData }) {
       </div>
 
       {/* By type, with channel bars */}
-      <div className="col-span-12 bg-card border border-border rounded-lg p-6 space-y-4">
+      <div className="col-span-12 report-card p-6 space-y-4">
         {leads.by_type.map(({ type, total, channels }) => (
           <div key={type} className="space-y-1.5">
             <div className="flex items-center justify-between text-sm">
