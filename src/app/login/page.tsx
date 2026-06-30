@@ -65,16 +65,18 @@ export default function LoginPage() {
           className="lg-portal"
           priority
         />
-        <Image
-          src="/logos/niewdel-wordmark.png"
-          alt="Niewdel"
-          width={880}
-          height={186}
-          className="lg-brand-mark"
-          priority
-        />
+        <div className="lg-brand-head">
+          <Image
+            src="/logos/niewdel-wordmark.png"
+            alt="Niewdel"
+            width={880}
+            height={186}
+            className="lg-brand-mark"
+            priority
+          />
+          <p className="lg-brand-tag">Growth services</p>
+        </div>
         <div className="lg-brand-foot">
-          <p className="lg-eyebrow">Growth services</p>
           <p className="lg-brand-line">
             We build what you{" "}
             <span className="lg-brand-accent">can&rsquo;t imagine</span> yet.
@@ -210,10 +212,21 @@ export default function LoginPage() {
           pointer-events: none;
           user-select: none;
         }
+        .lg-brand-head { position: relative; }
         .lg-brand-mark {
           position: relative;
+          display: block;
           width: 150px;
           height: auto;
+        }
+        .lg-brand-tag {
+          margin: 14px 0 0;
+          font-family: var(--font-montserrat), system-ui, sans-serif;
+          font-weight: 700;
+          font-size: 12px;
+          letter-spacing: 0.2em;
+          text-transform: uppercase;
+          color: var(--cloud);
         }
         .lg-brand-foot { position: relative; }
         .lg-brand-line {
