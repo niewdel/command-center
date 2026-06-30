@@ -11,7 +11,17 @@ import { useNotifications, getNotificationStatus } from "@/lib/hooks/use-notific
 import { WorkspacesProvider } from "@/lib/providers/workspaces-provider";
 import { RealtimeProvider } from "@/lib/providers/realtime-provider";
 
-const AUTH_PAGES = ["/login", "/signup"];
+// Auth surfaces render with NO operator chrome — no sidebar, providers, or
+// command palette. Matches /login and every sub-route (/login/reset,
+// /login/update) plus /signup. The recovery pages especially must render
+// standalone so the app shell can't interfere with the recovery session.
+function isAuthPath(pathname: string): boolean {
+  return (
+    pathname === "/login" ||
+    pathname.startsWith("/login/") ||
+    pathname === "/signup"
+  );
+}
 
 export function AppShell({
   children,
@@ -25,7 +35,7 @@ export function AppShell({
   bareShell?: boolean;
 }) {
   const pathname = usePathname();
-  const isAuthPage = AUTH_PAGES.includes(pathname);
+  const isAuthPage = isAuthPath(pathname);
 
   useNotifications(
     !isAuthPage && !bareShell && getNotificationStatus() === "granted"
