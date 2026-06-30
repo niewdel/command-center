@@ -2,6 +2,23 @@
 import type { ReportData } from "@/lib/seo/report-data";
 import { Section } from "./section";
 
+// Turn a URL path into a readable page name a client can scan, the way the
+// homepage already reads as "Home". "/services/detail-packages" → "Detail
+// Packages", "/contact" → "Contact".
+function humanizePath(path: string): string {
+  let p = (path || "").trim();
+  p = p.replace(/^https?:\/\/[^/]+/i, ""); // drop domain if present
+  p = p.split("?")[0].split("#")[0].replace(/\/+$/, ""); // drop query/hash/trailing slash
+  if (p === "" || p === "/" || p.toLowerCase() === "home") return "Home";
+  const seg = p.split("/").filter(Boolean).pop() ?? "";
+  const cleaned = seg
+    .replace(/\.(html?|php|aspx?)$/i, "")
+    .replace(/[-_]+/g, " ")
+    .trim();
+  if (!cleaned) return "Home";
+  return cleaned.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export function TopPagesSection({ data }: { data: ReportData }) {
   if (data.top_pages.length === 0) return null;
   return (
@@ -18,7 +35,9 @@ export function TopPagesSection({ data }: { data: ReportData }) {
           <tbody>
             {data.top_pages.map((p) => (
               <tr key={p.path} className="border-t border-border">
-                <td className="py-3 text-sm truncate max-w-md">{p.path}</td>
+                <td className="py-3 text-sm truncate max-w-md" title={p.path}>
+                  {humanizePath(p.path)}
+                </td>
                 <td className="py-3 text-right tabular-nums font-data">
                   {p.sessions.toLocaleString()}
                 </td>

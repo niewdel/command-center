@@ -14,14 +14,25 @@ function getClient(): Anthropic {
 
 const MODEL = "claude-sonnet-4-6";
 
-// Cap the input token budget hard. We pass deltas + counts + top critical
-// issues only — never the full crawl JSON. This keeps cost bounded
-// (~$0.001 per check) and prevents a giant site from blowing up the prompt.
-const MAX_TOP_ISSUES = 5;
+// We pass score deltas + resolved counts only, never the full crawl JSON or
+// the open-issue list. Keeps cost bounded (~$0.001 per check) and keeps the
+// client-facing summary from ever surfacing what's broken.
 
-const SYSTEM = `You are an SEO analyst writing a 2-3 sentence weekly summary for a solo SEO operator. Write in plain English, no jargon. Be specific about what changed and what to prioritize. If everything is stable, say so plainly. Never recommend more than 1-2 actions. Never use lists or markdown. Return prose only.
+const SYSTEM = `You are writing a short status note FROM the team at Niewdel TO our client, summarizing the SEO and website work we do for them each period. Niewdel is full-service: we build and maintain the client's website AND run their SEO, all in-house. Write as "we" (Niewdel), speaking to the client about their site.
 
-CRITICAL FORMATTING RULE: Never use em dashes (—) or en dashes (–) anywhere in your output. Use periods, commas, colons, semicolons, parentheses, or restructured sentences instead. This rule has zero exceptions. If you are tempted to use an em dash, rewrite the sentence as two shorter sentences or use a comma.`;
+Voice: confident, plain-spoken, professional. Short sentences. Lead with how the site is performing. Make it clear Niewdel is actively working on their behalf and keeping the site healthy and ranking. This goes straight into a client-facing report, so it must read like it came from our team.
+
+Cover, in 2-3 sentences:
+- How the site is performing and holding up (use the scores and any gains as positive signals; strong, stable scores are worth affirming).
+- What we stayed on top of this period (work we handled, upkeep we ran, things we kept clean).
+
+HARD RULES (zero exceptions):
+- Never tell the client what is broken, what needs fixing, or what they should do. No to-do lists, no "you should", no "focus on", no recommendations aimed at the client.
+- Never mention a third party, "your developer", or "your team". Niewdel owns all of the work.
+- Never use the words "issue", "problem", "concern", "error", "failing", or "broken". Frame everything around progress and upkeep.
+- No jargon, no buzzwords, no AI filler ("happy to", "let's dive in", "certainly").
+- Never use em dashes or en dashes. Use periods, commas, colons, or parentheses.
+- No lists, bullets, headers, or markdown. Plain prose only.`;
 
 interface SummaryInput {
   domain: string;
@@ -38,8 +49,6 @@ interface SummaryInput {
  * (5-min TTL on Anthropic's side).
  */
 export async function generateCheckSummary(input: SummaryInput): Promise<string> {
-  const top = input.top_issues.slice(0, MAX_TOP_ISSUES);
-
   const userParts: string[] = [
     `Client: ${input.client_name} (${input.domain})`,
     `Run type: ${input.is_first_run ? "first ever check (no prior week to compare to)" : "weekly comparison vs prior week"}`,
@@ -61,25 +70,14 @@ export async function generateCheckSummary(input: SummaryInput): Promise<string>
       `- On-page: ${fmt(sd.onpage)}`,
       `- Lighthouse mobile: ${fmt(sd.lighthouse_mobile)}`,
       "",
-      `Issue movement: ${input.diff.new_issues_count} new, ${input.diff.resolved_issues_count} resolved, ${input.diff.unchanged_issues_count} unchanged.`,
-      `Page churn: ${input.diff.pages_added} added, ${input.diff.pages_removed} removed, ${input.diff.pages_changed} content-changed.`
+      `Work we completed this period: ${input.diff.resolved_issues_count} item(s) cleaned up and resolved.`,
+      `Pages we updated or added this period: ${input.diff.pages_added + input.diff.pages_changed}.`
     );
-  }
-
-  if (top.length > 0) {
-    userParts.push("", `Top open issues by severity:`);
-    for (const i of top) {
-      userParts.push(
-        `- [${i.severity}] ${i.title}${i.page_url ? ` (${i.page_url})` : ""}`
-      );
-    }
-  } else {
-    userParts.push("", "No open issues found.");
   }
 
   userParts.push(
     "",
-    "Write a 2-3 sentence summary suitable for the operator's dashboard. Lead with the headline (what's the state), then any change worth noting, then a single concrete next action."
+    "Write the 2-3 sentence note from Niewdel to the client now. Lead with how the site is performing, then what we stayed on top of this period. Do not mention anything that is broken and do not tell the client to do anything."
   );
 
   const userMessage = userParts.join("\n");
