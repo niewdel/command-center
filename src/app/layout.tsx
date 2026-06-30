@@ -6,13 +6,22 @@ import "./globals.css";
 import { AppShell } from "@/components/layout/app-shell";
 
 export const metadata: Metadata = {
-  title: "Command Center",
-  description: "Personal productivity command center",
+  title: "Niewdel",
+  description: "Niewdel's custom app is coming soon.",
   manifest: "/manifest.json",
+  // Black "n" on white — the brand's light-surface mark.
+  icons: {
+    icon: [
+      { url: "/icons/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icons/favicon-16.png", sizes: "16x16", type: "image/png" },
+      { url: "/icons/favicon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: "/icons/favicon-apple-180.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Command Center",
+    title: "Niewdel",
   },
 };
 
@@ -20,7 +29,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#F5F1EA",
+  themeColor: "#0D0D0D",
 };
 
 export default async function RootLayout({
@@ -39,9 +48,6 @@ export default async function RootLayout({
       lang="en"
       className={`${GeistSans.variable} ${GeistMono.variable} h-full antialiased bg-background`}
     >
-      <head>
-        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
-      </head>
       <body className="min-h-full font-sans text-foreground">
         <AppShell bareShell={bareShell}>{children}</AppShell>
       </body>

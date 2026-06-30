@@ -33,6 +33,31 @@ export async function middleware(request: NextRequest) {
     reportPathMatches && request.nextUrl.searchParams.get("view") === "1" && hasToken;
   const isReportPublic = isReportPrint || isReportView;
 
+  // ── Under construction gate ──
+  // The personal operator app is paused while it's rebuilt as the Niewdel
+  // client app. All routes and code stay in place — flip this to false to
+  // bring the full app back. The client-facing SEO pipeline stays live:
+  // token-protected report links + public APIs (cron monthly emails,
+  // webhooks, auth, health) pass straight through to their normal handling.
+  const UNDER_CONSTRUCTION = true;
+  if (UNDER_CONSTRUCTION) {
+    const isComingSoon = request.nextUrl.pathname === "/coming-soon";
+    const stayLive = isPublicApi || isReportPublic;
+    if (isComingSoon) {
+      const headers = new Headers(request.headers);
+      headers.set("x-cc-bare-shell", "1");
+      return NextResponse.next({ request: { headers } });
+    }
+    if (!stayLive) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/coming-soon";
+      const headers = new Headers(request.headers);
+      headers.set("x-cc-bare-shell", "1");
+      return NextResponse.rewrite(url, { request: { headers } });
+    }
+    // stayLive routes fall through to the normal auth handling below.
+  }
+
   // Signal to the root layout (server component) to strip ALL operator chrome
   // for token-protected views, so the client-facing magic link page renders
   // standalone with no sidebar, bottom nav, or command palette leaking your
