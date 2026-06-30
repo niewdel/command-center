@@ -1,18 +1,17 @@
 import type { FixPlan, CategoryFixPlan, FixItem } from './fix-plan';
 
-// Niewdel v2 palette, email-safe inline hex.
-const PAPER = '#F5F1EA';
-const PAPER_RAISED = '#FBF8F2';
-const PAPER_SUNKEN = '#EDE7DC';
-const PAPER_EDGE = '#E3DDD2';
-const INK = '#1A1410';
-const INK_SOFT = '#665E54';
-const INK_FAINT = '#8E867C';
-const RUST = '#C84B31';
-const RUST_DEEP = '#8F3623';
-const SAGE = '#5C7F4F';
-const GOLD = '#B58A5C';
-const WALNUT = '#6B4A2E';
+// Niewdel v3.0 palette (dark-first), inline hex.
+const JET = '#0D0D0D';        // page background
+const ONYX = '#1A1A1A';       // cards / surfaces
+const ELEVATED = '#141719';   // sunken / inset fills
+const HAIRLINE = '#262B2E';   // borders
+const CLOUD = '#F5F5F5';      // primary text on dark
+const MUTED = '#9AA3A8';      // secondary text
+const FAINT = '#5C666D';      // faint text / captions
+const BLUE = '#3B86DB';       // primary accent (eyebrows, links, numbers)
+const SUCCESS = '#2E7D5B';
+const WARNING = '#B8841A';
+const ERROR = '#C0413B';
 
 function escapeHtml(text: string): string {
   return text
@@ -25,20 +24,20 @@ function escapeHtml(text: string): string {
 
 function getPriorityColor(priority: string): string {
   switch (priority) {
-    case 'critical': return RUST_DEEP;
-    case 'high': return RUST;
-    case 'medium': return GOLD;
-    case 'low': return INK_FAINT;
-    default: return INK_FAINT;
+    case 'critical': return ERROR;
+    case 'high': return BLUE;
+    case 'medium': return WARNING;
+    case 'low': return FAINT;
+    default: return FAINT;
   }
 }
 
 function getDifficultyColor(difficulty: string): string {
   switch (difficulty) {
-    case 'easy': return SAGE;
-    case 'moderate': return GOLD;
-    case 'advanced': return RUST_DEEP;
-    default: return INK_FAINT;
+    case 'easy': return SUCCESS;
+    case 'moderate': return WARNING;
+    case 'advanced': return ERROR;
+    default: return FAINT;
   }
 }
 
@@ -60,10 +59,10 @@ function effortLabel(d: string): string {
 }
 
 function getScoreColor(score: number): string {
-  if (score <= 40) return RUST_DEEP;
-  if (score <= 65) return GOLD;
-  if (score <= 85) return SAGE;
-  return WALNUT;
+  if (score <= 40) return ERROR;
+  if (score <= 65) return WARNING;
+  if (score <= 85) return SUCCESS;
+  return BLUE;
 }
 
 function renderBadge(text: string, color: string): string {
@@ -191,104 +190,104 @@ export function generateFixPlanHtml(plan: FixPlan, logoDataUri?: string): string
   <title>Fix Plan, ${escapeHtml(plan.siteName)}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: ${PAPER};
-      color: ${INK};
+      background: ${JET};
+      color: ${CLOUD};
       line-height: 1.6;
       -webkit-font-smoothing: antialiased;
     }
     .container { max-width: 940px; margin: 0 auto; padding: 48px 36px; }
 
     .section-tag {
-      font-family: 'JetBrains Mono', monospace; font-weight: 600;
+      font-family: 'Montserrat', 'Inter', sans-serif; font-weight: 600;
       font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
-      color: ${RUST}; margin-bottom: 12px;
+      color: ${BLUE}; margin-bottom: 12px;
     }
 
     /* Header */
-    .report-header { padding-bottom: 32px; border-bottom: 1px solid ${PAPER_EDGE}; margin-bottom: 40px; }
+    .report-header { padding-bottom: 32px; border-bottom: 1px solid ${HAIRLINE}; margin-bottom: 40px; }
     .header-logo { height: 36px; margin-bottom: 16px; display: block; }
     .header-logo-text {
-      font-family: 'Inter', sans-serif; font-weight: 700;
-      font-size: 24px; letter-spacing: -0.02em; color: ${INK};
+      font-family: 'Montserrat', 'Inter', sans-serif; font-weight: 700;
+      font-size: 24px; letter-spacing: -0.02em; color: ${CLOUD};
       display: block; margin-bottom: 16px;
     }
     .header-tag { margin-bottom: 18px; }
     .header-site-name {
-      font-family: 'Inter', sans-serif; font-weight: 700; font-size: 32px;
-      color: ${INK}; letter-spacing: -0.02em; margin-bottom: 4px;
+      font-family: 'Montserrat', 'Inter', sans-serif; font-weight: 700; font-size: 32px;
+      color: ${CLOUD}; letter-spacing: -0.02em; margin-bottom: 4px;
     }
-    .header-url { font-size: 14px; color: ${INK_SOFT}; margin-bottom: 24px; }
+    .header-url { font-size: 14px; color: ${MUTED}; margin-bottom: 24px; }
 
     .header-scores { display: flex; align-items: center; gap: 18px; }
     .score-cell { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
     .header-score {
-      font-family: 'Inter', sans-serif; font-weight: 800; font-size: 44px;
+      font-family: 'Montserrat', 'Inter', sans-serif; font-weight: 800; font-size: 44px;
       letter-spacing: -0.025em; font-variant-numeric: tabular-nums; line-height: 1;
     }
     .header-score-label {
-      font-family: 'JetBrains Mono', monospace; font-size: 10px;
-      color: ${INK_SOFT}; text-transform: uppercase; letter-spacing: 0.22em;
+      font-family: 'Montserrat', 'Inter', sans-serif; font-size: 10px;
+      color: ${MUTED}; text-transform: uppercase; letter-spacing: 0.22em;
     }
-    .header-arrow { font-size: 24px; color: ${INK_FAINT}; }
-    .header-date { font-size: 12px; color: ${INK_FAINT}; margin-top: 16px; }
+    .header-arrow { font-size: 24px; color: ${FAINT}; }
+    .header-date { font-size: 12px; color: ${FAINT}; margin-top: 16px; }
 
     /* Section shared */
     .section { margin-bottom: 44px; }
     .section-title {
-      font-family: 'Inter', sans-serif; font-weight: 700; font-size: 26px;
-      color: ${INK}; margin-bottom: 8px; letter-spacing: -0.015em;
+      font-family: 'Montserrat', 'Inter', sans-serif; font-weight: 700; font-size: 26px;
+      color: ${CLOUD}; margin-bottom: 8px; letter-spacing: -0.015em;
     }
-    .section-subtitle { font-size: 14px; color: ${INK_SOFT}; margin-bottom: 24px; max-width: 60ch; }
+    .section-subtitle { font-size: 14px; color: ${MUTED}; margin-bottom: 24px; max-width: 60ch; }
 
     /* Fix Cards */
     .fix-cards { display: flex; flex-direction: column; gap: 14px; }
     .fix-card {
-      background: ${PAPER_RAISED};
-      border: 1px solid ${PAPER_EDGE};
+      background: ${ONYX};
+      border: 1px solid ${HAIRLINE};
       border-radius: 10px; padding: 18px 20px;
     }
     .fix-card-header {
       display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 12px;
     }
     .fix-number {
-      font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 13px;
-      color: ${RUST}; letter-spacing: 0.06em;
+      font-family: 'Montserrat', 'Inter', sans-serif; font-weight: 600; font-size: 13px;
+      color: ${BLUE}; letter-spacing: 0.06em;
     }
     .fix-badges { display: flex; gap: 6px; flex-wrap: wrap; }
     .badge {
-      font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600;
+      font-family: 'Montserrat', 'Inter', sans-serif; font-size: 10px; font-weight: 600;
       text-transform: uppercase; letter-spacing: 0.14em;
       padding: 3px 9px; border-radius: 4px; border: 1px solid; white-space: nowrap;
     }
     .fix-card-body { display: flex; flex-direction: column; gap: 8px; }
     .fix-label {
-      font-family: 'JetBrains Mono', monospace; font-weight: 600;
-      font-size: 10px; color: ${INK_FAINT}; text-transform: uppercase;
+      font-family: 'Montserrat', 'Inter', sans-serif; font-weight: 600;
+      font-size: 10px; color: ${FAINT}; text-transform: uppercase;
       letter-spacing: 0.18em; margin-right: 8px; flex-shrink: 0;
     }
     .fix-problem, .fix-instruction { display: flex; align-items: baseline; gap: 8px; }
-    .fix-problem-text { color: ${RUST_DEEP}; font-size: 14px; line-height: 1.55; }
-    .fix-instruction-text { color: ${INK}; font-size: 14px; line-height: 1.55; }
+    .fix-problem-text { color: ${ERROR}; font-size: 14px; line-height: 1.55; }
+    .fix-instruction-text { color: ${CLOUD}; font-size: 14px; line-height: 1.55; }
     .fix-meta { display: flex; gap: 18px; margin-top: 6px; }
-    .fix-meta-item { font-size: 12px; color: ${INK_SOFT}; }
+    .fix-meta-item { font-size: 12px; color: ${MUTED}; }
 
     /* Score Projection */
     .projection-chart { display: flex; flex-direction: column; gap: 12px; }
     .projection-row { display: flex; align-items: center; gap: 14px; }
     .projection-label {
       width: 200px; flex-shrink: 0; font-size: 13px; font-weight: 500;
-      color: ${INK}; text-align: right;
+      color: ${CLOUD}; text-align: right;
     }
     .projection-bars { flex: 1; display: flex; align-items: center; gap: 14px; }
     .projection-bar-track {
       flex: 1; height: 22px;
-      background: ${PAPER_SUNKEN};
+      background: ${ELEVATED};
       border-radius: 4px; position: relative; overflow: hidden;
     }
     .projection-bar {
@@ -299,17 +298,17 @@ export function generateFixPlanHtml(plan: FixPlan, logoDataUri?: string): string
     .current-bar { z-index: 1; }
     .projection-scores {
       display: flex; align-items: center; gap: 6px; width: 150px; flex-shrink: 0;
-      font-size: 13px; font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums;
+      font-size: 13px; font-family: 'Montserrat', 'Inter', sans-serif; font-variant-numeric: tabular-nums;
     }
-    .projection-current { color: ${INK_SOFT}; font-weight: 600; }
-    .projection-arrow { color: ${INK_FAINT}; }
+    .projection-current { color: ${MUTED}; font-weight: 600; }
+    .projection-arrow { color: ${FAINT}; }
     .projection-target { font-weight: 700; }
     .projection-delta { font-size: 11px; font-weight: 600; margin-left: 4px; }
 
     /* Category Sections */
     .category-section {
-      background: ${PAPER_RAISED};
-      border: 1px solid ${PAPER_EDGE};
+      background: ${ONYX};
+      border: 1px solid ${HAIRLINE};
       border-radius: 12px; padding: 28px 32px;
     }
     .category-header {
@@ -318,35 +317,35 @@ export function generateFixPlanHtml(plan: FixPlan, logoDataUri?: string): string
     }
     .category-title-area { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     .cat-num {
-      font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 12px;
-      color: ${INK_FAINT}; background: ${PAPER_SUNKEN};
+      font-family: 'Montserrat', 'Inter', sans-serif; font-weight: 600; font-size: 12px;
+      color: ${FAINT}; background: ${ELEVATED};
       width: 30px; height: 30px; border-radius: 6px;
       display: flex; align-items: center; justify-content: center;
     }
     .category-name {
-      font-family: 'Inter', sans-serif; font-weight: 700; font-size: 18px;
-      color: ${INK}; letter-spacing: -0.01em;
+      font-family: 'Montserrat', 'Inter', sans-serif; font-weight: 700; font-size: 18px;
+      color: ${CLOUD}; letter-spacing: -0.01em;
     }
     .fix-count {
-      font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600;
-      color: ${INK_SOFT}; text-transform: uppercase; letter-spacing: 0.18em;
-      background: ${PAPER_SUNKEN}; padding: 3px 10px; border-radius: 999px;
+      font-family: 'Montserrat', 'Inter', sans-serif; font-size: 10px; font-weight: 600;
+      color: ${MUTED}; text-transform: uppercase; letter-spacing: 0.18em;
+      background: ${ELEVATED}; padding: 3px 10px; border-radius: 999px;
     }
     .category-score-area {
       display: flex; align-items: center; gap: 8px;
-      font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums;
+      font-family: 'Montserrat', 'Inter', sans-serif; font-variant-numeric: tabular-nums;
     }
-    .cat-score { font-family: 'Inter', sans-serif; font-weight: 700; font-size: 22px; letter-spacing: -0.02em; }
-    .cat-arrow { color: ${INK_FAINT}; font-size: 16px; }
+    .cat-score { font-family: 'Montserrat', 'Inter', sans-serif; font-weight: 700; font-size: 22px; letter-spacing: -0.02em; }
+    .cat-arrow { color: ${FAINT}; font-size: 16px; }
     .cat-delta { font-size: 12px; font-weight: 600; }
 
     /* Footer */
-    .report-footer { margin-top: 56px; padding-top: 22px; border-top: 1px solid ${PAPER_EDGE}; }
+    .report-footer { margin-top: 56px; padding-top: 22px; border-top: 1px solid ${HAIRLINE}; }
     .footer-brand {
-      font-family: 'Inter', sans-serif; font-weight: 700; font-size: 14px;
-      letter-spacing: -0.01em; color: ${INK};
+      font-family: 'Montserrat', 'Inter', sans-serif; font-weight: 700; font-size: 14px;
+      letter-spacing: -0.01em; color: ${CLOUD};
     }
-    .footer-note { font-size: 12px; color: ${INK_FAINT}; margin-top: 6px; }
+    .footer-note { font-size: 12px; color: ${FAINT}; margin-top: 6px; }
 
     @media print {
       .fix-card, .category-section { page-break-inside: avoid; }

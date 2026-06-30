@@ -25,13 +25,11 @@ export function MetricCard({
 }: MetricCardProps) {
   const valueClasses =
     size === "hero"
-      ? "text-5xl font-semibold text-primary font-data"
-      : "text-3xl font-semibold text-primary font-data";
+      ? "text-5xl font-semibold text-foreground font-data tracking-tight"
+      : "text-3xl font-semibold text-foreground font-data tracking-tight";
   return (
-    <div className={`bg-card border border-border rounded-lg p-6 ${className}`}>
-      <div className="text-muted-foreground text-xs uppercase font-semibold mb-3">
-        {label}
-      </div>
+    <div className={`report-card p-6 ${className}`}>
+      <div className="report-label mb-3">{label}</div>
       <div className={valueClasses}>{value}</div>
       <div className="mt-2 flex items-center gap-3">
         {delta !== undefined && (

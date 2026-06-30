@@ -8,8 +8,11 @@ interface SectionProps {
 
 export function Section({ title, children }: SectionProps) {
   return (
-    <section className="mb-12">
-      <h2 className="mono-tag-muted mb-3">{title}</h2>
+    <section className="mb-14">
+      <div className="mb-5">
+        <h2 className="report-eyebrow">{title}</h2>
+        <span className="report-rule mt-2" />
+      </div>
       <div className="grid grid-cols-12 gap-3">{children}</div>
     </section>
   );

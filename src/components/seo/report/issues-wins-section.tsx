@@ -4,9 +4,9 @@ import { Section } from "./section";
 
 const SEVERITY_STYLES = {
   critical:
-    "bg-muted text-destructive border-destructive/40 tracking-wider",
+    "bg-muted text-[var(--neg)] border-[var(--neg)]/40 tracking-wider",
   high:
-    "bg-muted text-[var(--chart-3)] border-[var(--chart-3)]/40 tracking-wider",
+    "bg-muted text-[var(--warn)] border-[var(--warn)]/40 tracking-wider",
   medium:
     "bg-muted text-foreground border-border tracking-wider",
   low:
@@ -21,8 +21,8 @@ export function IssuesWinsSection({ data }: { data: ReportData }) {
   return (
     <Section title="05 · Issues & Wins">
       {hasOpen && (
-        <div className="col-span-12 md:col-span-6 bg-card border border-border rounded-lg p-6">
-          <div className="mono-tag-muted mb-3">What Needs Attention</div>
+        <div className="col-span-12 md:col-span-6 report-card p-6">
+          <div className="report-label mb-3">What Needs Attention</div>
           <ul className="space-y-3">
             {data.issues.open_top.map((i, idx) => (
               <li key={`${i.title}-${idx}`} className="flex items-start gap-3">
@@ -46,13 +46,13 @@ export function IssuesWinsSection({ data }: { data: ReportData }) {
       )}
       {hasResolved && (
         <div
-          className={`col-span-12 ${hasOpen ? "md:col-span-6" : ""} bg-card border border-border rounded-lg p-6`}
+          className={`col-span-12 ${hasOpen ? "md:col-span-6" : ""} report-card p-6`}
         >
-          <div className="mono-tag-muted mb-3">Resolved This Period</div>
+          <div className="report-label mb-3">Resolved This Period</div>
           <ul className="space-y-2">
             {data.issues.resolved.map((r, idx) => (
               <li key={`${r.title}-${idx}`} className="flex items-start gap-2">
-                <span className="text-[var(--chart-2)] shrink-0 font-bold">✓</span>
+                <span className="text-[var(--pos)] shrink-0 font-bold">✓</span>
                 <div className="text-sm">{r.title}</div>
               </li>
             ))}

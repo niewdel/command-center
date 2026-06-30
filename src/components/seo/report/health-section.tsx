@@ -21,7 +21,7 @@ function Spark({ values }: SparkProps) {
     .map((v, i) => `${i * stepX},${h - ((v - min) / range) * h}`)
     .join(" ");
   return (
-    <svg width={w} height={h} className="text-primary opacity-60">
+    <svg width={w} height={h} className="text-primary opacity-70">
       <polyline
         fill="none"
         stroke="currentColor"
@@ -47,21 +47,28 @@ export function HealthSection({ data }: { data: ReportData }) {
   const showDelta = h.overall_delta != null && h.overall_delta > 0;
 
   return (
-    <Section title="01 · Site Health">
-      {/* Top row: overall score + open-issues breakdown */}
-      <div className="col-span-12 md:col-span-7 bg-card border border-border rounded-lg p-6">
-        <div className="mono-tag-muted mb-3">Overall Score</div>
+    <Section title="Site Health">
+      {/* Overall score — navy hero, mirroring the email's score block */}
+      <div className="col-span-12 md:col-span-7 rounded-[14px] bg-[var(--rust-deep)] p-7">
+        <div
+          className="report-eyebrow mb-4"
+          style={{ color: "#9DBEE8" }}
+        >
+          Overall Score
+        </div>
         <div className="flex items-baseline gap-4 flex-wrap">
-          <div className="text-7xl font-bold text-primary font-data tracking-tight">
+          <div className="text-7xl font-bold text-white font-data tracking-tight">
             {fmt(h.overall_score)}
-            <span className="text-muted-foreground text-3xl font-medium ml-2">/100</span>
+            <span className="text-[#9DBEE8] text-3xl font-medium ml-2 opacity-80">
+              /100
+            </span>
           </div>
           <div className="space-y-1">
-            <div className="text-sm font-semibold uppercase tracking-[0.12em] text-foreground">
+            <div className="text-sm font-semibold uppercase tracking-[0.12em] text-white">
               {label}
             </div>
             {showDelta && (
-              <div className="text-sm text-[var(--chart-2)]">
+              <div className="text-sm text-[#C7E0C9]">
                 ↑ {h.overall_delta} since the start of this period.
               </div>
             )}
@@ -69,32 +76,32 @@ export function HealthSection({ data }: { data: ReportData }) {
         </div>
       </div>
 
-      <div className="col-span-12 md:col-span-5 bg-card border border-border rounded-lg p-6">
-        <div className="mono-tag-muted mb-3">Open Issues</div>
-        <div className="text-5xl font-bold text-primary font-data tracking-tight">
+      <div className="col-span-12 md:col-span-5 report-card p-6">
+        <div className="report-label mb-3">Open Issues</div>
+        <div className="text-5xl font-bold text-foreground font-data tracking-tight">
           {h.open_issues.total}
         </div>
         <div className="mt-4 grid grid-cols-4 gap-2 text-xs">
           <div>
-            <div className="text-destructive font-semibold tabular-nums">
+            <div className="text-[var(--neg)] font-semibold tabular-nums font-data">
               {h.open_issues.critical}
             </div>
             <div className="text-muted-foreground uppercase mt-1 tracking-wider">Critical</div>
           </div>
           <div>
-            <div className="text-[var(--chart-3)] font-semibold tabular-nums">
+            <div className="text-[var(--warn)] font-semibold tabular-nums font-data">
               {h.open_issues.high}
             </div>
             <div className="text-muted-foreground uppercase mt-1 tracking-wider">High</div>
           </div>
           <div>
-            <div className="text-foreground font-semibold tabular-nums">
+            <div className="text-foreground font-semibold tabular-nums font-data">
               {h.open_issues.medium}
             </div>
             <div className="text-muted-foreground uppercase mt-1 tracking-wider">Medium</div>
           </div>
           <div>
-            <div className="text-muted-foreground font-semibold tabular-nums">
+            <div className="text-muted-foreground font-semibold tabular-nums font-data">
               {h.open_issues.low}
             </div>
             <div className="text-muted-foreground uppercase mt-1 tracking-wider">Low</div>
@@ -115,10 +122,10 @@ export function HealthSection({ data }: { data: ReportData }) {
           return (
             <div
               key={key}
-              className="col-span-6 md:col-span-3 bg-card border border-border rounded-lg p-6"
+              className="col-span-6 md:col-span-3 report-card p-6"
             >
               <div className="flex items-start justify-between mb-3">
-                <div className="mono-tag-muted">{labelMap[key]}</div>
+                <div className="report-label">{labelMap[key]}</div>
                 <Spark values={card.history} />
               </div>
               <MetricCardInline value={card.current} delta={card.delta} />
@@ -139,7 +146,7 @@ function MetricCardInline({
 }) {
   return (
     <>
-      <div className="text-3xl font-bold text-primary font-data tracking-tight">
+      <div className="text-3xl font-bold text-foreground font-data tracking-tight">
         {value == null ? "—" : value}
       </div>
       <div className="mt-2 text-xs">
@@ -148,7 +155,7 @@ function MetricCardInline({
         ) : delta === 0 ? (
           <span className="text-muted-foreground">No change</span>
         ) : delta > 0 ? (
-          <span className="text-[var(--chart-2)] tabular-nums font-data">
+          <span className="text-[var(--pos)] tabular-nums font-data">
             ↑ {delta}
           </span>
         ) : (

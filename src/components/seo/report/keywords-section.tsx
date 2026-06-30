@@ -7,10 +7,10 @@ export function KeywordsSection({ data }: { data: ReportData }) {
   if (!data.keywords) return null;
   const k = data.keywords;
   return (
-    <Section title="04 · Keyword Rankings">
-      <div className="col-span-12 md:col-span-4 bg-card border border-border rounded-lg p-6">
-        <div className="mono-tag-muted mb-3">Phrases Ranking</div>
-        <div className="text-5xl font-bold text-primary font-data tracking-tight">
+    <Section title="Keyword Rankings">
+      <div className="col-span-12 md:col-span-4 report-card p-6">
+        <div className="report-label mb-3">Phrases Ranking</div>
+        <div className="text-5xl font-bold text-foreground font-data tracking-tight">
           {k.ranking_count}
           <span className="text-muted-foreground text-3xl">/{k.tracked_count}</span>
         </div>
@@ -33,8 +33,8 @@ export function KeywordsSection({ data }: { data: ReportData }) {
         />
       </div>
 
-      <div className="col-span-12 md:col-span-6 bg-card border border-border rounded-lg p-6">
-        <div className="mono-tag-muted mb-3" style={{ color: "var(--chart-2)" }}>
+      <div className="col-span-12 md:col-span-6 report-card p-6">
+        <div className="report-label mb-3" style={{ color: "var(--pos)" }}>
           Climbers
         </div>
         {k.top_movers_up.length === 0 ? (
@@ -47,16 +47,16 @@ export function KeywordsSection({ data }: { data: ReportData }) {
                 <span className="tabular-nums font-data text-sm">
                   <span className="text-muted-foreground">{m.prior_rank ?? "—"}</span>
                   <span className="mx-2 text-muted-foreground">→</span>
-                  <span className="text-primary">{m.rank ?? "—"}</span>
-                  <span className="ml-3 text-[var(--chart-2)]">↑ {Math.abs(m.delta as number)}</span>
+                  <span className="text-foreground">{m.rank ?? "—"}</span>
+                  <span className="ml-3 text-[var(--pos)]">↑ {Math.abs(m.delta as number)}</span>
                 </span>
               </li>
             ))}
           </ul>
         )}
       </div>
-      <div className="col-span-12 md:col-span-6 bg-card border border-border rounded-lg p-6">
-        <div className="mono-tag-muted mb-3" style={{ color: "var(--rust-deep, #8F3623)" }}>
+      <div className="col-span-12 md:col-span-6 report-card p-6">
+        <div className="report-label mb-3" style={{ color: "var(--neg)" }}>
           Slippage
         </div>
         {k.top_movers_down.length === 0 ? (
@@ -69,8 +69,8 @@ export function KeywordsSection({ data }: { data: ReportData }) {
                 <span className="tabular-nums font-data text-sm">
                   <span className="text-muted-foreground">{m.prior_rank ?? "—"}</span>
                   <span className="mx-2 text-muted-foreground">→</span>
-                  <span className="text-primary">{m.rank ?? "—"}</span>
-                  <span className="ml-3 text-destructive">↓ {m.delta}</span>
+                  <span className="text-foreground">{m.rank ?? "—"}</span>
+                  <span className="ml-3 text-[var(--neg)]">↓ {m.delta}</span>
                 </span>
               </li>
             ))}

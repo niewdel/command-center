@@ -28,6 +28,10 @@ interface SendInput {
   html: string;
   reply_to?: string;
   from_name?: string;    // optional display name (e.g. "Niewdel")
+  // Override the From address. Must be the authenticated account or one of
+  // its configured "send-as" aliases, otherwise Gmail rejects the send.
+  // Defaults to the authenticated account's own address when omitted.
+  from?: string;
 }
 
 // Encode a UTF-8 string to RFC 2047 quoted-printable for use in headers
@@ -100,7 +104,9 @@ export async function sendGmail(input: SendInput): Promise<{ id: string }> {
     : undefined;
 
   const mime = buildMime({
-    from: conn.google_email,    // sender = the authenticated google account
+    // sender = explicit override (must be a verified send-as alias) or the
+    // authenticated google account itself.
+    from: input.from ?? conn.google_email,
     to,
     bcc,
     subject: input.subject,

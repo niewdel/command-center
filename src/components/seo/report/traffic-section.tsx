@@ -19,7 +19,7 @@ export function TrafficSection({ data }: { data: ReportData }) {
   if (!data.traffic) return null;
   const t = data.traffic;
   return (
-    <Section title="Site Traffic">
+    <Section title="Traffic">
       <div className="col-span-12 md:col-span-6">
         <MetricCard
           label="Sessions"
@@ -45,15 +45,13 @@ export function TrafficSection({ data }: { data: ReportData }) {
           delta={t.pages_per_session.delta}
         />
       </div>
-      <div className="col-span-12 bg-card border border-border rounded-lg p-6">
-        <div className="text-muted-foreground text-xs uppercase font-semibold mb-4">
-          Traffic Sources
-        </div>
+      <div className="col-span-12 report-card p-6">
+        <div className="report-label mb-4">Traffic Sources</div>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           {SOURCE_LABELS.map((s) => (
             <div key={s.key}>
               <div className="text-muted-foreground text-xs">{s.label}</div>
-              <div className="text-2xl font-semibold text-primary font-data tabular-nums mt-1">
+              <div className="text-2xl font-semibold text-foreground font-data tabular-nums mt-1">
                 {t.sources[s.key]}%
               </div>
             </div>

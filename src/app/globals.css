@@ -118,12 +118,21 @@
   --sidebar-border: var(--paper-edge);
   --sidebar-ring: var(--rust);
 
-  /* Charts — warm-leaning palette built off rust + ink */
-  --chart-1: var(--rust);
-  --chart-2: oklch(0.50 0.080 50);         /* warm brown */
-  --chart-3: oklch(0.70 0.110 80);         /* dusk ochre */
-  --chart-4: oklch(0.40 0.030 50);         /* slate brown */
-  --chart-5: oklch(0.75 0.060 30);         /* faded rust */
+  /* Signals — clean and on-brand (no brown / ochre / neon).
+     Positive = green, regression = red, attention = amber. Shared by the
+     client report Delta, charts, and severity chips. */
+  --pos: #35B37E;                          /* improvement / positive */
+  --pos-soft: rgba(53, 179, 126, 0.14);
+  --neg: #D85A52;                          /* regression — brand red, lifted for screen */
+  --neg-soft: rgba(216, 90, 82, 0.14);
+  --warn: #D9A441;                         /* attention / high severity — amber */
+
+  /* Charts — blue-anchored categorical ramp, brand-coherent */
+  --chart-1: var(--rust);                  /* Niewdel Blue */
+  --chart-2: var(--pos);                   /* green — improvements / organic */
+  --chart-3: var(--warn);                  /* amber — attention */
+  --chart-4: var(--rust-hot);              /* light blue */
+  --chart-5: var(--rust-deep);             /* deep navy */
 
   /* Inbox tone mapping — warmth + rust, no cyan */
   --inbox-action: var(--rust);
@@ -209,6 +218,44 @@
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.01em;
+  }
+
+  /* ── Client report — mirrors the login page's editorial voice ──
+     Montserrat blue eyebrow + a short solid-blue accent rule, onyx cards
+     with a soft 14px radius. Used across every report section so the web
+     view and the PDF read as one branded deliverable. */
+  .report-eyebrow {
+    font-family: var(--font-heading);   /* Montserrat */
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.6875rem;               /* 11px */
+    letter-spacing: 0.2em;
+    color: var(--rust);                 /* Niewdel Blue */
+  }
+  .report-rule {
+    display: block;
+    width: 40px;
+    height: 3px;
+    border-radius: 2px;
+    /* Matches the login page's accent rule exactly (blue → navy, 135deg).
+       Deliberate exception to the brand "no gradients" baseline: the client
+       report is meant to mirror the login page's look. */
+    background: linear-gradient(135deg, var(--rust), var(--rust-deep));
+  }
+  /* Muted Montserrat label for metric/card sub-headings. Blue is reserved
+     for the section eyebrow; everything below it reads in calm muted ink. */
+  .report-label {
+    font-family: var(--font-heading);   /* Montserrat */
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.625rem;                /* 10px */
+    letter-spacing: 0.14em;
+    color: var(--ink-soft);
+  }
+  .report-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
   }
 
 }

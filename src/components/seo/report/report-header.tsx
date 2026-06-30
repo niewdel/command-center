@@ -12,17 +12,25 @@ export function ReportHeader({ data, mode }: Props) {
     { month: "short", day: "numeric", year: "numeric" }
   );
   return (
-    <header className="mb-10">
+    <header className="mb-12">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/logos/niewdel-wordmark.png"
+        alt="Niewdel"
+        className="h-7 w-auto mb-8 opacity-90"
+      />
       <div className="flex items-end justify-between gap-6 flex-wrap">
-        <div className="space-y-2">
-          <span className="mono-tag block">
+        <div>
+          <span className="report-eyebrow block">
             SEO Report · {data.client.period_label}
           </span>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-balance text-foreground">
+          <h1 className="mt-3 text-3xl md:text-4xl font-bold tracking-tight text-balance text-foreground">
             {data.client.name}
+            <span className="text-[var(--rust)]">.</span>
           </h1>
+          <span className="report-rule mt-3" />
           {data.client.domain && (
-            <div className="text-muted-foreground text-sm">
+            <div className="text-muted-foreground text-sm mt-3">
               {data.client.domain}
             </div>
           )}

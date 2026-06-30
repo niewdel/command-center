@@ -17,13 +17,13 @@ interface SeriesDef {
   color: string;
 }
 
-// Soft, professional palette — blue leads (brand), the rest are muted and
-// clearly distinct without the neon feel of the old chart.
+// Brand ramp — blue leads, then green / amber / light-blue. Distinct but
+// on-palette (no teal or purple), matching the report's signal colors.
 const SERIES: SeriesDef[] = [
   { key: "technical_score", label: "Technical", color: "#3B86DB" },
-  { key: "onpage_score", label: "On-page", color: "#4CB59A" },
-  { key: "lighthouse_mobile", label: "Mobile", color: "#E0A552" },
-  { key: "lighthouse_desktop", label: "Desktop", color: "#A78BD0" },
+  { key: "onpage_score", label: "On-page", color: "#35B37E" },
+  { key: "lighthouse_mobile", label: "Mobile", color: "#D9A441" },
+  { key: "lighthouse_desktop", label: "Desktop", color: "#5A9BE6" },
 ];
 
 const W = 860;
