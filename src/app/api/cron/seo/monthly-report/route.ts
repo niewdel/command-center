@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isAuthorizedCron } from "@/lib/cron-auth";
 import { listEnabledSeoClients, createSeoJob, updateSeoJob } from "@/lib/seo/db";
 import { runMonthlyReport } from "@/lib/seo/monthly-report";
 
@@ -9,14 +10,8 @@ export const maxDuration = 300;
 // report_status is 'enabled' (default) and kick each off async. PDF generation
 // runs via Playwright print-to-PDF, then emails the link to contact_email.
 export async function POST(request: NextRequest) {
-  const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret) {
-    const headerSecret =
-      request.headers.get("x-cron-secret") ||
-      request.headers.get("authorization")?.replace("Bearer ", "");
-    if (headerSecret?.trim() !== cronSecret.trim()) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  if (!isAuthorizedCron(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {

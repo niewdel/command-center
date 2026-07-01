@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isAuthorizedCron } from "@/lib/cron-auth";
 import { listEnabledSeoClients, createSeoJob } from "@/lib/seo/db";
 import { runWeeklyCheck } from "@/lib/seo/pipeline";
 
@@ -8,14 +9,8 @@ export const dynamic = "force-dynamic";
 // each one off async. The HTTP response returns immediately; jobs run via
 // setImmediate in this process.
 export async function POST(request: NextRequest) {
-  const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret) {
-    const headerSecret =
-      request.headers.get("x-cron-secret") ||
-      request.headers.get("authorization")?.replace("Bearer ", "");
-    if (headerSecret?.trim() !== cronSecret.trim()) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  if (!isAuthorizedCron(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {

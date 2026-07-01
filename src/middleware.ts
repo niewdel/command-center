@@ -32,8 +32,17 @@ export async function middleware(request: NextRequest) {
   // /api/portal/* verifies the client's view token itself (scoped to that
   // client's id) — same trust model as the digest/webhooks/cron endpoints,
   // just keyed by token instead of a shared secret.
+  //
+  // NOTE: only the digest endpoints that verify their OWN secret are public:
+  //   - /api/digest/process  (server loopback, Bearer DIGEST_PROCESS_SECRET)
+  //   - /api/digest/telegram (Telegram webhook, x-telegram-bot-api-secret-token)
+  // The rest (ingest, reclassify, retry, scrape-trends) are called only from
+  // the authenticated in-app UI, so they must sit BEHIND the login gate — a
+  // blanket /api/digest/ allow-list previously left them open to anonymous
+  // POSTs that wrote/mutated content under the operator's account.
   const isPublicApi =
-    path.startsWith("/api/digest/") ||
+    path === "/api/digest/process" ||
+    path === "/api/digest/telegram" ||
     path.startsWith("/api/webhooks/") ||
     path.startsWith("/api/cron/") ||
     path.startsWith("/api/portal/") ||

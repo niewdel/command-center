@@ -206,6 +206,20 @@ Notes: Single migration covers all schema deltas to avoid migration-023-style dr
 - [x] Verify Playwright launches on deployed Railway container — `COMPLETE` — Chromium binary present at /usr/bin/chromium; PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH set in container env. End-to-end audit run not yet exercised — first manual run in /audits will be the final smoke test.
 - Notes: Switched from SSE to fire-and-forget + Supabase realtime to match the lead-jobs pattern already in production. Same UX (live progress) without long-lived HTTP connections.
 
+#### Security hardening pass (2026-07-01) — `COMPLETE` (pre external hacker review)
+- [x] **CRM RLS leak (externally reachable) — FIXED** — `crm_proposals`, `crm_proposal_line_items`, `crm_proposal_events`, `crm_activities`, `crm_tasks` had `USING(true)` policies for the `public` role. The browser-shipped anon key could read/write all of these directly over the REST API. Tables are empty today but proposals hold client PII + pricing + signatures. Replaced with workspace-owner `auth.uid()` policies via migration `harden_crm_and_news_rls`. Verified: anon INSERT now returns `42501`. Server code uses the service role (bypasses RLS), so nothing broke.
+- [x] **news_stories / news_topics** — were `ALL USING(true)` for authenticated; split into authenticated-SELECT + service-role-write (prevents future tenants polluting shared news).
+- [x] **Digest endpoints (externally reachable) — FIXED** — middleware previously allow-listed all `/api/digest/*` unauthenticated. `ingest`, `reclassify`, `retry`, `scrape-trends` had NO auth and attributed writes to the first user (the operator). They're only ever called from the authenticated in-app UI, so the middleware allow-list was narrowed to just the two self-verifying endpoints (`/api/digest/process`, `/api/digest/telegram`). The rest now sit behind the login gate.
+- [x] **Fail-closed secrets** — `digest/process`, `digest/telegram`, and all 7 `/api/cron/*` routes previously skipped their secret check when the env var was unset (fail-open) and used `!==` compares. Now fail CLOSED via `secureCompare` (SHA-256 + `timingSafeEqual`) helpers in `src/lib/secure-compare.ts` and `src/lib/cron-auth.ts`. Scheduler already sends the header and won't start without CRON_SECRET, so safe.
+- [x] **audit-reports bucket** — was public + broad SELECT (anon could list/enumerate all client audit files). Made private; the app only ever serves reports via the auth-gated service-role `/api/audits/[id]/report` route (no public URL used).
+- [x] **Function search_path** — pinned on 4 trigger/helper functions.
+- [x] Login page reviewed — generic error, no user enumeration, `noValidate`. Clean.
+- [x] Token-gated client surfaces (proposals view/sign/countersign, portal upload/photos, SEO report) reviewed — all verify HMAC tokens scoped to the path id before touching data, timing-safe. Clean.
+- [x] Next.js 16.2.1 — past the CVE-2025-29927 middleware-bypass. Clean.
+- [x] Verification: `tsc --noEmit` clean, `vitest run` 308/308 pass, Supabase security advisors clear except one intentional deny-all (`website_chat_conversations`, orphan table, RLS on + no policy = locked).
+- [ ] **KNOWN — pre-SaaS blocker (NOT externally exploitable now):** ~15 authenticated service-role API routes (`/api/leads/*`, `/api/seo/clients`, `/api/audits/list`, `/api/issues`, `/api/pipeline/promote`, `/api/ai/execute`, `/api/upload` folder) query by user-supplied id without scoping to the caller's org/workspace. Gated behind the operator-only login allow-list today, so an external attacker cannot reach them — but they become cross-tenant IDOR the moment a second client login exists. Close as part of the tenancy-foundation build before multi-tenant SaaS.
+- [ ] **ACTION FOR JUSTIN:** confirm `DIGEST_PROCESS_SECRET` and (if Telegram is used) `TELEGRAM_WEBHOOK_SECRET` are set in Railway — those endpoints now reject when the secret is missing. `CRON_SECRET` already confirmed set.
+
 ## General Notes
 - Project kicked off 2026-03-25
 - Framework gap fill session 2026-03-27: 6 new files, 10 modified files, clean TypeScript + build

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isAuthorizedCron } from "@/lib/cron-auth";
 import { createClient } from "@supabase/supabase-js";
 import { syncIcsFeed } from "@/lib/integrations/calendar/ics-adapter";
 
@@ -11,14 +12,8 @@ function getSupabaseAdmin() {
 
 export async function POST(request: NextRequest) {
   try {
-    const cronSecret = process.env.CRON_SECRET;
-    if (cronSecret) {
-      const headerSecret =
-        request.headers.get("x-cron-secret") ||
-        request.headers.get("authorization")?.replace("Bearer ", "");
-      if (headerSecret?.trim() !== cronSecret.trim()) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
+    if (!isAuthorizedCron(request)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const supabase = getSupabaseAdmin();

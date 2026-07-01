@@ -4,6 +4,7 @@ import { detectSource } from "@/lib/digest/extract";
 import { fetchLightMetadata } from "@/lib/digest/metadata";
 import { dumpTask } from "@/lib/tasks/dump";
 import { localDateString } from "@/lib/utils";
+import { secureCompare } from "@/lib/secure-compare";
 
 function getSupabaseAdmin() {
   return createClient(
@@ -24,12 +25,13 @@ type ReplyMarkup = {
 
 export async function POST(request: NextRequest) {
   try {
-    const secretToken = process.env.TELEGRAM_WEBHOOK_SECRET;
-    if (secretToken) {
-      const headerToken = request.headers.get("x-telegram-bot-api-secret-token");
-      if (headerToken !== secretToken) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
+    // Fail CLOSED: this webhook is publicly reachable, so a missing secret
+    // must reject rather than accept unauthenticated Telegram updates that
+    // would create tasks/digests under the operator's account.
+    const secretToken = process.env.TELEGRAM_WEBHOOK_SECRET?.trim();
+    const headerToken = request.headers.get("x-telegram-bot-api-secret-token");
+    if (!secretToken || !secureCompare(headerToken, secretToken)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const update = await request.json();

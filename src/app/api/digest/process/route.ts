@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { secureCompare } from "@/lib/secure-compare";
 import { createClient } from "@supabase/supabase-js";
 import {
   detectSource,
@@ -36,14 +37,14 @@ async function sendTelegramReply(
 
 export async function POST(request: NextRequest) {
   try {
-    // Verify internal secret (skip if not configured)
+    // Verify internal secret. Fail CLOSED: this endpoint is reachable without
+    // a login session (server loopback calls it with a Bearer token), so a
+    // missing secret must reject, never wave everyone through.
     const authHeader = request.headers.get("authorization");
-    const expectedSecret = process.env.DIGEST_PROCESS_SECRET;
-    if (expectedSecret) {
-      const token = authHeader?.replace("Bearer ", "").trim();
-      if (token !== expectedSecret.trim()) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
+    const expectedSecret = process.env.DIGEST_PROCESS_SECRET?.trim();
+    const token = authHeader?.replace("Bearer ", "").trim();
+    if (!expectedSecret || !secureCompare(token, expectedSecret)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { digestId } = await request.json();
