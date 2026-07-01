@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { isLoginAllowed } from "@/lib/tenancy/login-gate";
 
 // Accounts allowed into the app. The core operators are ALWAYS allowed —
 // hardcoded here so a stale/single-value env var can never lock the team out.
@@ -122,11 +123,42 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user || !ALLOWED_EMAILS.has((user.email ?? "").toLowerCase())) {
+  if (!user) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.search = "";
     return NextResponse.redirect(url);
+  }
+
+  // Core operators + env-listed emails always pass. Everyone else must be
+  // provisioned: a member of at least one workspace (workspace_members is
+  // RLS-readable by its own user). admin@ passes purely via its Demo
+  // membership — no env var needed.
+  const emailAllowed = ALLOWED_EMAILS.has((user.email ?? "").toLowerCase());
+  if (!emailAllowed) {
+    const { data: membership, error: membershipError } = await supabase
+      .from("workspace_members")
+      .select("workspace_id")
+      .limit(1);
+    // A query error fails CLOSED (isLoginAllowed rejects) — log it so a DB
+    // blip locking out legit users leaves a trace instead of silent 302s.
+    if (membershipError) {
+      console.error(
+        "[middleware] workspace_members query failed; failing closed:",
+        membershipError.message
+      );
+    }
+    const allowed = isLoginAllowed({
+      emailAllowed,
+      membershipRows: membership,
+      queryError: membershipError,
+    });
+    if (!allowed) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.search = "?error=no-access";
+      return NextResponse.redirect(url);
+    }
   }
 
   return response;

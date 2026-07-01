@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPipelineClient, getDefaultPipelineWorkspaceId } from "@/lib/pipeline/db";
+import { getUserScopedClient, resolveActiveWorkspace } from "@/lib/tenancy";
 
 export const dynamic = "force-dynamic";
 
@@ -14,8 +14,10 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string; contactId: string }> }
 ) {
   const { id: dealId, contactId } = await params;
-  const sb = getPipelineClient();
-  const workspace_id = await getDefaultPipelineWorkspaceId();
+  const ws = await resolveActiveWorkspace();
+  if (!ws) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const sb = await getUserScopedClient();
+  const workspace_id = ws.id;
 
   const { data: deal } = await sb
     .from("crm_deals")
@@ -60,8 +62,10 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string; contactId: string }> }
 ) {
   const { id: dealId, contactId } = await params;
-  const sb = getPipelineClient();
-  const workspace_id = await getDefaultPipelineWorkspaceId();
+  const ws = await resolveActiveWorkspace();
+  if (!ws) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const sb = await getUserScopedClient();
+  const workspace_id = ws.id;
   const body = await req.json();
 
   const { data: deal } = await sb

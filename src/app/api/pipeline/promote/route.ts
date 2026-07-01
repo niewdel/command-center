@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPipelineClient, getDefaultPipelineWorkspaceId } from "@/lib/pipeline/db";
+import { getUserScopedClient, resolveActiveWorkspace } from "@/lib/tenancy";
+import { getPipelineClient } from "@/lib/pipeline/db";
 
 export const dynamic = "force-dynamic";
 
@@ -10,10 +11,18 @@ export const dynamic = "force-dynamic";
  * Idempotently copies the prospect's company + contact into the Niewdel CRM
  * (dedupes on source_prospect_*_id) and creates a new deal in stage
  * "discovery". Returns the new deal id so the client can route to detail.
+ *
+ * Note: reads from the leads tables (`contacts`/`companies`) stay on the
+ * leads-module client — that module's tenancy is out of scope here. Only
+ * the CRM writes (crm_companies/crm_contacts/crm_deals) move to the
+ * user-scoped client + active workspace.
  */
 export async function POST(req: NextRequest) {
-  const sb = getPipelineClient();
-  const workspace_id = await getDefaultPipelineWorkspaceId();
+  const ws = await resolveActiveWorkspace();
+  if (!ws) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const sb = await getUserScopedClient();
+  const workspace_id = ws.id;
+  const leadsSb = getPipelineClient();
   const body = await req.json();
   const prospectContactId = body.prospect_contact_id as string | undefined;
 
@@ -22,7 +31,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Pull source prospect + its company
-  const { data: prospect, error: pErr } = await sb
+  const { data: prospect, error: pErr } = await leadsSb
     .from("contacts")
     .select(
       "id, full_name, first_name, last_name, title, email, phone, linkedin_url, companies(id, name, domain, website, industry, headcount, city, state)"

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { Montserrat, Inter } from "next/font/google";
 import { supabase } from "@/lib/supabase";
@@ -22,7 +22,17 @@ const inter = Inter({
 const LANDING = "/seo";
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const noAccess = searchParams.get("error") === "no-access";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -103,6 +113,12 @@ export default function LoginPage() {
           <p className="lg-sub">Sign in to your Niewdel workspace.</p>
 
           <span className="lg-rule" aria-hidden />
+
+          {noAccess && (
+            <p className="lg-error lg-error-standalone" role="alert">
+              This account has no workspace access yet.
+            </p>
+          )}
 
           <form onSubmit={handleSubmit} className="lg-form" noValidate>
             <div className="lg-field">
@@ -326,6 +342,7 @@ export default function LoginPage() {
         .lg-input[aria-invalid="true"] { border-color: #C0413A; }
 
         .lg-error { margin: -2px 0 0; font-size: 13px; color: #E06A63; }
+        .lg-error-standalone { margin: 22px 0 0; }
 
         .lg-cta {
           margin-top: 4px;

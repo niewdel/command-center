@@ -14,7 +14,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
-import { getPipelineClient, getDefaultPipelineWorkspaceId } from "@/lib/pipeline/db";
+import { getUserScopedClient, resolveActiveWorkspace } from "@/lib/tenancy";
 
 export const dynamic = "force-dynamic";
 
@@ -35,8 +35,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       ? body.countersignerName.trim()
       : user.email ?? "Niewdel";
 
-  const sb = getPipelineClient();
-  const workspace_id = await getDefaultPipelineWorkspaceId();
+  const ws = await resolveActiveWorkspace();
+  if (!ws) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const sb = await getUserScopedClient();
+  const workspace_id = ws.id;
 
   const { data: proposal } = await sb
     .from("crm_proposals")

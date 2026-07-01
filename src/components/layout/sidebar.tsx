@@ -3,9 +3,27 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { TrendingUp, Gauge, LogOut } from "lucide-react";
+import {
+  TrendingUp,
+  Gauge,
+  LogOut,
+  Kanban,
+  Sun,
+  FileSignature,
+  CircleDollarSign,
+  BarChart3,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
+import { WorkspaceSwitcher } from "@/components/layout/workspace-switcher";
+
+const pipelineNav = [
+  { name: "Pipeline", href: "/pipeline", icon: Kanban },
+  { name: "My Day", href: "/pipeline/my-day", icon: Sun },
+  { name: "Proposals", href: "/pipeline/proposals", icon: FileSignature },
+  { name: "Revenue", href: "/pipeline/revenue", icon: CircleDollarSign },
+  { name: "Reports", href: "/pipeline/dashboard", icon: BarChart3 },
+];
 
 const agentsNav = [
   { name: "Visibility Agent", href: "/seo", icon: TrendingUp },
@@ -40,9 +58,34 @@ export function Sidebar() {
         <span aria-hidden="true" className="size-1.5 rounded-full bg-primary" />
       </div>
 
-      {/* Navigation — agents only */}
+      {/* Active workspace — hidden when the user has fewer than 2 */}
+      <div className="px-3 pt-3">
+        <WorkspaceSwitcher />
+      </div>
+
+      {/* Navigation */}
       <nav className="flex-1 px-3 py-5 space-y-1 overflow-y-auto">
-        <p className="eyebrow-blue px-2.5 pb-2">Agents</p>
+        <p className="eyebrow-blue px-2.5 pb-2">CRM</p>
+        {pipelineNav.map((item) => (
+          <NavRow
+            key={item.href}
+            href={item.href}
+            icon={item.icon}
+            label={item.name}
+            active={
+              item.href === "/pipeline"
+                ? // Board + entity detail pages, but not the sibling sub-pages
+                  pathname.startsWith("/pipeline") &&
+                  !pipelineNav.some(
+                    (o) =>
+                      o.href !== "/pipeline" &&
+                      (pathname === o.href || pathname.startsWith(o.href + "/"))
+                  )
+                : pathname === item.href || pathname.startsWith(item.href + "/")
+            }
+          />
+        ))}
+        <p className="eyebrow-blue px-2.5 pb-2 pt-4">Agents</p>
         {agentsNav.map((item) => (
           <NavRow
             key={item.href}

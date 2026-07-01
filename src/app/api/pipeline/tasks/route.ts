@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPipelineClient, getDefaultPipelineWorkspaceId } from "@/lib/pipeline/db";
+import { getUserScopedClient, resolveActiveWorkspace } from "@/lib/tenancy";
 import { isTaskOverdue } from "@/lib/pipeline/tasks";
 import type { CrmTask } from "@/types/pipeline";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
-  const sb = getPipelineClient();
-  const workspace_id = await getDefaultPipelineWorkspaceId();
+  const ws = await resolveActiveWorkspace();
+  if (!ws) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const sb = await getUserScopedClient();
+  const workspace_id = ws.id;
   const { searchParams } = new URL(req.url);
   const doneParam = searchParams.get("done");
   const overdueParam = searchParams.get("overdue");
@@ -35,8 +37,10 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const sb = getPipelineClient();
-  const workspace_id = await getDefaultPipelineWorkspaceId();
+  const ws = await resolveActiveWorkspace();
+  if (!ws) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const sb = await getUserScopedClient();
+  const workspace_id = ws.id;
   const body = await req.json();
 
   const title = typeof body.title === "string" ? body.title.trim() : "";
