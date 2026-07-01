@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPipelineClient, getDefaultPipelineWorkspaceId } from "@/lib/pipeline/db";
+import { getUserScopedClient, resolveActiveWorkspace } from "@/lib/tenancy";
 import { ACTIVITY_TYPES, type ActivityType } from "@/types/pipeline";
 
 export const dynamic = "force-dynamic";
@@ -9,8 +9,10 @@ const LOGGABLE_ACTIVITY_TYPES: ActivityType[] = ACTIVITY_TYPES.filter((t) => t !
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const sb = getPipelineClient();
-  const workspace_id = await getDefaultPipelineWorkspaceId();
+  const ws = await resolveActiveWorkspace();
+  if (!ws) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const sb = await getUserScopedClient();
+  const workspace_id = ws.id;
 
   const { data, error } = await sb
     .from("crm_activities")
@@ -25,8 +27,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const sb = getPipelineClient();
-  const workspace_id = await getDefaultPipelineWorkspaceId();
+  const ws = await resolveActiveWorkspace();
+  if (!ws) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const sb = await getUserScopedClient();
+  const workspace_id = ws.id;
   const body = await req.json();
 
   const type = body.type as ActivityType;

@@ -2,14 +2,19 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 import { createFakeSupabase } from "@/lib/pipeline/__tests__/support/fake-supabase";
 
-const WORKSPACE_ID = "ws-niewdel";
+const WORKSPACE_ID = "ws-1";
 const OTHER_WORKSPACE_ID = "ws-other";
 
 let fake: ReturnType<typeof createFakeSupabase>;
 
-vi.mock("@/lib/pipeline/db", () => ({
-  getPipelineClient: () => fake.client,
-  getDefaultPipelineWorkspaceId: async () => WORKSPACE_ID,
+vi.mock("@/lib/tenancy", () => ({
+  getUserScopedClient: vi.fn(async () => fake.client),
+  resolveActiveWorkspace: vi.fn(async () => ({
+    id: WORKSPACE_ID,
+    slug: "niewdel",
+    name: "Niewdel",
+    kind: "internal",
+  })),
 }));
 
 // Imported after the mock so the route picks up the mocked module.
