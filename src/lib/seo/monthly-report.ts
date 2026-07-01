@@ -188,9 +188,16 @@ export async function runMonthlyReport(
   });
 
   const subjectPrefix = isOverride ? "[Preview] " : "";
+  // Extra client-side recipients (CC). Skipped on operator previews so a preview
+  // never reaches the client's team.
+  const cc =
+    !isOverride && Array.isArray(client.seo_config.report_cc)
+      ? client.seo_config.report_cc.filter((a) => !!a && a !== email)
+      : undefined;
   const result = await sendReportEmail({
     workspace_id: job.workspace_id,
     to: email,
+    cc,
     subject: `${subjectPrefix}${client.name}: SEO report for ${data.client.period_label}`,
     from_name: "Niewdel",
     html: bodyHtml,

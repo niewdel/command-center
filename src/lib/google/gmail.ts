@@ -23,6 +23,7 @@ export class GmailScopeMissingError extends Error {
 interface SendInput {
   user_id: string;       // Supabase user_id whose google connection we use
   to: string | string[];
+  cc?: string | string[];
   bcc?: string | string[];
   subject: string;
   html: string;
@@ -47,6 +48,7 @@ function encodeHeader(s: string): string {
 function buildMime(input: {
   from: string;
   to: string[];
+  cc?: string[];
   bcc?: string[];
   subject: string;
   html: string;
@@ -64,6 +66,9 @@ function buildMime(input: {
     'Content-Type: text/html; charset="UTF-8"',
     "Content-Transfer-Encoding: 7bit",
   ];
+  if (input.cc && input.cc.length > 0) {
+    lines.push(`Cc: ${input.cc.join(", ")}`);
+  }
   if (input.bcc && input.bcc.length > 0) {
     // Bcc header tells Gmail's MTA to deliver to these addresses without
     // exposing them in the visible headers the recipient sees.
@@ -97,6 +102,11 @@ export async function sendGmail(input: SendInput): Promise<{ id: string }> {
 
   const token = await getValidAccessToken(input.user_id);
   const to = Array.isArray(input.to) ? input.to : [input.to];
+  const cc = input.cc
+    ? Array.isArray(input.cc)
+      ? input.cc
+      : [input.cc]
+    : undefined;
   const bcc = input.bcc
     ? Array.isArray(input.bcc)
       ? input.bcc
@@ -108,6 +118,7 @@ export async function sendGmail(input: SendInput): Promise<{ id: string }> {
     // authenticated google account itself.
     from: input.from ?? conn.google_email,
     to,
+    cc,
     bcc,
     subject: input.subject,
     html: input.html,

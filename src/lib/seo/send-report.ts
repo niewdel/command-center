@@ -17,6 +17,7 @@ import { getConnection } from "@/lib/google/oauth";
 interface SendReportArgs {
   workspace_id: string;
   to: string;
+  cc?: string[];              // extra client-side recipients, visible CC
   subject: string;
   html: string;
   reply_to?: string;
@@ -84,6 +85,18 @@ export async function sendReportEmail(args: SendReportArgs): Promise<SendResult>
   }
   const bcc = bccSet.size > 0 ? [...bccSet] : undefined;
 
+  // CC = extra client-side recipients (visible). Drop any that equal the To or
+  // collide with an internal BCC so no address is double-sent.
+  const cc =
+    args.cc && args.cc.length > 0
+      ? args.cc.filter(
+          (a) =>
+            a.toLowerCase() !== toLower &&
+            !INTERNAL_RECIPIENTS.some((r) => r.toLowerCase() === a.toLowerCase())
+        )
+      : undefined;
+  const ccList = cc && cc.length > 0 ? cc : undefined;
+
   // Resend is the PRIMARY path for reports. The niewdel.com domain is
   // verified in Resend, so it sends from noreply@niewdel.com exactly as set
   // and delivers to any recipient. Gmail is only a fallback, because it
@@ -96,6 +109,7 @@ export async function sendReportEmail(args: SendReportArgs): Promise<SendResult>
       const result = await sendResend({
         from: REPORT_FROM,
         to: args.to,
+        cc: ccList,
         bcc,
         subject: args.subject,
         html: args.html,
@@ -115,6 +129,7 @@ export async function sendReportEmail(args: SendReportArgs): Promise<SendResult>
         user_id: ownerId,
         from: REPORT_FROM,
         to: args.to,
+        cc: ccList,
         bcc,
         subject: args.subject,
         html: args.html,
