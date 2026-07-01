@@ -32,8 +32,11 @@ import type {
   SeoResolvedRowOut,
 } from "./report-types";
 
-function rangeWindowMs(range: ReportRange): number | null {
+// Exported for unit testing the range→window math without spinning up the
+// service-role Supabase client that the rest of this module needs.
+export function rangeWindowMs(range: ReportRange): number | null {
   if (range === "30d") return 30 * 86_400_000;
+  if (range === "60d") return 60 * 86_400_000;
   if (range === "90d") return 90 * 86_400_000;
   return null; // life
 }
@@ -402,7 +405,8 @@ export async function getReportData(
   // Leads — booking/contact/call by channel. Isolated like ads so a GA4 or
   // Ads hiccup can't take down the rest of the report. Only surfaced when
   // there's real data to show.
-  const rangeDays = range === "90d" ? 90 : range === "life" ? 365 : 30;
+  const rangeDays =
+    range === "90d" ? 90 : range === "60d" ? 60 : range === "life" ? 365 : 30;
   let leads: ReportData["leads"] = null;
   try {
     const summary = await getLeadsSummary(clientId, rangeDays);

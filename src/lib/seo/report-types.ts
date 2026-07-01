@@ -7,12 +7,13 @@
 // into the client bundle. report-data.ts re-exports from here for
 // backward compatibility.
 
-export type ReportRange = "30d" | "90d" | "life";
+export type ReportRange = "30d" | "60d" | "90d" | "life";
 
-export const REPORT_RANGES: ReportRange[] = ["30d", "90d", "life"];
+export const REPORT_RANGES: ReportRange[] = ["30d", "60d", "90d", "life"];
 
 export const RANGE_LABEL: Record<ReportRange, string> = {
   "30d": "Last 30 days",
+  "60d": "Last 60 days",
   "90d": "Last 90 days",
   life: "Lifetime",
 };
