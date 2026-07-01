@@ -68,7 +68,9 @@ REVOKE ALL ON FUNCTION is_workspace_member(uuid, uuid) FROM public;
 GRANT EXECUTE ON FUNCTION is_agency_admin(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION is_workspace_member(uuid, uuid) TO authenticated;
 
--- 5) Every new workspace automatically gets the agency admins as owners.
+-- 5) Every new workspace automatically gets the agency admins as owners —
+--    and its creator (workspaces.user_id), so a non-admin-created workspace
+--    can never be owner-writable yet SELECT-invisible to its own creator.
 CREATE OR REPLACE FUNCTION add_agency_admins_to_workspace()
 RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER
@@ -82,6 +84,11 @@ BEGIN
     SELECT 1 FROM agency_admins a WHERE lower(a.email) = lower(u.email)
   )
   ON CONFLICT DO NOTHING;
+  IF NEW.user_id IS NOT NULL THEN
+    INSERT INTO workspace_members (workspace_id, user_id, role)
+    VALUES (NEW.id, NEW.user_id, 'owner')
+    ON CONFLICT DO NOTHING;
+  END IF;
   RETURN NEW;
 END;
 $$;

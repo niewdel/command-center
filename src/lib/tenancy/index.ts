@@ -29,10 +29,16 @@ export async function resolveActiveWorkspace(): Promise<ActiveWorkspace | null> 
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data: workspaces } = await supabase
+  const { data: workspaces, error } = await supabase
     .from("workspaces")
     .select("id, slug, name, kind")
     .order("position", { ascending: true });
+  // Fails closed (null → routes 401), but leave a trace: a DB blip here
+  // reads as "no memberships" to the caller and would otherwise be silent.
+  if (error) {
+    console.error("[tenancy] workspaces query failed; failing closed:", error.message);
+    return null;
+  }
   if (!workspaces || workspaces.length === 0) return null;
 
   const cookieStore = await cookies();

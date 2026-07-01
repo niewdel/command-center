@@ -140,6 +140,14 @@ export async function middleware(request: NextRequest) {
       .from("workspace_members")
       .select("workspace_id")
       .limit(1);
+    // A query error fails CLOSED (isLoginAllowed rejects) — log it so a DB
+    // blip locking out legit users leaves a trace instead of silent 302s.
+    if (membershipError) {
+      console.error(
+        "[middleware] workspace_members query failed; failing closed:",
+        membershipError.message
+      );
+    }
     const allowed = isLoginAllowed({
       emailAllowed,
       membershipRows: membership,
