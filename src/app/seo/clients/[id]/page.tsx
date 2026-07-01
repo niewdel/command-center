@@ -476,7 +476,7 @@ export default function SeoClientDetailPage({
 
   if (!loading && !client) {
     return (
-      <PageLayout title="SEO Client Not Found" icon={TrendingUp} maxWidth="xl">
+      <PageLayout title="Client Not Found" icon={TrendingUp} maxWidth="xl">
         <Card className="p-6 text-sm text-muted-foreground">
           No client at this URL.
         </Card>
@@ -488,13 +488,13 @@ export default function SeoClientDetailPage({
 
   return (
     <PageLayout
-      title={client?.name ?? "SEO Client"}
+      title={client?.name ?? "Client"}
       description={cfg.domain}
       icon={TrendingUp}
       maxWidth="xl"
       loading={loading}
       breadcrumbs={[
-        { label: "SEO", href: "/seo" },
+        { label: "Visibility", href: "/seo" },
         { label: client?.name ?? "Client" },
       ]}
       actions={
@@ -872,7 +872,7 @@ export default function SeoClientDetailPage({
       <Sheet open={settingsOpen} onOpenChange={setSettingsOpen}>
         <SheetContent className="w-full sm:max-w-lg overflow-y-auto gap-0">
           <SheetHeader className="px-6 pt-5 pb-4 border-b border-border">
-            <SheetTitle>SEO settings</SheetTitle>
+            <SheetTitle>Visibility settings</SheetTitle>
           </SheetHeader>
           {client && (
             <SettingsForm

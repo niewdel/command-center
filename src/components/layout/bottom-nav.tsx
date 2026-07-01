@@ -6,8 +6,8 @@ import { cn } from "@/lib/utils";
 import { TrendingUp, Gauge } from "lucide-react";
 
 const tabs = [
-  { name: "SEO Agent", href: "/seo", icon: TrendingUp },
-  { name: "Scoring", href: "/audits", icon: Gauge },
+  { name: "Visibility", href: "/seo", icon: TrendingUp },
+  { name: "Audit", href: "/audits", icon: Gauge },
 ];
 
 export function BottomNav() {

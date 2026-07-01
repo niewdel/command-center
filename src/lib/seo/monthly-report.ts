@@ -188,7 +188,7 @@ export async function runMonthlyReport(
     workspace_id: job.workspace_id,
     to: email,
     cc,
-    subject: `${subjectPrefix}${client.name}: SEO report for ${data.client.period_label}`,
+    subject: `${subjectPrefix}${client.name}: Visibility report for ${data.client.period_label}`,
     from_name: "Niewdel",
     html: bodyHtml,
   });
