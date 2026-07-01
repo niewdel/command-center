@@ -13,6 +13,7 @@ import { ContactPickerDialog } from "@/components/pipeline/contact-picker-dialog
 import { CompanyPickerDialog } from "@/components/pipeline/company-picker-dialog";
 import { NewContactDialog } from "@/components/pipeline/new-contact-dialog";
 import { DealActivities } from "@/components/pipeline/deal-activities";
+import { DealTasks } from "@/components/pipeline/deal-tasks";
 import { isDealStale } from "@/lib/pipeline/stale";
 import { Clock3 } from "lucide-react";
 
@@ -671,6 +672,8 @@ export default function DealDetailPage() {
               )}
             </div>
           </div>
+
+          <DealTasks dealId={id} />
 
           <DealActivities dealId={id} />
         </div>
