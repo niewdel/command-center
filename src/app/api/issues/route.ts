@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { requireAgencyAdmin } from "@/lib/tenancy";
 
 function getSupabaseAdmin() {
   return createClient(
@@ -10,6 +11,9 @@ function getSupabaseAdmin() {
 
 // GET /api/issues — list all issues (optionally filter by status)
 export async function GET(request: NextRequest) {
+  if (!(await requireAgencyAdmin())) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   const supabase = getSupabaseAdmin();
   const status = request.nextUrl.searchParams.get("status");
 
@@ -30,6 +34,9 @@ export async function GET(request: NextRequest) {
 
 // PATCH /api/issues — bulk update issues (mark as resolved/closed by system)
 export async function PATCH(request: NextRequest) {
+  if (!(await requireAgencyAdmin())) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   const supabase = getSupabaseAdmin();
   const { ids, status, resolved_by } = await request.json();
 

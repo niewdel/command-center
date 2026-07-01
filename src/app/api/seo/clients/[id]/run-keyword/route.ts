@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSeoClient, createSeoJob, updateSeoJob } from "@/lib/seo/db";
 import { runPaidKeywordCheck } from "@/lib/seo/paid-keyword";
+import { requireAgencyAdmin } from "@/lib/tenancy";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -9,6 +10,9 @@ export async function POST(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!(await requireAgencyAdmin())) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   const { id: clientId } = await params;
   const client = await getSeoClient(clientId);
   if (!client) {

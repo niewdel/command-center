@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getReportData } from "@/lib/seo/report-data";
 import type { ReportRange } from "@/lib/seo/report-data";
+import { requireAgencyAdmin } from "@/lib/tenancy";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,9 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!(await requireAgencyAdmin())) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   const { id } = await params;
   const sp = request.nextUrl.searchParams;
   const rangeParam = sp.get("range") ?? "30d";

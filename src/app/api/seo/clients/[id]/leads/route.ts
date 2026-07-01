@@ -4,6 +4,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getLeadsSummary } from "@/lib/seo/leads";
+import { requireAgencyAdmin } from "@/lib/tenancy";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,9 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!(await requireAgencyAdmin())) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   const { id } = await params;
   const range = new URL(req.url).searchParams.get("range");
   const days = range === "90d" ? 90 : range === "7d" ? 7 : 30;

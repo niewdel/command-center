@@ -1,0 +1,39 @@
+project_id = "command-center"
+
+# Pinned to live production values so `supabase config push` only diffs the
+# email templates below. Update here first if changing auth settings.
+[auth]
+enabled = true
+site_url = "https://app.niewdel.com/**"
+additional_redirect_urls = []
+enable_signup = false
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
+
+[auth.email]
+enable_signup = true
+enable_confirmations = true
+max_frequency = "1m0s"
+otp_length = 8
+
+[auth.email.template.recovery]
+subject = "Reset your Niewdel password"
+content_path = "./supabase/templates/recovery.html"
+
+[auth.email.template.invite]
+subject = "You are invited to your Niewdel workspace"
+content_path = "./supabase/templates/invite.html"
+
+[auth.email.template.magic_link]
+subject = "Your Niewdel sign-in link"
+content_path = "./supabase/templates/magic_link.html"
+
+[auth.email.template.confirmation]
+subject = "Confirm your email"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.email_change]
+subject = "Confirm your new email"
+content_path = "./supabase/templates/email_change.html"

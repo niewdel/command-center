@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/leads/db";
+import { requireAgencyAdmin } from "@/lib/tenancy";
 
 // Single aggregate round-trip: one parallel batch using head/count where
 // possible, no full-table scans, no SSR cookie handshake. Drops first-load
@@ -8,6 +9,9 @@ import { getServiceClient } from "@/lib/leads/db";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  if (!(await requireAgencyAdmin())) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   const sb = getServiceClient();
 
   const [

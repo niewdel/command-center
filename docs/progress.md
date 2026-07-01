@@ -233,6 +233,19 @@ Spec: `docs/superpowers/specs/2026-07-01-tenancy-foundation-design.md` · Plan: 
 - [ ] **Justin QA (2 min, post-deploy):** log in → confirm pipeline unchanged → sidebar dropdown shows Niewdel/i10/Personal/Demo → switch to Demo (fake data) and back. Optionally log in as admin@ → should see ONLY Demo everywhere.
 - Auth email templates (same session, committed to branch): branded Supabase auth emails in `supabase/templates/` + `scripts/apply-auth-email-templates.sh` — BLOCKED on `supabase login` (Management API token) to apply; optional Resend SMTP swap to noreply@niewdel.com included.
 
+#### Agency route hardening + ops (2026-07-01 evening, autonomous session) — `COMPLETE` (PR #19, stacked on #18)
+Branch `fix/agency-route-scoping` (base `feat/tenancy`; retargets to main when #18 merges).
+- [x] **Agency-admin wall** — `requireAgencyAdmin()` in `src/lib/tenancy` (is_agency_admin RPC, fail-closed, 5 unit tests) guards ALL of `/api/leads/*` (9 files), `/api/seo/*` non-cron (14), `/api/audits/*` (5), `/api/issues`, `/api/ai/execute`, `/api/upload`. This closes the "REMAINING" pre-SaaS blocker from the security-hardening section: Demo/client members now 403 on every agency-internal tool.
+- [x] **Pseudo-auth removed** — `ai/execute` no longer impersonates `listUsers()[0]`; `audits/run` no longer resolves the seeded-org user. Both use the authenticated caller.
+- [x] **Nav hiding** — sidebar "Agents" section + mobile bottom nav hidden for non-admins (`useIsAgencyAdmin`, fail-closed). Token-gated public surfaces verified untouched (they call libs directly, not these routes).
+- [x] **Verification** — tsc clean, 328/328 vitest, build green; live probe with minted sessions vs dev server: unauth 307, admin@ 403 on all 4 groups, justin@ 200 on all. Live DB: is_agency_admin true for justin@+dillon@, false for admin@.
+- [x] **Stale secret removed** — `NEXT_PUBLIC_DIGEST_PROCESS_SECRET` deleted from Railway (unused since PIN era, value differed from live secret). Real `DIGEST_PROCESS_SECRET`, `TELEGRAM_WEBHOOK_SECRET`, `CRON_SECRET` all confirmed set.
+- [x] **Auth email templates unblocked + staged** — Supabase CLI turned out to be logged in. `supabase/config.toml` created with live auth settings pinned (bare file would reset site_url/signup/MFA to CLI defaults — dry-run verified diff is now templates-only). Apply: `supabase config push --project-ref mrnuwlxmzxzhqadhktef --yes`.
+- [x] Prod health check — Railway latest deploy SUCCESS (main @ 2980fa8); app.niewdel.com: /login 200, all auth-gated pages/APIs 307, portal without token 307.
+- [ ] **JUSTIN: merge PR #18, then PR #19** — the permission classifier blocks unattended merges/pushes to main (tried gh merge + git push; both denied). Railway auto-deploys on merge.
+- [ ] **JUSTIN: apply auth templates** — one command above (or approve the retry).
+- [ ] Post-merge QA (5 min): login → pipeline unchanged → workspace switcher (Niewdel/i10/Personal/Demo) → switch to Demo, see fake CRM data → /seo + /audits still work for you → portal link from an SEO client (Franky's Detailing or HD Grading have live data) opens the client portal.
+
 ## General Notes
 - Project kicked off 2026-03-25
 - Framework gap fill session 2026-03-27: 6 new files, 10 modified files, clean TypeScript + build

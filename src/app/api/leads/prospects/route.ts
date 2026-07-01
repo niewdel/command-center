@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/leads/db";
 import type { ContactStatus } from "@/types/leads";
+import { requireAgencyAdmin } from "@/lib/tenancy";
 
 export const dynamic = "force-dynamic";
 
@@ -91,6 +92,9 @@ const STEP_TYPE: Record<number, string> = {
 };
 
 export async function GET(req: NextRequest) {
+  if (!(await requireAgencyAdmin())) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   const sb = getServiceClient();
   const params = req.nextUrl.searchParams;
   const status = params.get("status");

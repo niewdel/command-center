@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/leads/db";
+import { requireAgencyAdmin } from "@/lib/tenancy";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,9 @@ function esc(s: string | null | undefined): string {
 }
 
 export async function GET(req: NextRequest) {
+  if (!(await requireAgencyAdmin())) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   const sb = getServiceClient();
   const params = req.nextUrl.searchParams;
   const limit = parseInt(params.get("limit") ?? "100");

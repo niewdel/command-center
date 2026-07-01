@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
+import { useIsAgencyAdmin } from "@/lib/hooks/use-agency-admin";
 import { WorkspaceSwitcher } from "@/components/layout/workspace-switcher";
 
 const pipelineNav = [
@@ -33,6 +34,7 @@ const agentsNav = [
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const isAgencyAdmin = useIsAgencyAdmin();
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -85,16 +87,20 @@ export function Sidebar() {
             }
           />
         ))}
-        <p className="eyebrow-blue px-2.5 pb-2 pt-4">Agents</p>
-        {agentsNav.map((item) => (
-          <NavRow
-            key={item.href}
-            href={item.href}
-            icon={item.icon}
-            label={item.name}
-            active={pathname === item.href || pathname.startsWith(item.href + "/")}
-          />
-        ))}
+        {isAgencyAdmin && (
+          <>
+            <p className="eyebrow-blue px-2.5 pb-2 pt-4">Agents</p>
+            {agentsNav.map((item) => (
+              <NavRow
+                key={item.href}
+                href={item.href}
+                icon={item.icon}
+                label={item.name}
+                active={pathname === item.href || pathname.startsWith(item.href + "/")}
+              />
+            ))}
+          </>
+        )}
       </nav>
 
       {/* Bottom action */}
