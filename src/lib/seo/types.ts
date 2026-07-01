@@ -4,7 +4,8 @@
 export interface SeoConfig {
   enabled: boolean;
   domain: string;                    // e.g., "niewdel.com"
-  contact_email?: string;            // where the monthly PDF is delivered
+  contact_email?: string;            // where the monthly PDF is delivered (primary To)
+  report_cc?: string[];              // extra client-side recipients, CC'd on the report
   contact_name?: string;
   target_keywords?: string[];        // for paid keyword check
   competitor_domains?: string[];     // for paid competitor check
