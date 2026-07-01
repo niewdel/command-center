@@ -32,3 +32,4 @@ Token-gated `/portal/[id]` where a client sees their live reporting: 30/60/90 ra
 - 2026-07-01 01:37 EDT — report initialized; customer portal foundation building.
 - 01:39 EDT — portal foundation done (60d range, /portal/[id] token-gated, shell). Starting reporting panels + spend counter.
 - 01:54 EDT — portal reporting panels + live spend counter done (48 tests green). CRM best-of-breed research done + saved. Starting portal photo uploads.
+- 02:00 EDT — portal photo upload + gallery done (25 security tests; token + cross-client + path-scoping verified). PORTAL COMPLETE (73/73 tests green). Opening portal PR (not merged). Moving to CRM elevation.
