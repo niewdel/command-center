@@ -1,11 +1,11 @@
-import { CategoryResult } from '../types';
+import { CategoryResult, Finding } from '../types';
 import { ScoringInput } from './index';
 import { generateNarrative } from './narratives';
 
 export function score(input: ScoringInput): CategoryResult {
   const { pages } = input;
   let total = 0;
-  const findings: string[] = [];
+  const findings: Finding[] = [];
 
   if (pages.length === 0) {
     return {
@@ -15,7 +15,9 @@ export function score(input: ScoringInput): CategoryResult {
       severity: 'critical',
       headline: 'No pages could be analyzed.',
       narrative: 'The crawl returned no pages, so SEO could not be assessed.',
-      findings: ['No pages were available for analysis'],
+      findings: [
+        { code: 'seo.pages.none', label: 'No pages were available for analysis', pointsLost: 100 },
+      ],
     };
   }
 
@@ -37,9 +39,17 @@ export function score(input: ScoringInput): CategoryResult {
     total += 10;
   } else if (titleRatio > 0.75) {
     total += 5;
-    findings.push(`${pagesWithTitle.length} of ${pages.length} pages have title tags (${Math.round(titleRatio * 100)}%)`);
+    findings.push({
+      code: 'seo.title.coverage.partial',
+      label: `${pagesWithTitle.length} of ${pages.length} pages have title tags (${Math.round(titleRatio * 100)}%)`,
+      pointsLost: 5,
+    });
   } else {
-    findings.push(`Only ${pagesWithTitle.length} of ${pages.length} pages have title tags -- critical SEO gap`);
+    findings.push({
+      code: 'seo.title.missing',
+      label: `Only ${pagesWithTitle.length} of ${pages.length} pages have title tags -- critical SEO gap`,
+      pointsLost: 10,
+    });
   }
 
   // --- All titles unique (8 / 4 pts) ---
@@ -54,10 +64,18 @@ export function score(input: ScoringInput): CategoryResult {
   } else if (titleUniquenessRatio > 0.75) {
     total += 4;
     const dupeCount = titles.length - uniqueTitles;
-    findings.push(`${dupeCount} duplicate title tag(s) found across pages`);
+    findings.push({
+      code: 'seo.title.duplicate.partial',
+      label: `${dupeCount} duplicate title tag(s) found across pages`,
+      pointsLost: 4,
+    });
   } else if (titles.length > 1) {
     const dupeCount = titles.length - uniqueTitles;
-    findings.push(`${dupeCount} duplicate title tags -- search engines cannot differentiate your pages`);
+    findings.push({
+      code: 'seo.title.duplicate',
+      label: `${dupeCount} duplicate title tags -- search engines cannot differentiate your pages`,
+      pointsLost: 8,
+    });
   }
 
   // --- Meta descriptions on every page (10 / 5 / 0 pts) ---
@@ -70,9 +88,17 @@ export function score(input: ScoringInput): CategoryResult {
     total += 10;
   } else if (metaRatio > 0.75) {
     total += 5;
-    findings.push(`${pagesWithMeta.length} of ${pages.length} pages have meta descriptions`);
+    findings.push({
+      code: 'seo.meta.coverage.partial',
+      label: `${pagesWithMeta.length} of ${pages.length} pages have meta descriptions`,
+      pointsLost: 5,
+    });
   } else {
-    findings.push(`Only ${pagesWithMeta.length} of ${pages.length} pages have meta descriptions -- Google will auto-generate snippets`);
+    findings.push({
+      code: 'seo.meta.coverage.missing',
+      label: `Only ${pagesWithMeta.length} of ${pages.length} pages have meta descriptions -- Google will auto-generate snippets`,
+      pointsLost: 10,
+    });
   }
 
   // --- All meta descriptions unique (8 / 4 pts) ---
@@ -86,9 +112,17 @@ export function score(input: ScoringInput): CategoryResult {
     total += 8;
   } else if (metaUniquenessRatio > 0.75) {
     total += 4;
-    findings.push(`${metas.length - uniqueMetas} duplicate meta description(s) found`);
+    findings.push({
+      code: 'seo.meta.duplicate.partial',
+      label: `${metas.length - uniqueMetas} duplicate meta description(s) found`,
+      pointsLost: 4,
+    });
   } else if (metas.length > 1) {
-    findings.push(`${metas.length - uniqueMetas} duplicate meta descriptions -- pages compete with themselves in search results`);
+    findings.push({
+      code: 'seo.meta.duplicate',
+      label: `${metas.length - uniqueMetas} duplicate meta descriptions -- pages compete with themselves in search results`,
+      pointsLost: 8,
+    });
   }
 
   // --- Every page has exactly 1 H1 (8 / 4 pts) ---
@@ -107,14 +141,22 @@ export function score(input: ScoringInput): CategoryResult {
     const parts: string[] = [];
     if (zeroH1 > 0) parts.push(`${zeroH1} with no H1`);
     if (multiH1 > 0) parts.push(`${multiH1} with multiple H1s`);
-    findings.push(`H1 tag issues: ${parts.join(', ')}`);
+    findings.push({
+      code: 'seo.h1.issues.partial',
+      label: `H1 tag issues: ${parts.join(', ')}`,
+      pointsLost: 4,
+    });
   } else {
     const zeroH1 = pages.filter((p) => p.headings.filter((h) => h.level === 1).length === 0).length;
     const multiH1 = pages.filter((p) => p.headings.filter((h) => h.level === 1).length > 1).length;
     const parts: string[] = [];
     if (zeroH1 > 0) parts.push(`${zeroH1} pages missing H1`);
     if (multiH1 > 0) parts.push(`${multiH1} pages with multiple H1s`);
-    findings.push(`Significant H1 problems: ${parts.join(', ')}`);
+    findings.push({
+      code: 'seo.h1.issues.severe',
+      label: `Significant H1 problems: ${parts.join(', ')}`,
+      pointsLost: 8,
+    });
   }
 
   // --- Heading hierarchy logical (5 pts) ---
@@ -129,7 +171,11 @@ export function score(input: ScoringInput): CategoryResult {
   if (pagesWithSkippedLevels.length === 0) {
     total += 5;
   } else {
-    findings.push(`${pagesWithSkippedLevels.length} page(s) have skipped heading levels (e.g., H1 to H3)`);
+    findings.push({
+      code: 'seo.heading.hierarchy.skipped',
+      label: `${pagesWithSkippedLevels.length} page(s) have skipped heading levels (e.g., H1 to H3)`,
+      pointsLost: 5,
+    });
   }
 
   // --- Image alt text >80% (8 pts), 50-80% (4 pts) ---
@@ -144,9 +190,17 @@ export function score(input: ScoringInput): CategoryResult {
       total += 8;
     } else if (altRatio >= 0.5) {
       total += 4;
-      findings.push(`${Math.round(altRatio * 100)}% of images have alt text (${imagesWithAlt}/${allImages.length})`);
+      findings.push({
+        code: 'seo.image.alt.partial',
+        label: `${Math.round(altRatio * 100)}% of images have alt text (${imagesWithAlt}/${allImages.length})`,
+        pointsLost: 4,
+      });
     } else {
-      findings.push(`Only ${Math.round(altRatio * 100)}% of images have alt text (${imagesWithAlt}/${allImages.length}) -- search engines cannot index these images`);
+      findings.push({
+        code: 'seo.image.alt.missing',
+        label: `Only ${Math.round(altRatio * 100)}% of images have alt text (${imagesWithAlt}/${allImages.length}) -- search engines cannot index these images`,
+        pointsLost: 8,
+      });
     }
   }
 
@@ -160,7 +214,11 @@ export function score(input: ScoringInput): CategoryResult {
   if (hasSitemap) {
     total += 8;
   } else {
-    findings.push('No sitemap.xml detected -- search engines may not discover all pages');
+    findings.push({
+      code: 'seo.sitemap.missing',
+      label: 'No sitemap.xml detected -- search engines may not discover all pages',
+      pointsLost: 8,
+    });
   }
 
   // --- robots.txt exists (5 pts) ---
@@ -182,7 +240,11 @@ export function score(input: ScoringInput): CategoryResult {
   if (hasCanonical) {
     total += 5;
   } else {
-    findings.push('No canonical tags found -- risk of duplicate content issues in search engines');
+    findings.push({
+      code: 'seo.canonical.missing',
+      label: 'No canonical tags found -- risk of duplicate content issues in search engines',
+      pointsLost: 5,
+    });
   }
 
   // --- JSON-LD structured data (8 pts) ---
@@ -193,7 +255,11 @@ export function score(input: ScoringInput): CategoryResult {
   if (hasStructuredData) {
     total += 8;
   } else {
-    findings.push('No structured data (JSON-LD) found on any page -- missing rich snippet opportunities');
+    findings.push({
+      code: 'seo.structureddata.missing',
+      label: 'No structured data (JSON-LD) found on any page -- missing rich snippet opportunities',
+      pointsLost: 8,
+    });
   }
 
   // --- Open Graph tags on homepage (5 pts) ---
@@ -205,7 +271,11 @@ export function score(input: ScoringInput): CategoryResult {
   if (hasOgTags) {
     total += 5;
   } else {
-    findings.push('Homepage is missing Open Graph tags -- social shares will lack proper previews');
+    findings.push({
+      code: 'seo.opengraph.missing',
+      label: 'Homepage is missing Open Graph tags -- social shares will lack proper previews',
+      pointsLost: 5,
+    });
   }
 
   // --- No orphan pages (7 pts) ---
@@ -236,7 +306,11 @@ export function score(input: ScoringInput): CategoryResult {
   if (orphanPages.length === 0) {
     total += 7;
   } else {
-    findings.push(`${orphanPages.length} page(s) have fewer than 2 internal links pointing to them -- orphan pages`);
+    findings.push({
+      code: 'seo.orphan.pages',
+      label: `${orphanPages.length} page(s) have fewer than 2 internal links pointing to them -- orphan pages`,
+      pointsLost: 7,
+    });
   }
 
   // --- Title tag proper length (5 pts for >75% compliance) ---
@@ -249,12 +323,16 @@ export function score(input: ScoringInput): CategoryResult {
   if (lengthRatio > 0.75) {
     total += 5;
   } else {
-    findings.push(`Only ${properLengthTitles.length} of ${pages.length} title tags are between 30-60 characters (optimal length)`);
+    findings.push({
+      code: 'seo.title.length',
+      label: `Only ${properLengthTitles.length} of ${pages.length} title tags are between 30-60 characters (optimal length)`,
+      pointsLost: 5,
+    });
   }
 
   const finalScore = Math.max(0, Math.min(100, total));
   const severity = scoreToSeverity(finalScore);
-  const { headline, narrative } = generateNarrative('seo', finalScore, findings);
+  const { headline, narrative } = generateNarrative('seo', finalScore, findings.map((f) => f.label));
 
   return {
     category_id: 'seo',

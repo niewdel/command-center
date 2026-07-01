@@ -16,6 +16,26 @@ export const FINDING_CODES = [
   "seo.title.missing",
   "seo.title.duplicate",
 
+  // seo.* — additional SEO Fundamentals scorer codes (src/lib/audit/scoring/seo.ts)
+  "seo.pages.none",
+  "seo.title.coverage.partial",
+  "seo.title.duplicate.partial",
+  "seo.meta.coverage.partial",
+  "seo.meta.coverage.missing",
+  "seo.meta.duplicate.partial",
+  "seo.meta.duplicate",
+  "seo.h1.issues.partial",
+  "seo.h1.issues.severe",
+  "seo.heading.hierarchy.skipped",
+  "seo.image.alt.partial",
+  "seo.image.alt.missing",
+  "seo.sitemap.missing",
+  "seo.canonical.missing",
+  "seo.structureddata.missing",
+  "seo.opengraph.missing",
+  "seo.orphan.pages",
+  "seo.title.length",
+
   // aeo.* — AI-search / answer-engine optimization (src/lib/seo/aeo-score.ts)
   "aeo.schema.absent",
   "aeo.schema.coverage.low",
