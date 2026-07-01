@@ -3,11 +3,12 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, KanbanSquare, Search } from "lucide-react";
+import { Plus, KanbanSquare, Search, Clock3 } from "lucide-react";
 import { PageLayout } from "@/components/layout/page-layout";
 import { PipelineTabs } from "@/components/pipeline/pipeline-tabs";
 import { useRealtime } from "@/lib/providers/realtime-provider";
 import { DEAL_STAGES, STAGE_LABEL, STAGE_COLOR, ACTIVE_STAGES, type DealStage, type DealWithLinks } from "@/types/pipeline";
+import { isDealStale } from "@/lib/pipeline/stale";
 import { NewDealDialog } from "@/components/pipeline/new-deal-dialog";
 
 function formatCurrency(cents: number | null): string {
@@ -22,6 +23,7 @@ export default function PipelinePage() {
   const [newDealOpen, setNewDealOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [dragId, setDragId] = useState<string | null>(null);
+  const [needsAttentionOnly, setNeedsAttentionOnly] = useState(false);
 
   const fetchDeals = useCallback(async () => {
     const res = await fetch("/api/pipeline/deals");
@@ -46,7 +48,7 @@ export default function PipelinePage() {
     });
   }, []);
 
-  const filtered = search.trim()
+  const searched = search.trim()
     ? deals.filter((d) => {
         const q = search.toLowerCase();
         return (
@@ -57,14 +59,17 @@ export default function PipelinePage() {
       })
     : deals;
 
+  const staleCount = searched.filter((d) => isDealStale(d)).length;
+  const filtered = needsAttentionOnly ? searched.filter((d) => isDealStale(d)) : searched;
+
   const dealsByStage: Record<DealStage, DealWithLinks[]> = {
     discovery: [], scope: [], proposal: [], build: [], live: [], lost: [], disqualified: [],
   };
   for (const d of filtered) dealsByStage[d.stage].push(d);
 
-  const totalActive = filtered.filter((d) => ACTIVE_STAGES.includes(d.stage));
+  const totalActive = searched.filter((d) => ACTIVE_STAGES.includes(d.stage));
   const totalValue = totalActive.reduce((s, d) => s + (d.value_cents ?? 0), 0);
-  const live = filtered.filter((d) => d.stage === "live");
+  const live = searched.filter((d) => d.stage === "live");
   const liveValue = live.reduce((s, d) => s + (d.value_cents ?? 0), 0);
 
   return (
@@ -98,12 +103,34 @@ export default function PipelinePage() {
             className="w-full pl-9 pr-3 py-2 text-sm rounded-md border border-border bg-card outline-none transition-colors focus:border-foreground/40 placeholder:text-muted-foreground"
           />
         </div>
-        <button
-          onClick={() => setNewDealOpen(true)}
-          className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-[var(--rust-hot)] transition-colors"
-        >
-          <Plus size={14} /> New deal
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setNeedsAttentionOnly((v) => !v)}
+            aria-pressed={needsAttentionOnly}
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-md border transition-colors"
+            style={{
+              borderColor: needsAttentionOnly ? "#EF4444" : "var(--border)",
+              color: needsAttentionOnly ? "#EF4444" : "var(--ink-soft)",
+              backgroundColor: needsAttentionOnly ? "rgba(239,68,68,0.08)" : "transparent",
+            }}
+          >
+            <Clock3 size={13} /> Needs attention
+            {staleCount > 0 && (
+              <span
+                className="text-[10px] font-mono tabular-nums px-1.5 py-0.5 rounded-full"
+                style={{ backgroundColor: needsAttentionOnly ? "#EF4444" : "var(--paper-sunken)", color: needsAttentionOnly ? "#fff" : "var(--ink-soft)" }}
+              >
+                {staleCount}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setNewDealOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-[var(--rust-hot)] transition-colors"
+          >
+            <Plus size={14} /> New deal
+          </button>
+        </div>
       </div>
 
       {/* Kanban */}
@@ -152,9 +179,20 @@ export default function PipelinePage() {
                       dragId === deal.id ? "border-primary/60" : "border-border"
                     }`}
                   >
-                    <p className="text-sm font-semibold text-foreground line-clamp-2 text-pretty">
-                      {deal.title}
-                    </p>
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-sm font-semibold text-foreground line-clamp-2 text-pretty">
+                        {deal.title}
+                      </p>
+                      {isDealStale(deal) && (
+                        <span
+                          className="flex items-center gap-1 shrink-0 px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider font-mono"
+                          style={{ backgroundColor: "rgba(239,68,68,0.12)", color: "#EF4444" }}
+                          title="No upcoming next action"
+                        >
+                          <Clock3 size={9} /> Stale
+                        </span>
+                      )}
+                    </div>
                     {deal.company && (
                       <p className="text-xs mt-0.5 truncate text-muted-foreground">
                         {deal.company.name}
