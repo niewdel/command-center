@@ -1,21 +1,24 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { UserSettings } from "@/types/database";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageLayout } from "@/components/layout/page-layout";
-import { Settings, Save, Check, Bell, BellOff, BookOpen } from "lucide-react";
+import { Settings, Save, Check, Bell, BellOff, BookOpen, Compass } from "lucide-react";
 import {
   requestNotificationPermission,
   getNotificationStatus,
 } from "@/lib/hooks/use-notifications";
 import { CalendarConnections } from "@/components/settings/calendar-connections";
 import { RoutineEditor } from "@/components/settings/routine-editor";
+import { requestTourReplay } from "@/lib/onboarding/replay-signal";
 
 export default function SettingsPage() {
+  const router = useRouter();
   const [settings, setSettings] = useState<Partial<UserSettings>>({
     available_hours_weekday: 8,
     available_hours_weekend: 4,
@@ -186,6 +189,28 @@ export default function SettingsPage() {
             <span className="text-xs text-emerald-400 font-medium">Active</span>
           )}
         </div>
+      </div>
+
+      {/* Product tour */}
+      <div className="space-y-4">
+        <div>
+          <h2 className="text-sm font-semibold text-balance font-heading">Product Tour</h2>
+          <p className="text-xs text-muted-foreground mt-1 text-pretty">
+            Walk through the CRM pipeline again, board, quick-add, deal timeline, next actions, My Day, and the forecast dashboard.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2 rounded-lg text-xs"
+          onClick={() => {
+            requestTourReplay();
+            router.push("/pipeline");
+          }}
+        >
+          <Compass className="size-4" />
+          Replay walkthrough
+        </Button>
       </div>
 
       {/* Daily Routines */}

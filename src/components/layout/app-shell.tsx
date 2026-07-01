@@ -10,6 +10,7 @@ import { ToastProvider } from "@/components/ui/toast";
 import { useNotifications, getNotificationStatus } from "@/lib/hooks/use-notifications";
 import { WorkspacesProvider } from "@/lib/providers/workspaces-provider";
 import { RealtimeProvider } from "@/lib/providers/realtime-provider";
+import { OnboardingController } from "@/components/onboarding/OnboardingController";
 
 // Auth surfaces render with NO operator chrome — no sidebar, providers, or
 // command palette. Matches /login and every sub-route (/login/reset,
@@ -64,6 +65,7 @@ export function AppShell({
             <main className="relative z-10 md:ml-[var(--sidebar-width)] min-h-dvh pb-20 md:pb-0 safe-area-top pwa-top-pad">{children}</main>
             <BottomNav />
             <CommandPalette />
+            <OnboardingController />
           </WorkspacesProvider>
         </RealtimeProvider>
       </TooltipProvider>

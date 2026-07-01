@@ -12,6 +12,7 @@ import { isDealStale } from "@/lib/pipeline/stale";
 import { pipelineForecast } from "@/lib/pipeline/forecast";
 import { NewDealDialog } from "@/components/pipeline/new-deal-dialog";
 import { DealsTable } from "@/components/pipeline/deals-table";
+import { OnboardingChecklist } from "@/components/onboarding/OnboardingChecklist";
 
 type BoardView = "kanban" | "table";
 const VIEW_STORAGE_KEY = "pipeline:view";
@@ -125,6 +126,8 @@ function PipelinePageContent() {
     >
       <PipelineTabs />
 
+      <OnboardingChecklist />
+
       {/* Summary row — sentence-style stat strip, not the SaaS hero-metric grid */}
       <div className="flex flex-wrap items-end gap-x-10 gap-y-4 pb-2">
         <Stat label="Open deals" value={String(totalActive.length)} />
@@ -176,6 +179,7 @@ function PipelinePageContent() {
             </button>
           </div>
           <button
+            data-tour="needs-attention"
             onClick={() => setNeedsAttentionOnly((v) => !v)}
             aria-pressed={needsAttentionOnly}
             className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-md border transition-colors"
@@ -196,6 +200,7 @@ function PipelinePageContent() {
             )}
           </button>
           <button
+            data-tour="quick-add"
             onClick={() => setNewDealOpen(true)}
             className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-[var(--rust-hot)] transition-colors"
           >
@@ -207,7 +212,7 @@ function PipelinePageContent() {
       {view === "table" ? (
         <DealsTable deals={filtered} />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3">
+        <div data-tour="pipeline-board" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3">
           {DEAL_STAGES.map((stage) => {
             const stageDeals = dealsByStage[stage];
             const stageTotal = stageDeals.reduce((s, d) => s + (d.value_cents ?? 0), 0);
@@ -244,6 +249,7 @@ function PipelinePageContent() {
                   {stageDeals.map((deal) => (
                     <div
                       key={deal.id}
+                      data-tour="deal-card"
                       role="link"
                       tabIndex={0}
                       onClick={() => router.push(`/pipeline/deals/${deal.id}`)}
