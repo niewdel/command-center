@@ -1,5 +1,5 @@
 import type { AuditResult, CategoryResult, PSIMetrics } from './types';
-import { findingCopy } from './finding-copy';
+import { findingCopy, type FindingCopyEntry } from './finding-copy';
 
 // ── Niewdel v3.0 palette (dark-first), inline hex ──────────────────────────
 const JET = '#0D0D0D';        // page background
@@ -66,21 +66,29 @@ function renderCategorySection(cat: CategoryResult, index: number): string {
   const color = getScoreColor(cat.score);
   const label = getScoreLabel(cat.score);
   const icon = getSeverityIcon(cat.score);
-  const issueCount = cat.findings.length;
   const categoryNumber = String(index + 1).padStart(2, '0');
 
-  const findingsHtml = cat.findings
-    .map((f) => {
-      const copy = findingCopy(f.code);
-      return `
+  const renderableCopies = cat.findings.reduce<FindingCopyEntry[]>((acc, f) => {
+    try {
+      acc.push(findingCopy(f.code));
+    } catch {
+      // Unknown/off-list code -- skip rather than crash report generation.
+    }
+    return acc;
+  }, []);
+  const issueCount = renderableCopies.length;
+
+  const findingsHtml = renderableCopies
+    .map(
+      (copy) => `
       <li class="finding-item">
         <span class="finding-icon">&#10007;</span>
         <div class="finding-body">
           <p class="finding-plain">${escapeHtml(copy.plain)}</p>
           <p class="finding-impact">${escapeHtml(copy.impact)}</p>
         </div>
-      </li>`;
-    })
+      </li>`
+    )
     .join('');
 
   return `
@@ -636,7 +644,7 @@ export function generateHtmlReport(result: AuditResult, logoDataUri?: string): s
     <!-- Footer -->
     <div class="footer">
       <div class="footer-brand">niewdel</div>
-      <div class="footer-tagline">Internal audit report, ${escapeHtml(result.siteName)} · ${escapeHtml(result.auditDate)}</div>
+      <div class="footer-tagline">Website audit for ${escapeHtml(result.siteName)} · ${escapeHtml(result.auditDate)}</div>
     </div>
   </div>
 
