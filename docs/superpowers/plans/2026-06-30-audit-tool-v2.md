@@ -6,6 +6,8 @@
 
 **Architecture:** Enhance the existing `src/lib/audit/*` pipeline (crawl → PSI → score → render). The linchpin is replacing free-text `findings: string[]` with `findings: Finding[]` carrying a stable `code`. Two code-keyed dictionaries (`finding-copy.ts` for the client report, `fix-plan.ts` for internal) consume those codes; a test enforces full coverage so nothing is unexplained and the fix-plan always sums to 100.
 
+**AEO is a shared module.** The AEO scoring logic lives once in `src/lib/seo/aeo-score.ts` behind a normalized `AeoInput` interface. Both consumers adapt their own data to `AeoInput`: the **audit tool** (`scoring/aeo.ts` becomes a thin adapter over crawl `CrawledPage[]`) and the recurring **SEO agent** (which gains a first-class AEO health score in the monthly client report). No duplicate AEO logic.
+
 **Tech Stack:** Next.js 16 / React 19 / TypeScript, Playwright (crawl), Google PageSpeed Insights, Anthropic (narratives), Supabase (storage + `audits` table). Add **vitest** for unit tests on the pure scorers.
 
 ## Global Constraints
@@ -15,7 +17,7 @@
 - Internal fix-plan + Claude prompt keep the technical detail and must project to **exactly 100** when all fixes are applied.
 - Language in the client report reads at a **5-year-old level**; tone is **firm but consultative**, never insulting.
 - Category weights sum to **100**. New AEO category = **12**.
-- No DB migration — categories live in the existing `audits.result` JSONB.
+- Audit tool needs no DB migration — categories live in the existing `audits.result` JSONB. (The SEO-agent AEO score in Task 11 may need one `aeo_score` column; decided in that task.)
 - Scoring must be **winnable**: no points a well-built site cannot earn.
 - TypeScript strict; no `any`. `npx tsc --noEmit` and `npx eslint` must pass at every commit.
 
@@ -90,21 +92,39 @@ export interface CategoryResult { /* …unchanged… */ findings: Finding[]; }
 - [ ] Step 2: Add `Finding` to `types.ts`; change `CategoryResult.findings` to `Finding[]`.
 - [ ] Step 3: `npx tsc --noEmit` — expect errors in scorers/reports that build `findings` as strings. These are the conversion sites for Tasks 4–7. Commit the type change alone (`feat(audit): introduce Finding code type`) — downstream tasks fix the fallout. (Compile break is expected and contained; do NOT ship to prod between Task 2 and Task 7.)
 
-## Task 3: AEO scorer
+## Task 3: Shared AEO scorer
 
 **Files:**
-- Create: `src/lib/audit/scoring/aeo.ts`
-- Create: `src/lib/audit/__tests__/aeo.test.ts`
+- Create: `src/lib/seo/aeo-score.ts` (shared, pure — the single AEO scoring implementation)
+- Create: `src/lib/audit/scoring/aeo.ts` (thin adapter: `CrawledPage[]` + robots → `AeoInput` → `scoreAeo`)
+- Create: `src/lib/seo/__tests__/aeo-score.test.ts`
 - Modify: `src/lib/audit/crawl.ts` (capture AI-crawler disallow rules into the robots result)
 
 **Interfaces:**
-- Consumes: `CrawledPage[]`, robots info (extend the existing robots parse to return `blockedAiCrawlers: string[]`).
-- Produces: `scoreAeo(pages: CrawledPage[], robots: { blockedAiCrawlers: string[] }): { score: number; findings: Finding[] }`
+- Produces (shared):
+```ts
+// aeo-score.ts
+export interface AeoPage {
+  url: string;
+  headings: { level: number; text: string }[];
+  bodyText: string;
+  structuredData: unknown[];   // parsed JSON-LD objects
+  metaDescription: string;
+  ogTags: Record<string, string>;
+}
+export interface AeoInput {
+  pages: AeoPage[];
+  blockedAiBots: string[];     // UA names disallowed for "/"
+  hasLlmsTxt: boolean;
+}
+export function scoreAeo(input: AeoInput): { score: number; findings: Finding[] };
+```
+- The audit adapter maps `CrawledPage` → `AeoPage` (fields line up) and derives `blockedAiBots`/`hasLlmsTxt` from the crawl's robots + a `/llms.txt` HEAD check. The SEO agent (Task 11) already has `blockedAiBots` + llms.txt in `site-checks.ts` and per-page snapshots — it builds `AeoInput` from those.
 
-- [ ] Step 1: Write `aeo.test.ts` — fixtures: (a) a page with Organization+FAQ JSON-LD, question headings, llms.txt, no AI blocks → score ≥ 90; (b) a bare page, GPTBot disallowed, no schema → score ≤ 25 with codes `aeo.schema.absent`, `aeo.aicrawlers.blocked`, `aeo.faq.absent`.
+- [ ] Step 1: Write `aeo-score.test.ts` — fixtures: (a) Org+FAQ JSON-LD, question headings, `hasLlmsTxt: true`, no AI blocks → score ≥ 90; (b) bare page, `blockedAiBots: ["GPTBot"]`, no schema → score ≤ 25 with codes `aeo.schema.absent`, `aeo.aicrawlers.blocked`, `aeo.faq.absent`.
 - [ ] Step 2: Run → FAIL (no `scoreAeo`).
-- [ ] Step 3: Implement `scoreAeo` per the spec rubric (§2): JSON-LD presence/coverage, Org/LocalBusiness NAP, FAQ schema/blocks, question-formatted headings, answer-first content, `llms.txt`, `sameAs`, NAP consistency, freshness, AI-crawler allow, semantic headings, machine summary. Each deduction pushes a `Finding` with a `aeo.*` code + `pointsLost`. Add those codes to `FINDING_CODES`.
-- [ ] Step 4: Run → PASS. Commit `feat(audit): AEO scorer`.
+- [ ] Step 3: Implement `scoreAeo(input: AeoInput)` per the spec rubric (§2): JSON-LD presence/coverage, Org/LocalBusiness NAP, FAQ schema/blocks, question-formatted headings, answer-first content, `hasLlmsTxt`, `sameAs`, NAP consistency, freshness, AI-crawler allow, semantic headings, machine summary. Each deduction pushes a `Finding` with an `aeo.*` code + `pointsLost`. Add those codes to `FINDING_CODES`. Then write `scoring/aeo.ts` adapter.
+- [ ] Step 4: Run → PASS. Commit `feat(seo): shared AEO scorer + audit adapter`.
 
 ## Task 4: Convert existing scorers to coded findings
 
@@ -183,6 +203,29 @@ export interface CategoryResult { /* …unchanged… */ findings: Finding[]; }
 - [ ] Step 2: Review every scorer for **unwinnable points** (e.g. third-party badges); make earnable by a good build or drop from the max. Re-run until the strong fixture can reach 100.
 - [ ] Step 3: Run a real audit against a Niewdel-built site and a weak prospect site via the running app; sanity-check scores + report voice.
 - [ ] Step 4: Commit `test(audit): calibration fixtures + winnable scoring`.
+
+## Task 11: AEO in the recurring SEO agent
+
+Give clients a first-class AEO health score in the monthly report, reusing the
+shared `scoreAeo`. The SEO agent already checks AI-bot blocks + `/llms.txt` in
+`site-checks.ts` and crawls per-page snapshots, so the inputs mostly exist.
+
+**Files:**
+- Modify: `src/lib/seo/scoring.ts` (add `aeo` to the returned scores via `scoreAeo`)
+- Modify: `src/lib/seo/pipeline.ts` (build `AeoInput` from crawled snapshots + `site-checks` robots/llms result; persist the AEO score)
+- Modify: storage + `getReportData` (`src/lib/seo/report-data.ts`) so `health` carries an `aeo` ScoreCard
+- Modify: `src/lib/seo/monthly-report-email.ts` + `src/components/seo/report/health-section.tsx` (render an AEO score card alongside Technical/On-Page/Lighthouse)
+- Migration: **only if** the health scores are stored as typed columns in `seo_checks` — add an `aeo_score` column (nullable int). If scores are stored as JSON, no migration.
+
+**Interfaces:**
+- Consumes: `scoreAeo(input: AeoInput)` (Task 3).
+- Produces: `health.aeo: ScoreCard` in `ReportData`.
+
+- [ ] Step 1: Inspect how `seo_checks` stores health scores (columns vs JSON) to decide on a migration. If a column is needed, `apply_migration` adds `aeo_score int` (nullable) — existing rows stay null and render as "Getting started".
+- [ ] Step 2: In `scoring.ts`, compute `aeo` via `scoreAeo` from the pipeline's page snapshots + site-checks; return it alongside the existing scores.
+- [ ] Step 3: Persist `aeo_score` in the pipeline write; extend `getReportData` to hydrate `health.aeo` (current + delta + history), mirroring the technical/onpage ScoreCards.
+- [ ] Step 4: Render an AEO score card in the email + web health section (same MetricCardInline pattern; label "AI Search").
+- [ ] Step 5: `npx tsc --noEmit` + `eslint`; run a real report render for a client via `tsx` to confirm the AEO card shows. Commit `feat(seo): first-class AEO health score in monthly reports`.
 
 ---
 
