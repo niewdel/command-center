@@ -50,11 +50,7 @@ export async function score(pages: CrawledPage[], rootUrl: string): Promise<Cate
   });
 
   const severity = scoreToSeverity(finalScore);
-  const { headline, narrative } = generateNarrative(
-    'aeo',
-    finalScore,
-    findings.map((f) => f.label)
-  );
+  const { headline, narrative } = generateNarrative('aeo', finalScore);
 
   return {
     category_id: 'aeo',

@@ -269,7 +269,7 @@ export function score(input: ScoringInput): CategoryResult {
 
   const finalScore = Math.max(0, Math.min(100, total));
   const severity = scoreToSeverity(finalScore);
-  const { headline, narrative } = generateNarrative('cta', finalScore, findings.map((f) => f.label));
+  const { headline, narrative } = generateNarrative('cta', finalScore);
 
   return {
     category_id: 'cta',
