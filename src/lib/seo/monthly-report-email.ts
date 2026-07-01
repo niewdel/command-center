@@ -212,7 +212,7 @@ export function renderMonthlyReportEmail(
             <p style="margin:0 0 4px 0;${FONT}font-size:36px;font-weight:700;color:${TEXT};font-feature-settings:'tnum';letter-spacing:-0.025em;">${formatNumber(t.sessions.current)}</p>
             <p style="margin:0 0 2px 0;${FONT}font-size:12px;color:${sessD.color};font-feature-settings:'tnum';">${sessD.arrow} ${escapeHtml(sessD.text)} vs last period</p>
             <p style="margin:8px 0 0 0;${FONT}font-size:13px;color:${MUTED};">${escapeHtml(fromGoogle)}<span style="color:${orgD.color};font-feature-settings:'tnum';">${orgTrend}</span>.</p>
-            <p style="margin:6px 0 0 0;${FONT}font-size:11px;color:${FAINT};letter-spacing:0.04em;">${escapeHtml(periodStart)} – ${escapeHtml(periodEnd)}</p>
+            <p style="margin:10px 0 0 0;${FONT}font-size:12px;color:${MUTED};">Reporting period · ${escapeHtml(periodStart)} – ${escapeHtml(periodEnd)}</p>
             ${buildSourcesBar(t.sources)}
           </td>
         </tr>
@@ -433,7 +433,7 @@ export function renderMonthlyReportEmail(
           <td style="padding:18px;">
             <p style="margin:0 0 4px 0;${FONT}font-size:10px;font-weight:700;color:${MUTED};text-transform:uppercase;letter-spacing:0.18em;">Spend</p>
             <p style="margin:0 0 4px 0;${FONT}font-size:36px;font-weight:700;color:${TEXT};font-feature-settings:'tnum';letter-spacing:-0.025em;">${fmtUsd(m.cost)}</p>
-            <p style="margin:0;${FONT}font-size:11px;color:${FAINT};letter-spacing:0.04em;">${escapeHtml(m.period_start)} – ${escapeHtml(m.period_end)}</p>
+            <p style="margin:8px 0 0 0;${FONT}font-size:12px;color:${MUTED};">Reporting period · ${escapeHtml(m.period_start)} – ${escapeHtml(m.period_end)}</p>
           </td>
         </tr>
       </table>
@@ -570,7 +570,8 @@ export function renderMonthlyReportEmail(
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
         <tr>
           <td style="vertical-align:middle;">
-            <p style="margin:0;${FONT}font-size:15px;font-weight:700;color:${TEXT};letter-spacing:-0.01em;"><span style="color:${BLUE};">&#8226;</span> niewdel</p>
+            <p style="margin:0;${FONT}font-size:15px;font-weight:700;color:${TEXT};letter-spacing:-0.01em;">niewdel</p>
+            <p style="margin:3px 0 0 0;${FONT}font-size:9px;font-weight:700;color:${MUTED};text-transform:uppercase;letter-spacing:0.2em;">Growth Services</p>
           </td>
           <td style="text-align:right;vertical-align:middle;">
             <p style="margin:0;${FONT}font-size:11px;color:${MUTED};letter-spacing:0.04em;">${escapeHtml(generatedDate)}</p>
@@ -605,6 +606,7 @@ export function renderMonthlyReportEmail(
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="format-detection" content="telephone=no,date=no,address=no,email=no"/>
 <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
 <meta name="color-scheme" content="dark light"/>
 <meta name="supported-color-schemes" content="dark light"/>
