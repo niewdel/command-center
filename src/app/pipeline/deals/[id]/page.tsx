@@ -7,13 +7,26 @@ import { ArrowLeft, Mail, Phone, ExternalLink, Trash2, Upload, FileText, Video, 
 import { PageLayout } from "@/components/layout/page-layout";
 import { PipelineTabs } from "@/components/pipeline/pipeline-tabs";
 import { supabase } from "@/lib/supabase";
-import { DEAL_STAGES, STAGE_LABEL, STAGE_COLOR, type DealStage, type CrmDeal, type CrmCompany, type CrmContact } from "@/types/pipeline";
+import { DEAL_STAGES, STAGE_LABEL, STAGE_COLOR, STAGE_PROBABILITY, type DealStage, type CrmDeal, type CrmCompany, type CrmContact } from "@/types/pipeline";
 import { extractDriveFileId, getDriveThumbnailUrl } from "@/lib/google/drive-preview";
 import { ContactPickerDialog } from "@/components/pipeline/contact-picker-dialog";
 import { CompanyPickerDialog } from "@/components/pipeline/company-picker-dialog";
 import { NewContactDialog } from "@/components/pipeline/new-contact-dialog";
+import { ActivityTimeline } from "@/components/pipeline/deal-activities";
+import { TaskList } from "@/components/pipeline/deal-tasks";
+import { isDealStale } from "@/lib/pipeline/stale";
+import { Clock3 } from "lucide-react";
 
 const mono = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
+
+/** ISO timestamp -> `<input type="datetime-local">` value (local time, no seconds). */
+function toDatetimeLocalValue(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 
 type DealContactRow = {
   role: string | null;
@@ -58,6 +71,8 @@ export default function DealDetailPage() {
   const [notes, setNotes] = useState("");
   const [owner, setOwner] = useState("");
   const [lostReason, setLostReason] = useState("");
+  const [nextActionAt, setNextActionAt] = useState("");
+  const [probability, setProbability] = useState("");
 
   // Attachments
   const [proposalUrl, setProposalUrl] = useState("");
@@ -84,6 +99,8 @@ export default function DealDetailPage() {
       setNotes(d.notes ?? "");
       setOwner(d.owner ?? "");
       setLostReason(d.lost_reason ?? "");
+      setNextActionAt(toDatetimeLocalValue(d.next_action_at));
+      setProbability(d.probability != null ? String(d.probability) : "");
       setProposalUrl(d.proposal_url ?? "");
       setProposalFilename(d.proposal_filename ?? "");
       setFathomUrl(d.fathom_url ?? "");
@@ -334,7 +351,48 @@ export default function DealDetailPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="space-y-1.5">
+              <p
+                className="text-[10px] uppercase tracking-wider flex items-center gap-1.5"
+                style={{
+                  color: isDealStale(deal) ? "#EF4444" : "var(--ink-soft)",
+                  fontFamily: mono,
+                }}
+              >
+                <Clock3 size={11} /> Next action
+                {isDealStale(deal) && <span>— needs attention</span>}
+              </p>
+              <div className="flex gap-2">
+                <input
+                  type="datetime-local"
+                  value={nextActionAt}
+                  onChange={(e) => {
+                    setNextActionAt(e.target.value);
+                    const iso = e.target.value ? new Date(e.target.value).toISOString() : null;
+                    queueSave({ next_action_at: iso }, { immediate: true });
+                  }}
+                  className="flex-1 text-sm bg-transparent outline-none border rounded-md px-2 py-1.5"
+                  style={{
+                    borderColor: isDealStale(deal) ? "rgba(239,68,68,0.35)" : "var(--border)",
+                  }}
+                />
+                {nextActionAt && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNextActionAt("");
+                      queueSave({ next_action_at: null }, { immediate: true });
+                    }}
+                    className="px-2.5 py-1.5 text-[10px] uppercase tracking-wider rounded-md transition-colors hover:bg-[rgba(239,68,68,0.1)]"
+                    style={{ fontFamily: mono, color: "var(--ink-soft)", border: "1px solid var(--border)" }}
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
               <div className="space-y-1.5">
                 <p className="text-[10px] uppercase tracking-wider" style={{ color: "var(--ink-soft)", fontFamily: mono }}>
                   Value ($)
@@ -349,6 +407,26 @@ export default function DealDetailPage() {
                     });
                   }}
                   placeholder="5000"
+                  className="w-full text-sm bg-transparent outline-none border rounded-md px-2 py-1.5"
+                  style={{ borderColor: "var(--border)" }}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <p className="text-[10px] uppercase tracking-wider" style={{ color: "var(--ink-soft)", fontFamily: mono }}>
+                  Win % {deal.probability == null && `(default ${STAGE_PROBABILITY[stage]}%)`}
+                </p>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={probability}
+                  onChange={(e) => {
+                    setProbability(e.target.value);
+                    const raw = e.target.value;
+                    const clamped = raw === "" ? null : Math.min(100, Math.max(0, Math.round(parseFloat(raw))));
+                    queueSave({ probability: clamped });
+                  }}
+                  placeholder={String(STAGE_PROBABILITY[stage])}
                   className="w-full text-sm bg-transparent outline-none border rounded-md px-2 py-1.5"
                   style={{ borderColor: "var(--border)" }}
                 />
@@ -616,6 +694,10 @@ export default function DealDetailPage() {
               )}
             </div>
           </div>
+
+          <TaskList scope={{ dealId: id }} />
+
+          <ActivityTimeline scope={{ dealId: id }} />
         </div>
 
         {/* Right: linked entities */}
@@ -668,7 +750,13 @@ export default function DealDetailPage() {
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">
-                            <p className="text-sm font-semibold truncate">{c.full_name}</p>
+                            <Link
+                              href={`/pipeline/contacts/${c.id}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-sm font-semibold truncate hover:underline"
+                            >
+                              {c.full_name}
+                            </Link>
                             {isPrimary && (
                               <Star size={11} fill="var(--rust)" style={{ color: "var(--rust)" }} aria-label="Primary contact" />
                             )}
@@ -746,7 +834,9 @@ export default function DealDetailPage() {
             </div>
             {deal.company ? (
               <>
-                <p className="text-sm font-semibold">{deal.company.name}</p>
+                <Link href={`/pipeline/companies/${deal.company.id}`} className="text-sm font-semibold hover:underline">
+                  {deal.company.name}
+                </Link>
                 <div className="mt-1 space-y-0.5 text-[11px]" style={{ color: "var(--ink-soft)" }}>
                   {deal.company.industry && <p>{deal.company.industry}</p>}
                   {deal.company.hq && <p>{deal.company.hq}</p>}

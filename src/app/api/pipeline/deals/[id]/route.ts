@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPipelineClient, getDefaultPipelineWorkspaceId } from "@/lib/pipeline/db";
 import { DEAL_STAGES, type DealStage } from "@/types/pipeline";
+import { buildStageChangeBody } from "@/lib/pipeline/stale";
 
 export const dynamic = "force-dynamic";
 
@@ -33,14 +34,27 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const body = await req.json();
 
   const patch: Record<string, unknown> = {};
-  for (const k of ["title", "value_cents", "close_date_est", "notes", "owner", "lost_reason", "position", "crm_company_id", "primary_contact_id", "proposal_url", "proposal_filename", "fathom_url"] as const) {
+  for (const k of ["title", "value_cents", "close_date_est", "notes", "owner", "lost_reason", "position", "crm_company_id", "primary_contact_id", "proposal_url", "proposal_filename", "fathom_url", "next_action_at", "probability"] as const) {
     if (k in body) patch[k] = body[k];
   }
+
+  let previousStage: DealStage | null = null;
   if ("stage" in body) {
     if (!DEAL_STAGES.includes(body.stage as DealStage)) {
       return NextResponse.json({ error: `Invalid stage: ${body.stage}` }, { status: 400 });
     }
     patch.stage = body.stage;
+
+    // Fetch the current stage so we can auto-log a stage_change activity
+    // once the update succeeds. Skipped if the stage isn't actually
+    // changing (no-op patch, e.g. re-saving the same stage).
+    const { data: current } = await sb
+      .from("crm_deals")
+      .select("stage")
+      .eq("workspace_id", workspace_id)
+      .eq("id", id)
+      .maybeSingle();
+    previousStage = (current?.stage as DealStage | undefined) ?? null;
   }
 
   const { data, error } = await sb
@@ -54,6 +68,17 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  if (previousStage && data && previousStage !== (patch.stage as DealStage)) {
+    await sb.from("crm_activities").insert({
+      workspace_id,
+      deal_id: id,
+      type: "stage_change",
+      body: buildStageChangeBody(previousStage, patch.stage as DealStage),
+      occurred_at: new Date().toISOString(),
+    });
+  }
+
   return NextResponse.json({ data });
 }
 

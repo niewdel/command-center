@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Building, ExternalLink, Plus, Pencil } from "lucide-react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Building, ExternalLink, Plus, ChevronRight } from "lucide-react";
 import { PageLayout } from "@/components/layout/page-layout";
 import { PipelineTabs } from "@/components/pipeline/pipeline-tabs";
 import { useRealtime } from "@/lib/providers/realtime-provider";
@@ -21,11 +23,11 @@ type CompanyRow = CrmCompany & {
 };
 
 export default function CompaniesPage() {
+  const router = useRouter();
   const [companies, setCompanies] = useState<CompanyRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [addOpen, setAddOpen] = useState(false);
-  const [editing, setEditing] = useState<CrmCompany | null>(null);
 
   const fetchCompanies = useCallback(async () => {
     const res = await fetch("/api/pipeline/companies");
@@ -98,13 +100,19 @@ export default function CompaniesPage() {
             return (
               <li
                 key={c.id}
+                onClick={() => router.push(`/pipeline/companies/${c.id}`)}
                 className="p-3 rounded-lg border group transition-colors hover:border-[color-mix(in oklch, var(--rust) calc(0.25 * 100%), transparent)] cursor-pointer"
                 style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
-                onClick={() => setEditing(c)}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold truncate">{c.name}</p>
+                    <Link
+                      href={`/pipeline/companies/${c.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-sm font-semibold truncate block hover:underline w-fit"
+                    >
+                      {c.name}
+                    </Link>
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5 text-[11px]" style={{ color: "var(--ink-soft)" }}>
                       {c.industry && <span>{c.industry}</span>}
                       {c.hq && <span>· {c.hq}</span>}
@@ -137,7 +145,7 @@ export default function CompaniesPage() {
                         </p>
                       )}
                     </div>
-                    <Pencil
+                    <ChevronRight
                       size={12}
                       className="opacity-0 group-hover:opacity-60 transition-opacity mt-0.5"
                       style={{ color: "var(--ink-soft)" }}
@@ -152,12 +160,6 @@ export default function CompaniesPage() {
       )}
 
       <NewCompanyDialog open={addOpen} onClose={() => setAddOpen(false)} onCreated={fetchCompanies} />
-      <NewCompanyDialog
-        open={!!editing}
-        company={editing}
-        onClose={() => setEditing(null)}
-        onCreated={fetchCompanies}
-      />
     </PageLayout>
   );
 }
