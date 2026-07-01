@@ -170,7 +170,7 @@ export async function runMonthlyReport(
 
   // Render the full inline-HTML email body. No leading intro block — the data
   // (score, visitors, pages, rankings) leads; the summary closes.
-  const bodyHtml = renderMonthlyReportEmail(data, {});
+  const bodyHtml = renderMonthlyReportEmail(data, { baseUrl });
 
   await updateSeoJob(jobId, {
     current_stage: "Sending email",

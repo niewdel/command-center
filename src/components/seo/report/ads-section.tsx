@@ -104,20 +104,27 @@ export function AdsSection({ data }: { data: ReportData }) {
     );
   }
 
-  // Placeholder for any non-ok state. Niewdel does not run ad campaigns,
-  // we only report on existing ones, so the CTA asks the client to grant
-  // us manager access rather than offering campaign management.
+  // Placeholder for any non-ok state. Niewdel now builds and manages paid
+  // ad campaigns, so this empty state is a subtle upsell: no ads running yet
+  // → invite them to have Niewdel run them, routed to sales@niewdel.com.
   return (
-    <Section title="Google Ads">
+    <Section title="Paid Ads">
       <div className="col-span-12 report-card p-6 border-dashed">
         <p className="text-base font-bold text-foreground tracking-tight mb-2">
-          Link your Google Ads.
+          Ready to turn on paid ads?
         </p>
         <p className="text-sm text-muted-foreground leading-relaxed max-w-[60ch]">
-          If you run Google Ads campaigns and want the performance included
-          here each month, add Niewdel as a manager on your Google Ads
-          account. We don&apos;t run the campaigns, we just pull the data
-          for your monthly report. Reply if you&apos;d like to set it up.
+          You are not currently set up to run ads. Organic search is working
+          for you, and paid campaigns are how we accelerate it. If you would
+          like Niewdel to build and manage your ad campaigns, reach out to your
+          salesperson or email{" "}
+          <a
+            href="mailto:sales@niewdel.com"
+            className="font-semibold text-foreground underline"
+          >
+            sales@niewdel.com
+          </a>
+          .
         </p>
       </div>
     </Section>
