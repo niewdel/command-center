@@ -160,27 +160,17 @@ export async function runMonthlyReport(
     progress_pct: 60,
   });
 
-  // Build the greeting + AI-prose intro block. Lives inside the white card as
-  // the first section, so the buildHeader title is the second visual element.
-  // Top padding (32px) provides breathing room above "Hi {name},".
-  const FONT = "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;";
-  const greeting = client.seo_config.contact_name
-    ? `Hi ${client.seo_config.contact_name},`
-    : "Hi,";
+  // The plain-English summary goes at the END of the report (the "In plain
+  // English" section rendered by buildAiSummary), not as a long intro block up
+  // top. Prefer the freshly generated prose; fall back to any summary the data
+  // loader already attached.
+  if (summaryProse) {
+    data.ai_summary = summaryProse;
+  }
 
-  const introProse = summaryProse
-    ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
-  <tr>
-    <td style="padding:32px 32px 0 32px;">
-      <p style="${FONT}font-size:14px;color:#F5F5F5;margin:0 0 12px 0;">${greeting}</p>
-      <p style="${FONT}font-size:14px;color:#C7CCD1;line-height:1.6;margin:0;">${summaryProse.replace(/\n\n+/g, `</p><p style="${FONT}font-size:14px;color:#C7CCD1;line-height:1.6;margin:12px 0 0 0;">`).replace(/\n/g, "<br/>")}</p>
-    </td>
-  </tr>
-</table>`
-    : "";
-
-  // Render the full inline-HTML email body with the intro as the leading section.
-  const bodyHtml = renderMonthlyReportEmail(data, { intro: introProse });
+  // Render the full inline-HTML email body. No leading intro block — the data
+  // (score, visitors, pages, rankings) leads; the summary closes.
+  const bodyHtml = renderMonthlyReportEmail(data, {});
 
   await updateSeoJob(jobId, {
     current_stage: "Sending email",
