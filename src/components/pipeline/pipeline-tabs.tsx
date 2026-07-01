@@ -9,6 +9,7 @@ const TABS = [
   { label: "Pipeline", href: "/pipeline" },
   { label: "Clients", href: "/pipeline/clients" },
   { label: "Companies", href: "/pipeline/companies" },
+  { label: "Dashboard", href: "/pipeline/dashboard" },
 ];
 
 export function PipelineTabs() {
