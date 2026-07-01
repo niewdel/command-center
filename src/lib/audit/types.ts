@@ -60,6 +60,13 @@ export interface VisualIssue {
   boundingBox?: { x: number; y: number; width: number; height: number };
 }
 
+export interface Finding {
+  code: string;
+  label: string;
+  pointsLost: number;
+  detail?: string;
+}
+
 export interface CategoryResult {
   category_id: string;
   category_name: string;
@@ -67,7 +74,7 @@ export interface CategoryResult {
   severity: "critical" | "serious" | "moderate" | "acceptable" | "strong";
   headline: string;
   narrative: string;
-  findings: string[];
+  findings: Finding[];
 }
 
 export interface AuditResult {
