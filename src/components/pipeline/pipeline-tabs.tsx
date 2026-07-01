@@ -19,7 +19,9 @@ export function PipelineTabs() {
         const active =
           tab.href === "/pipeline"
             ? pathname === "/pipeline" || pathname.startsWith("/pipeline/deals")
-            : pathname.startsWith(tab.href);
+            : tab.href === "/pipeline/clients"
+              ? pathname.startsWith("/pipeline/clients") || pathname.startsWith("/pipeline/contacts")
+              : pathname.startsWith(tab.href);
         return (
           <Link
             key={tab.href}

@@ -20,7 +20,35 @@ function formatDueDate(iso: string | null): string {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-export function DealTasks({ dealId }: { dealId: string }) {
+/** Which entity this task list is scoped to. Exactly one key is set. */
+export type TaskScope = { dealId: string } | { crmCompanyId: string } | { contactId: string };
+
+function scopeToQuery(scope: TaskScope): string {
+  if ("dealId" in scope) return `deal_id=${scope.dealId}`;
+  if ("crmCompanyId" in scope) return `crm_company_id=${scope.crmCompanyId}`;
+  return `contact_id=${scope.contactId}`;
+}
+
+function scopeToBody(scope: TaskScope): Record<string, string> {
+  if ("dealId" in scope) return { deal_id: scope.dealId };
+  if ("crmCompanyId" in scope) return { crm_company_id: scope.crmCompanyId };
+  return { contact_id: scope.contactId };
+}
+
+function scopeToFields(scope: TaskScope): Pick<CrmTask, "deal_id" | "crm_company_id" | "contact_id"> {
+  return {
+    deal_id: "dealId" in scope ? scope.dealId : null,
+    crm_company_id: "crmCompanyId" in scope ? scope.crmCompanyId : null,
+    contact_id: "contactId" in scope ? scope.contactId : null,
+  };
+}
+
+/** Task list + add-task composer, scoped to a deal, company, or contact. */
+export function TaskList({ scope }: { scope: TaskScope }) {
+  const query = scopeToQuery(scope);
+  const bodyFields = scopeToBody(scope);
+  const taskFields = scopeToFields(scope);
+
   const [tasks, setTasks] = useState<CrmTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState("");
@@ -31,11 +59,11 @@ export function DealTasks({ dealId }: { dealId: string }) {
   const [editDueDate, setEditDueDate] = useState("");
 
   const fetchTasks = useCallback(async () => {
-    const res = await fetch(`/api/pipeline/tasks?deal_id=${dealId}`);
+    const res = await fetch(`/api/pipeline/tasks?${query}`);
     const json = await res.json();
     setTasks(json.data ?? []);
     setLoading(false);
-  }, [dealId]);
+  }, [query]);
 
   useEffect(() => {
     fetchTasks();
@@ -49,9 +77,7 @@ export function DealTasks({ dealId }: { dealId: string }) {
     const optimistic: CrmTask = {
       id: `temp-${Date.now()}`,
       workspace_id: "",
-      deal_id: dealId,
-      crm_company_id: null,
-      contact_id: null,
+      ...taskFields,
       title: trimmed,
       due_date: dueDate ? new Date(dueDate).toISOString() : null,
       done: false,
@@ -66,7 +92,7 @@ export function DealTasks({ dealId }: { dealId: string }) {
       const res = await fetch("/api/pipeline/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: trimmed, due_date: optimistic.due_date, deal_id: dealId }),
+        body: JSON.stringify({ title: trimmed, due_date: optimistic.due_date, ...bodyFields }),
       });
       if (res.ok) {
         const json = await res.json();

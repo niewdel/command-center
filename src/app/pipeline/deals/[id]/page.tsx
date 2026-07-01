@@ -12,8 +12,8 @@ import { extractDriveFileId, getDriveThumbnailUrl } from "@/lib/google/drive-pre
 import { ContactPickerDialog } from "@/components/pipeline/contact-picker-dialog";
 import { CompanyPickerDialog } from "@/components/pipeline/company-picker-dialog";
 import { NewContactDialog } from "@/components/pipeline/new-contact-dialog";
-import { DealActivities } from "@/components/pipeline/deal-activities";
-import { DealTasks } from "@/components/pipeline/deal-tasks";
+import { ActivityTimeline } from "@/components/pipeline/deal-activities";
+import { TaskList } from "@/components/pipeline/deal-tasks";
 import { isDealStale } from "@/lib/pipeline/stale";
 import { Clock3 } from "lucide-react";
 
@@ -695,9 +695,9 @@ export default function DealDetailPage() {
             </div>
           </div>
 
-          <DealTasks dealId={id} />
+          <TaskList scope={{ dealId: id }} />
 
-          <DealActivities dealId={id} />
+          <ActivityTimeline scope={{ dealId: id }} />
         </div>
 
         {/* Right: linked entities */}
@@ -750,7 +750,13 @@ export default function DealDetailPage() {
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">
-                            <p className="text-sm font-semibold truncate">{c.full_name}</p>
+                            <Link
+                              href={`/pipeline/contacts/${c.id}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-sm font-semibold truncate hover:underline"
+                            >
+                              {c.full_name}
+                            </Link>
                             {isPrimary && (
                               <Star size={11} fill="var(--rust)" style={{ color: "var(--rust)" }} aria-label="Primary contact" />
                             )}
@@ -828,7 +834,9 @@ export default function DealDetailPage() {
             </div>
             {deal.company ? (
               <>
-                <p className="text-sm font-semibold">{deal.company.name}</p>
+                <Link href={`/pipeline/companies/${deal.company.id}`} className="text-sm font-semibold hover:underline">
+                  {deal.company.name}
+                </Link>
                 <div className="mt-1 space-y-0.5 text-[11px]" style={{ color: "var(--ink-soft)" }}>
                   {deal.company.industry && <p>{deal.company.industry}</p>}
                   {deal.company.hq && <p>{deal.company.hq}</p>}

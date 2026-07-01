@@ -31,7 +31,35 @@ function formatRelativeTime(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-export function DealActivities({ dealId }: { dealId: string }) {
+/** Which entity this activity timeline is scoped to. Exactly one key is set. */
+export type ActivityScope = { dealId: string } | { crmCompanyId: string } | { contactId: string };
+
+function scopeToQuery(scope: ActivityScope): string {
+  if ("dealId" in scope) return `deal_id=${scope.dealId}`;
+  if ("crmCompanyId" in scope) return `crm_company_id=${scope.crmCompanyId}`;
+  return `contact_id=${scope.contactId}`;
+}
+
+function scopeToBody(scope: ActivityScope): Record<string, string> {
+  if ("dealId" in scope) return { deal_id: scope.dealId };
+  if ("crmCompanyId" in scope) return { crm_company_id: scope.crmCompanyId };
+  return { contact_id: scope.contactId };
+}
+
+function scopeToFields(scope: ActivityScope): Pick<CrmActivity, "deal_id" | "crm_company_id" | "contact_id"> {
+  return {
+    deal_id: "dealId" in scope ? scope.dealId : null,
+    crm_company_id: "crmCompanyId" in scope ? scope.crmCompanyId : null,
+    contact_id: "contactId" in scope ? scope.contactId : null,
+  };
+}
+
+/** Activity timeline + quick-log composer, scoped to a deal, company, or contact. */
+export function ActivityTimeline({ scope }: { scope: ActivityScope }) {
+  const query = scopeToQuery(scope);
+  const bodyFields = scopeToBody(scope);
+  const activityFields = scopeToFields(scope);
+
   const [activities, setActivities] = useState<CrmActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [type, setType] = useState<ActivityType>("note");
@@ -39,11 +67,11 @@ export function DealActivities({ dealId }: { dealId: string }) {
   const [submitting, setSubmitting] = useState(false);
 
   const fetchActivities = useCallback(async () => {
-    const res = await fetch(`/api/pipeline/deals/${dealId}/activities`);
+    const res = await fetch(`/api/pipeline/activities?${query}`);
     const json = await res.json();
     setActivities(json.data ?? []);
     setLoading(false);
-  }, [dealId]);
+  }, [query]);
 
   useEffect(() => {
     fetchActivities();
@@ -59,9 +87,7 @@ export function DealActivities({ dealId }: { dealId: string }) {
     const optimistic: CrmActivity = {
       id: `temp-${Date.now()}`,
       workspace_id: "",
-      deal_id: dealId,
-      crm_company_id: null,
-      contact_id: null,
+      ...activityFields,
       type,
       body,
       occurred_at: new Date().toISOString(),
@@ -72,10 +98,10 @@ export function DealActivities({ dealId }: { dealId: string }) {
     setText("");
 
     try {
-      const res = await fetch(`/api/pipeline/deals/${dealId}/activities`, {
+      const res = await fetch("/api/pipeline/activities", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type, body }),
+        body: JSON.stringify({ type, body, ...bodyFields }),
       });
       if (res.ok) {
         const json = await res.json();

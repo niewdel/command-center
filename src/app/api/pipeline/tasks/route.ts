@@ -12,9 +12,13 @@ export async function GET(req: NextRequest) {
   const doneParam = searchParams.get("done");
   const overdueParam = searchParams.get("overdue");
   const dealId = searchParams.get("deal_id");
+  const companyId = searchParams.get("crm_company_id");
+  const contactId = searchParams.get("contact_id");
 
   let query = sb.from("crm_tasks").select("*").eq("workspace_id", workspace_id);
   if (dealId) query = query.eq("deal_id", dealId);
+  if (companyId) query = query.eq("crm_company_id", companyId);
+  if (contactId) query = query.eq("contact_id", contactId);
   if (doneParam === "true") query = query.eq("done", true);
   if (doneParam === "false") query = query.eq("done", false);
   query = query.order("due_date", { ascending: true });
@@ -40,7 +44,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "title is required" }, { status: 400 });
   }
 
-  // Confirm the linked deal (if any) belongs to this workspace before attaching.
+  // Confirm any linked deal/company/contact belongs to this workspace before attaching.
   if (body.deal_id) {
     const { data: deal } = await sb
       .from("crm_deals")
@@ -49,6 +53,24 @@ export async function POST(req: NextRequest) {
       .eq("id", body.deal_id)
       .maybeSingle();
     if (!deal) return NextResponse.json({ error: "Deal not found" }, { status: 404 });
+  }
+  if (body.crm_company_id) {
+    const { data: company } = await sb
+      .from("crm_companies")
+      .select("id")
+      .eq("workspace_id", workspace_id)
+      .eq("id", body.crm_company_id)
+      .maybeSingle();
+    if (!company) return NextResponse.json({ error: "Company not found" }, { status: 404 });
+  }
+  if (body.contact_id) {
+    const { data: contact } = await sb
+      .from("crm_contacts")
+      .select("id")
+      .eq("workspace_id", workspace_id)
+      .eq("id", body.contact_id)
+      .maybeSingle();
+    if (!contact) return NextResponse.json({ error: "Contact not found" }, { status: 404 });
   }
 
   const { data, error } = await sb

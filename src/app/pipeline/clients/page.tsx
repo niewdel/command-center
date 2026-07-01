@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Mail, Phone, ExternalLink, UserPlus, Users as UsersIcon, Pencil } from "lucide-react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Mail, Phone, ExternalLink, UserPlus, Users as UsersIcon, ChevronRight } from "lucide-react";
 import { PageLayout } from "@/components/layout/page-layout";
 import { PipelineTabs } from "@/components/pipeline/pipeline-tabs";
 import { useRealtime } from "@/lib/providers/realtime-provider";
@@ -16,11 +18,11 @@ type ClientRow = CrmContact & {
 };
 
 export default function ClientsPage() {
+  const router = useRouter();
   const [contacts, setContacts] = useState<ClientRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [addOpen, setAddOpen] = useState(false);
-  const [editing, setEditing] = useState<CrmContact | null>(null);
 
   const fetchContacts = useCallback(async () => {
     const res = await fetch("/api/pipeline/contacts");
@@ -92,14 +94,20 @@ export default function ClientsPage() {
             return (
               <li
                 key={c.id}
+                onClick={() => router.push(`/pipeline/contacts/${c.id}`)}
                 className="p-3 rounded-lg border group transition-colors hover:border-[color-mix(in oklch, var(--rust) calc(0.25 * 100%), transparent)] cursor-pointer"
                 style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
-                onClick={() => setEditing(c)}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm font-semibold truncate">{c.full_name}</p>
+                      <Link
+                        href={`/pipeline/contacts/${c.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-sm font-semibold truncate hover:underline"
+                      >
+                        {c.full_name}
+                      </Link>
                       {c.title && (
                         <span className="text-[11px]" style={{ color: "var(--ink-soft)" }}>
                           · {c.title}
@@ -149,7 +157,7 @@ export default function ClientsPage() {
                         </p>
                       )}
                     </div>
-                    <Pencil
+                    <ChevronRight
                       size={12}
                       className="opacity-0 group-hover:opacity-60 transition-opacity mt-0.5"
                       style={{ color: "var(--ink-soft)" }}
@@ -177,12 +185,6 @@ export default function ClientsPage() {
       )}
 
       <NewContactDialog open={addOpen} onClose={() => setAddOpen(false)} onCreated={fetchContacts} />
-      <NewContactDialog
-        open={!!editing}
-        contact={editing}
-        onClose={() => setEditing(null)}
-        onCreated={fetchContacts}
-      />
     </PageLayout>
   );
 }

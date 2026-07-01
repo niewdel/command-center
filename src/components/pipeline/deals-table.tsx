@@ -142,7 +142,17 @@ export function DealsTable({ deals }: { deals: DealWithLinks[] }) {
                   </Link>
                 </td>
                 <td className="px-3 py-2.5 text-muted-foreground truncate max-w-[160px]">
-                  {deal.company?.name ?? "—"}
+                  {deal.company ? (
+                    <Link
+                      href={`/pipeline/companies/${deal.company.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="hover:text-foreground hover:underline"
+                    >
+                      {deal.company.name}
+                    </Link>
+                  ) : (
+                    "—"
+                  )}
                 </td>
                 <td className="px-3 py-2.5 whitespace-nowrap">
                   <span

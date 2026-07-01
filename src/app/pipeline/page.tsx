@@ -242,9 +242,14 @@ function PipelinePageContent() {
                 )}
                 <div className="space-y-1.5">
                   {stageDeals.map((deal) => (
-                    <Link
+                    <div
                       key={deal.id}
-                      href={`/pipeline/deals/${deal.id}`}
+                      role="link"
+                      tabIndex={0}
+                      onClick={() => router.push(`/pipeline/deals/${deal.id}`)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") router.push(`/pipeline/deals/${deal.id}`);
+                      }}
                       draggable
                       onDragStart={() => setDragId(deal.id)}
                       onDragEnd={() => setDragId(null)}
@@ -267,9 +272,13 @@ function PipelinePageContent() {
                         )}
                       </div>
                       {deal.company && (
-                        <p className="text-xs mt-0.5 truncate text-muted-foreground">
+                        <Link
+                          href={`/pipeline/companies/${deal.company.id}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-xs mt-0.5 truncate block text-muted-foreground hover:text-foreground hover:underline w-fit"
+                        >
                           {deal.company.name}
-                        </p>
+                        </Link>
                       )}
                       {deal.contact && (() => {
                         const total = deal.contact_count?.[0]?.count ?? (deal.contact ? 1 : 0);
@@ -293,7 +302,7 @@ function PipelinePageContent() {
                           </span>
                         )}
                       </div>
-                    </Link>
+                    </div>
                   ))}
                   {stageDeals.length === 0 && (
                     <div className="text-center py-8 text-[11px] font-mono text-muted-foreground">
