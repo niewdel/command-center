@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { isLoginAllowed } from "@/lib/tenancy/login-gate";
 
 // Accounts allowed into the app. The core operators are ALWAYS allowed —
 // hardcoded here so a stale/single-value env var can never lock the team out.
@@ -133,12 +134,18 @@ export async function middleware(request: NextRequest) {
   // provisioned: a member of at least one workspace (workspace_members is
   // RLS-readable by its own user). admin@ passes purely via its Demo
   // membership — no env var needed.
-  if (!ALLOWED_EMAILS.has((user.email ?? "").toLowerCase())) {
-    const { data: membership } = await supabase
+  const emailAllowed = ALLOWED_EMAILS.has((user.email ?? "").toLowerCase());
+  if (!emailAllowed) {
+    const { data: membership, error: membershipError } = await supabase
       .from("workspace_members")
       .select("workspace_id")
       .limit(1);
-    if (!membership || membership.length === 0) {
+    const allowed = isLoginAllowed({
+      emailAllowed,
+      membershipRows: membership,
+      queryError: membershipError,
+    });
+    if (!allowed) {
       const url = request.nextUrl.clone();
       url.pathname = "/login";
       url.search = "?error=no-access";
