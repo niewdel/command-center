@@ -23,6 +23,15 @@ describe("getTaskBucket", () => {
   it("buckets a task due in 10 days as later", () => {
     expect(getTaskBucket({ due_date: "2026-07-11T00:00:00Z" }, NOW)).toBe("later");
   });
+
+  // Regression: production due_date is a date-only string ("2026-07-01"),
+  // which parses as UTC midnight. Viewed at 09:00 EDT (13:00Z) it must read
+  // as "today", not "overdue".
+  it("buckets a date-only due today as today when viewed from a western zone", () => {
+    const nowEdtMorning = new Date("2026-07-01T13:00:00Z");
+    expect(getTaskBucket({ due_date: "2026-07-01" }, nowEdtMorning)).toBe("today");
+    expect(isTaskOverdue({ due_date: "2026-07-01", done: false }, nowEdtMorning)).toBe(false);
+  });
 });
 
 describe("isTaskOverdue", () => {

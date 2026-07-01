@@ -6,8 +6,13 @@ import type { CrmTask } from "@/types/pipeline";
  */
 export type TaskBucket = "overdue" | "today" | "upcoming" | "later" | "no_due_date";
 
+// Bucket in UTC, matching dashboard.ts. `crm_tasks.due_date` is a Postgres
+// `date` and serializes date-only ("2026-07-01"), which `new Date()` parses
+// as UTC midnight. Anchoring "today" to the runtime's local timezone would
+// then read every task due today as overdue for any zone west of UTC (the
+// owner is in EDT). Both sides must use UTC.
 function startOfDay(d: Date): Date {
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
 }
 
 /** Bucket a task by its due date relative to `now`: overdue / today / upcoming (next 7 days) / later / no due date. */
