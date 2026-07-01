@@ -29,10 +29,14 @@ export async function middleware(request: NextRequest) {
   // Self-authenticating platform endpoints. Cron fires these over loopback
   // with CRON_SECRET; webhooks/digest verify their own signatures/secrets.
   // The app gate must not block them or the SEO pipeline stops running.
+  // /api/portal/* verifies the client's view token itself (scoped to that
+  // client's id) — same trust model as the digest/webhooks/cron endpoints,
+  // just keyed by token instead of a shared secret.
   const isPublicApi =
     path.startsWith("/api/digest/") ||
     path.startsWith("/api/webhooks/") ||
     path.startsWith("/api/cron/") ||
+    path.startsWith("/api/portal/") ||
     path.startsWith("/api/health");
 
   // Token-protected, client-facing SEO report (magic link + Playwright print).
@@ -49,13 +53,22 @@ export async function middleware(request: NextRequest) {
     hasToken;
   const isReportPublic = isReportPrint || isReportView;
 
-  // Strip ALL operator chrome for the token-gated client report so the
-  // recipient sees only their own scoped report.
+  // Token-protected, client-facing customer portal. Same magic-link model
+  // as the report view above: /portal/[id]?token=… — no login, no expiry
+  // until the signing secret rotates. The portal page re-verifies the
+  // token itself; this only decides whether the request needs a session.
+  const portalPathMatches = /^\/portal\/[^/]+\/?$/.test(path);
+  const isPortalPublic = portalPathMatches && hasToken;
+
+  const isPublicClientSurface = isReportPublic || isPortalPublic;
+
+  // Strip ALL operator chrome for the token-gated client report/portal so
+  // the recipient sees only their own scoped view.
   const propagatedHeaders = new Headers(request.headers);
-  if (isReportPublic) propagatedHeaders.set("x-cc-bare-shell", "1");
+  if (isPublicClientSurface) propagatedHeaders.set("x-cc-bare-shell", "1");
 
   // Public routes pass straight through, no session required.
-  if (isAuthPage || isPublicApi || isReportPublic) {
+  if (isAuthPage || isPublicApi || isPublicClientSurface) {
     return NextResponse.next({ request: { headers: propagatedHeaders } });
   }
 
