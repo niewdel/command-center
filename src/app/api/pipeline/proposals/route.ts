@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPipelineClient, getDefaultPipelineWorkspaceId } from "@/lib/pipeline/db";
+import { getUserScopedClient, resolveActiveWorkspace } from "@/lib/tenancy";
 import { PROPOSAL_TYPES, type CrmProposalLineItem, type ProposalType } from "@/types/proposals";
 import { presetFor } from "@/lib/proposals/presets";
 import { computeTotals } from "@/lib/proposals/pricing";
@@ -11,8 +11,10 @@ const PROPOSAL_SELECT = `*,
   contact:crm_contacts!crm_proposals_primary_contact_id_fkey(id, full_name, title, email, phone)`;
 
 export async function GET(req: NextRequest) {
-  const sb = getPipelineClient();
-  const workspace_id = await getDefaultPipelineWorkspaceId();
+  const ws = await resolveActiveWorkspace();
+  if (!ws) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const sb = await getUserScopedClient();
+  const workspace_id = ws.id;
   const dealId = req.nextUrl.searchParams.get("deal_id");
 
   let query = sb
@@ -27,8 +29,10 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const sb = getPipelineClient();
-  const workspace_id = await getDefaultPipelineWorkspaceId();
+  const ws = await resolveActiveWorkspace();
+  if (!ws) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const sb = await getUserScopedClient();
+  const workspace_id = ws.id;
   const body = await req.json();
 
   const type = body.type as ProposalType;
