@@ -212,7 +212,8 @@ export default function LoginPage() {
           pointer-events: none;
           user-select: none;
         }
-        .lg-brand-head { position: relative; }
+        /* Head is exactly the wordmark's width so the tag can center under it. */
+        .lg-brand-head { position: relative; width: 150px; }
         .lg-brand-mark {
           position: relative;
           display: block;
@@ -221,10 +222,11 @@ export default function LoginPage() {
         }
         .lg-brand-tag {
           margin: 14px 0 0;
+          text-align: center;
           font-family: var(--font-montserrat), system-ui, sans-serif;
           font-weight: 700;
-          font-size: 12px;
-          letter-spacing: 0.2em;
+          font-size: 11px;
+          letter-spacing: 0.18em;
           text-transform: uppercase;
           color: var(--cloud);
         }
