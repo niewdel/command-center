@@ -155,6 +155,12 @@ const FIX_CATALOG: Record<KnownCode, FixCatalogEntry> = {
     difficulty: 'easy',
     timeEstimate: '30 minutes',
   },
+  'seo.robots.missing': {
+    fix: 'Add a /robots.txt with at minimum `User-agent: *`, `Allow: /`, and a `Sitemap:` line pointing at the XML sitemap.',
+    priority: 'medium',
+    difficulty: 'easy',
+    timeEstimate: '15 minutes',
+  },
   'seo.canonical.missing': {
     fix: 'Add `<link rel="canonical" href="https://domain.com/page-url">` to every page\'s `<head>` to prevent duplicate-content issues.',
     priority: 'medium',

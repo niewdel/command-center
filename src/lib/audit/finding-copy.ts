@@ -81,6 +81,10 @@ const COPY: Record<KnownCode, FindingCopyEntry> = {
     plain: "There's no map file that lists every page on the site for Google to follow.",
     impact: "Google may miss pages entirely, so they never show up in search results.",
   },
+  "seo.robots.missing": {
+    plain: "There's no robots.txt file telling search engines and AI crawlers how to crawl the site.",
+    impact: "Crawlers fall back to guessing, and the site misses an easy way to point them straight at its sitemap.",
+  },
   "seo.canonical.missing": {
     plain: "Pages don't tell Google which version of the page is the \"real\" one.",
     impact: "Google may get confused by duplicate-looking pages and rank the wrong one, or none at all.",

@@ -1,9 +1,10 @@
 import { CategoryResult, Finding } from '../types';
 import { ScoringInput } from './index';
 import { generateNarrative } from './narratives';
+import { checkUrlExists } from '@/lib/seo/site-checks';
 
-export function score(input: ScoringInput): CategoryResult {
-  const { pages } = input;
+export async function score(input: ScoringInput): Promise<CategoryResult> {
+  const { pages, rootUrl } = input;
   let total = 0;
   const findings: Finding[] = [];
 
@@ -205,11 +206,20 @@ export function score(input: ScoringInput): CategoryResult {
   }
 
   // --- sitemap.xml exists (8 pts) ---
-  const hasSitemap = pages.some(
-    (p) =>
-      p.links.some((l) => l.href.toLowerCase().includes('sitemap')) ||
-      p.url.toLowerCase().includes('sitemap')
-  );
+  // Fixed from an unwinnable-points bug: this used to only check whether a
+  // crawled page *linked* to sitemap.xml in its HTML, which real sites almost
+  // never do (sitemap.xml is discovered via robots.txt or submitted directly
+  // to search consoles, not linked from the page body). A well-built site
+  // that genuinely has a sitemap.xml could never earn these points. Now we
+  // check for the file directly, the same way the AEO scorer checks llms.txt.
+  const rootOrigin = (() => {
+    try {
+      return new URL(rootUrl).origin;
+    } catch {
+      return rootUrl;
+    }
+  })();
+  const hasSitemap = await checkUrlExists(`${rootOrigin}/sitemap.xml`);
 
   if (hasSitemap) {
     total += 8;
@@ -222,16 +232,19 @@ export function score(input: ScoringInput): CategoryResult {
   }
 
   // --- robots.txt exists (5 pts) ---
-  const hasRobots = pages.some(
-    (p) =>
-      p.links.some((l) => l.href.toLowerCase().includes('robots.txt')) ||
-      p.url.toLowerCase().includes('robots.txt')
-  );
+  // Same fix as sitemap.xml above: check the file directly instead of
+  // looking for an in-page link that would essentially never exist.
+  const hasRobots = await checkUrlExists(`${rootOrigin}/robots.txt`);
 
   if (hasRobots) {
     total += 5;
+  } else {
+    findings.push({
+      code: 'seo.robots.missing',
+      label: 'No robots.txt file found -- a missed opportunity to guide crawlers to your sitemap',
+      pointsLost: 5,
+    });
   }
-  // We don't penalize for missing robots.txt since we may not have crawled it directly
 
   // --- Canonical tags (5 pts) ---
   const hasCanonical = pages.some((p) =>

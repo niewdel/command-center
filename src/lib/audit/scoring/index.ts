@@ -44,7 +44,7 @@ export async function runScoring(input: ScoringInput): Promise<{
     scoreVisualDesign(input),
     scoreUsability(input),
     scoreCTA(input),
-    scoreSEO(input),
+    await scoreSEO(input),
     scorePerformance(input),
     scoreContent(input),
     scoreTrust(input),

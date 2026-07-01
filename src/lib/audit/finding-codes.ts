@@ -30,6 +30,7 @@ export const FINDING_CODES = [
   "seo.image.alt.partial",
   "seo.image.alt.missing",
   "seo.sitemap.missing",
+  "seo.robots.missing",
   "seo.canonical.missing",
   "seo.structureddata.missing",
   "seo.opengraph.missing",

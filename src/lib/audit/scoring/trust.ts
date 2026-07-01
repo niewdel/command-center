@@ -26,8 +26,14 @@ const CERT_KEYWORDS = [
   'certified', 'licensed', 'insured', 'award', 'accredited',
 ];
 
+// Includes self-declarable trust signals (guarantee/warranty language) so this
+// is earnable by any well-built site's own copy, not just businesses that
+// have paid for third-party accreditation (BBB membership, chamber dues) --
+// those remain valid signals when present, but a good build shouldn't be
+// capped below 100 for lacking a paid badge outside its control.
 const TRUST_BADGE_KEYWORDS = [
   'bbb', 'better business', 'chamber of commerce',
+  'guarantee', 'warranty', 'satisfaction guaranteed', 'money-back',
 ];
 
 export function score(input: ScoringInput): CategoryResult {
