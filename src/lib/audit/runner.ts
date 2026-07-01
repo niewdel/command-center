@@ -114,7 +114,7 @@ export async function runAudit(
 
   // Phase 3: scoring
   log("Scoring");
-  const scoring = runScoring({ pages, psiMetrics, screenshots, rootUrl: url });
+  const scoring = await runScoring({ pages, psiMetrics, screenshots, rootUrl: url });
 
   // Build siteName
   const homePage = pages.find((p) => p.url === url) ?? pages[0];
