@@ -49,13 +49,25 @@ export async function middleware(request: NextRequest) {
     hasToken;
   const isReportPublic = isReportPrint || isReportView;
 
+  // Token-gated, client-facing proposal view + sign flow — same pattern as
+  // the SEO report: public only when a `token` query param is present. The
+  // route/API handlers re-verify the token themselves (verifyProposalToken)
+  // before touching any data.
+  const proposalViewPathMatches = /^\/proposals\/[^/]+\/view\/?$/.test(path);
+  const isProposalPublic = proposalViewPathMatches && hasToken;
+
+  // Proposal API routes self-verify the token per-request (every handler
+  // calls verifyProposalToken(id, token) before doing anything), so they're
+  // allowed through unauthenticated the same way /api/portal/ would be.
+  const isProposalApi = path.startsWith("/api/proposals/");
+
   // Strip ALL operator chrome for the token-gated client report so the
   // recipient sees only their own scoped report.
   const propagatedHeaders = new Headers(request.headers);
-  if (isReportPublic) propagatedHeaders.set("x-cc-bare-shell", "1");
+  if (isReportPublic || isProposalPublic) propagatedHeaders.set("x-cc-bare-shell", "1");
 
   // Public routes pass straight through, no session required.
-  if (isAuthPage || isPublicApi || isReportPublic) {
+  if (isAuthPage || isPublicApi || isReportPublic || isProposalPublic || isProposalApi) {
     return NextResponse.next({ request: { headers: propagatedHeaders } });
   }
 

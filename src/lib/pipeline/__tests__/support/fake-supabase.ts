@@ -24,12 +24,14 @@ export function createFakeSupabase(initial: Record<string, Row[]> = {}) {
       let op: "select" | "insert" | "update" | "delete" = "select";
       let payload: unknown = null;
       const filters: [string, unknown][] = [];
+      const inFilters: [string, unknown[]][] = [];
       let orderCol: string | null = null;
       let orderAsc = true;
       let wantSingle = false;
       let wantMaybeSingle = false;
 
-      const matches = (r: Row) => filters.every(([c, v]) => r[c] === v);
+      const matches = (r: Row) =>
+        filters.every(([c, v]) => r[c] === v) && inFilters.every(([c, vals]) => vals.includes(r[c]));
 
       type QueryResult = { data: unknown; error: { message: string } | null };
 
@@ -39,6 +41,7 @@ export function createFakeSupabase(initial: Record<string, Row[]> = {}) {
         update: (p: unknown) => typeof builder;
         delete: () => typeof builder;
         eq: (col: string, val: unknown) => typeof builder;
+        in: (col: string, vals: unknown[]) => typeof builder;
         order: (col: string, opts?: { ascending?: boolean }) => typeof builder;
         maybeSingle: () => typeof builder;
         single: () => typeof builder;
@@ -66,6 +69,10 @@ export function createFakeSupabase(initial: Record<string, Row[]> = {}) {
         },
         eq(col: string, val: unknown) {
           filters.push([col, val]);
+          return builder;
+        },
+        in(col: string, vals: unknown[]) {
+          inFilters.push([col, vals]);
           return builder;
         },
         order(col: string, opts?: { ascending?: boolean }) {
