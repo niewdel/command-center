@@ -12,8 +12,20 @@ import { extractDriveFileId, getDriveThumbnailUrl } from "@/lib/google/drive-pre
 import { ContactPickerDialog } from "@/components/pipeline/contact-picker-dialog";
 import { CompanyPickerDialog } from "@/components/pipeline/company-picker-dialog";
 import { NewContactDialog } from "@/components/pipeline/new-contact-dialog";
+import { DealActivities } from "@/components/pipeline/deal-activities";
+import { isDealStale } from "@/lib/pipeline/stale";
+import { Clock3 } from "lucide-react";
 
 const mono = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
+
+/** ISO timestamp -> `<input type="datetime-local">` value (local time, no seconds). */
+function toDatetimeLocalValue(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 
 type DealContactRow = {
   role: string | null;
@@ -58,6 +70,7 @@ export default function DealDetailPage() {
   const [notes, setNotes] = useState("");
   const [owner, setOwner] = useState("");
   const [lostReason, setLostReason] = useState("");
+  const [nextActionAt, setNextActionAt] = useState("");
 
   // Attachments
   const [proposalUrl, setProposalUrl] = useState("");
@@ -84,6 +97,7 @@ export default function DealDetailPage() {
       setNotes(d.notes ?? "");
       setOwner(d.owner ?? "");
       setLostReason(d.lost_reason ?? "");
+      setNextActionAt(toDatetimeLocalValue(d.next_action_at));
       setProposalUrl(d.proposal_url ?? "");
       setProposalFilename(d.proposal_filename ?? "");
       setFathomUrl(d.fathom_url ?? "");
@@ -331,6 +345,47 @@ export default function DealDetailPage() {
                     {STAGE_LABEL[s]}
                   </button>
                 ))}
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <p
+                className="text-[10px] uppercase tracking-wider flex items-center gap-1.5"
+                style={{
+                  color: isDealStale(deal) ? "#EF4444" : "var(--ink-soft)",
+                  fontFamily: mono,
+                }}
+              >
+                <Clock3 size={11} /> Next action
+                {isDealStale(deal) && <span>— needs attention</span>}
+              </p>
+              <div className="flex gap-2">
+                <input
+                  type="datetime-local"
+                  value={nextActionAt}
+                  onChange={(e) => {
+                    setNextActionAt(e.target.value);
+                    const iso = e.target.value ? new Date(e.target.value).toISOString() : null;
+                    queueSave({ next_action_at: iso }, { immediate: true });
+                  }}
+                  className="flex-1 text-sm bg-transparent outline-none border rounded-md px-2 py-1.5"
+                  style={{
+                    borderColor: isDealStale(deal) ? "rgba(239,68,68,0.35)" : "var(--border)",
+                  }}
+                />
+                {nextActionAt && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNextActionAt("");
+                      queueSave({ next_action_at: null }, { immediate: true });
+                    }}
+                    className="px-2.5 py-1.5 text-[10px] uppercase tracking-wider rounded-md transition-colors hover:bg-[rgba(239,68,68,0.1)]"
+                    style={{ fontFamily: mono, color: "var(--ink-soft)", border: "1px solid var(--border)" }}
+                  >
+                    Clear
+                  </button>
+                )}
               </div>
             </div>
 
@@ -616,6 +671,8 @@ export default function DealDetailPage() {
               )}
             </div>
           </div>
+
+          <DealActivities dealId={id} />
         </div>
 
         {/* Right: linked entities */}
