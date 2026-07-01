@@ -40,6 +40,16 @@ export const PROPOSAL_STATUS_LABEL: Record<ProposalStatus, string> = {
   void: "Void",
 };
 
+// Warm palette only, matching STAGE_COLOR in src/types/pipeline.ts.
+export const PROPOSAL_STATUS_COLOR: Record<ProposalStatus, string> = {
+  draft: "#807870",
+  sent: "#C89B3C",
+  viewed: "#B58A5C",
+  signed: "#5C7F4F",
+  declined: "#8F3623",
+  void: "#807870",
+};
+
 export const PROPOSAL_THEMES = ["dark", "light"] as const;
 export type ProposalTheme = (typeof PROPOSAL_THEMES)[number];
 

@@ -102,12 +102,20 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if ("theme" in body && !PROPOSAL_THEMES.includes(body.theme)) {
     return NextResponse.json({ error: `Invalid theme: ${body.theme}` }, { status: 400 });
   }
+  let shouldLogSentEvent = false;
   if ("status" in body) {
     if (!PROPOSAL_STATUSES.includes(body.status)) {
       return NextResponse.json({ error: `Invalid status: ${body.status}` }, { status: 400 });
     }
     patch.status = body.status;
     if (body.status === "void") patch.declined_at = patch.declined_at ?? null;
+    // Sending is idempotent: only stamp sent_at + log the event the first
+    // time a proposal transitions into 'sent' (currentStatus is 'draft' at
+    // that point since 'signed'/'void' are already rejected above).
+    if (body.status === "sent" && currentStatus !== "sent") {
+      patch.sent_at = new Date().toISOString();
+      shouldLogSentEvent = true;
+    }
   }
 
   // Recompute + snapshot totals from the proposal's current line items on
@@ -133,6 +141,16 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  if (shouldLogSentEvent) {
+    await sb.from("crm_proposal_events").insert({
+      workspace_id,
+      proposal_id: id,
+      type: "sent",
+      meta: {},
+    });
+  }
+
   return NextResponse.json({ data });
 }
 
