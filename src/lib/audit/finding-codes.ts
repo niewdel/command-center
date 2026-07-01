@@ -125,6 +125,19 @@ export const FINDING_CODES = [
   "cta.coverage.missing",
   "cta.contactpage.missing",
   "cta.language.weak",
+
+  // trust.* — Trust & Credibility scorer codes (src/lib/audit/scoring/trust.ts)
+  "trust.pages.none",
+  "trust.https.missing",
+  "trust.privacypolicy.missing",
+  "trust.terms.missing",
+  "trust.contactpage.missing",
+  "trust.address.missing",
+  "trust.social.none",
+  "trust.social.partial",
+  "trust.testimonials.missing",
+  "trust.schema.missing",
+  "trust.aboutpage.missing",
 ] as const;
 
 export type KnownCode = (typeof FINDING_CODES)[number];

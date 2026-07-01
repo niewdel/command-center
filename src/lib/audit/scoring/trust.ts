@@ -1,4 +1,4 @@
-import { CategoryResult } from '../types';
+import { CategoryResult, Finding } from '../types';
 import { ScoringInput } from './index';
 import { generateNarrative } from './narratives';
 
@@ -33,7 +33,7 @@ const TRUST_BADGE_KEYWORDS = [
 export function score(input: ScoringInput): CategoryResult {
   const { pages, rootUrl } = input;
   let total = 0;
-  const findings: string[] = [];
+  const findings: Finding[] = [];
 
   if (pages.length === 0) {
     return {
@@ -43,7 +43,9 @@ export function score(input: ScoringInput): CategoryResult {
       severity: 'critical',
       headline: 'No pages could be analyzed.',
       narrative: 'The crawl returned no pages, so trust signals could not be assessed.',
-      findings: ['No pages were available for analysis'],
+      findings: [
+        { code: 'trust.pages.none', label: 'No pages were available for analysis', pointsLost: 100 },
+      ],
     };
   }
 
@@ -52,7 +54,11 @@ export function score(input: ScoringInput): CategoryResult {
   if (isHttps) {
     total += 15;
   } else {
-    findings.push('Site is NOT using HTTPS -- critical trust and security issue that browsers flag as "Not Secure"');
+    findings.push({
+      code: 'trust.https.missing',
+      label: 'Site is NOT using HTTPS -- critical trust and security issue that browsers flag as "Not Secure"',
+      pointsLost: 15,
+    });
   }
 
   // --- Privacy policy (8 pts) ---
@@ -74,7 +80,11 @@ export function score(input: ScoringInput): CategoryResult {
   if (hasPrivacyPolicy) {
     total += 8;
   } else {
-    findings.push('No privacy policy page detected -- may violate data protection regulations');
+    findings.push({
+      code: 'trust.privacypolicy.missing',
+      label: 'No privacy policy page detected -- may violate data protection regulations',
+      pointsLost: 8,
+    });
   }
 
   // --- Terms of service (5 pts) ---
@@ -97,7 +107,7 @@ export function score(input: ScoringInput): CategoryResult {
   if (hasTerms) {
     total += 5;
   } else {
-    findings.push('No terms of service page detected');
+    findings.push({ code: 'trust.terms.missing', label: 'No terms of service page detected', pointsLost: 5 });
   }
 
   // --- Contact page (8 pts) ---
@@ -115,7 +125,7 @@ export function score(input: ScoringInput): CategoryResult {
   if (hasContactPage) {
     total += 8;
   } else {
-    findings.push('No dedicated contact page detected');
+    findings.push({ code: 'trust.contactpage.missing', label: 'No dedicated contact page detected', pointsLost: 8 });
   }
 
   // --- Physical address (10 pts) ---
@@ -125,7 +135,11 @@ export function score(input: ScoringInput): CategoryResult {
   if (hasAddress) {
     total += 10;
   } else {
-    findings.push('No physical address found on the site -- reduces credibility for local businesses');
+    findings.push({
+      code: 'trust.address.missing',
+      label: 'No physical address found on the site -- reduces credibility for local businesses',
+      pointsLost: 10,
+    });
   }
 
   // --- Social media links (2 pts each, max 10 pts) ---
@@ -148,9 +162,17 @@ export function score(input: ScoringInput): CategoryResult {
   total += socialPoints;
 
   if (foundPlatforms.length === 0) {
-    findings.push('No social media links found anywhere on the site');
+    findings.push({
+      code: 'trust.social.none',
+      label: 'No social media links found anywhere on the site',
+      pointsLost: 10,
+    });
   } else if (foundPlatforms.length < 3) {
-    findings.push(`Only ${foundPlatforms.length} social media platform(s) linked: ${foundPlatforms.join(', ')}`);
+    findings.push({
+      code: 'trust.social.partial',
+      label: `Only ${foundPlatforms.length} social media platform(s) linked: ${foundPlatforms.join(', ')}`,
+      pointsLost: 10 - socialPoints,
+    });
   }
 
   // --- Testimonials/reviews (12 pts) ---
@@ -175,7 +197,11 @@ export function score(input: ScoringInput): CategoryResult {
   if (hasTestimonials) {
     total += 12;
   } else {
-    findings.push('No testimonials or reviews section detected -- missing critical social proof');
+    findings.push({
+      code: 'trust.testimonials.missing',
+      label: 'No testimonials or reviews section detected -- missing critical social proof',
+      pointsLost: 12,
+    });
   }
 
   // --- Business schema markup (10 pts) ---
@@ -194,7 +220,11 @@ export function score(input: ScoringInput): CategoryResult {
   if (hasBusinessSchema) {
     total += 10;
   } else {
-    findings.push('No business schema markup (LocalBusiness/Organization) found -- missing Google Knowledge Panel opportunity');
+    findings.push({
+      code: 'trust.schema.missing',
+      label: 'No business schema markup (LocalBusiness/Organization) found -- missing Google Knowledge Panel opportunity',
+      pointsLost: 10,
+    });
   }
 
   // --- About page (7 pts) ---
@@ -215,7 +245,11 @@ export function score(input: ScoringInput): CategoryResult {
   if (hasAboutPage) {
     total += 7;
   } else {
-    findings.push('No About page detected -- visitors cannot learn about the people behind the business');
+    findings.push({
+      code: 'trust.aboutpage.missing',
+      label: 'No About page detected -- visitors cannot learn about the people behind the business',
+      pointsLost: 7,
+    });
   }
 
   // --- Google Business Profile link or embedded map (5 pts) ---
@@ -256,7 +290,7 @@ export function score(input: ScoringInput): CategoryResult {
 
   const finalScore = Math.max(0, Math.min(100, total));
   const severity = scoreToSeverity(finalScore);
-  const { headline, narrative } = generateNarrative('trust', finalScore, findings);
+  const { headline, narrative } = generateNarrative('trust', finalScore, findings.map((f) => f.label));
 
   return {
     category_id: 'trust',
