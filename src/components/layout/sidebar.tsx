@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { TrendingUp, Gauge, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
+import { WorkspaceSwitcher } from "@/components/layout/workspace-switcher";
 
 const agentsNav = [
   { name: "Visibility Agent", href: "/seo", icon: TrendingUp },
@@ -38,6 +39,11 @@ export function Sidebar() {
           priority
         />
         <span aria-hidden="true" className="size-1.5 rounded-full bg-primary" />
+      </div>
+
+      {/* Active workspace — hidden when the user has fewer than 2 */}
+      <div className="px-3 pt-3">
+        <WorkspaceSwitcher />
       </div>
 
       {/* Navigation — agents only */}
