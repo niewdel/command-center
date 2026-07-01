@@ -60,3 +60,6 @@ iPad_Annotation_Options_for_Presentations.pdf
 
 # supabase cli scratch
 supabase/.temp/
+
+# Reference-only: real client proposals (names + pricing) — never commit
+Proposals/
