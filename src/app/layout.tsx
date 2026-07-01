@@ -18,9 +18,34 @@ const inter = Inter({
 import { AppShell } from "@/components/layout/app-shell";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://app.niewdel.com"),
   title: "Niewdel",
-  description: "Niewdel's custom app is coming soon.",
+  description:
+    "We build what you can't imagine yet. AI, automation, and SEO & AI visibility — by Niewdel.",
   manifest: "/manifest.json",
+  openGraph: {
+    type: "website",
+    siteName: "Niewdel",
+    title: "Niewdel — Growth Services",
+    description:
+      "We build what you can't imagine yet. AI, automation, and SEO & AI visibility — by Niewdel.",
+    url: "https://app.niewdel.com",
+    images: [
+      {
+        url: "/og.png",
+        width: 1200,
+        height: 630,
+        alt: "Niewdel — We build what you can't imagine yet.",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Niewdel — Growth Services",
+    description:
+      "We build what you can't imagine yet. AI, automation, and SEO & AI visibility — by Niewdel.",
+    images: ["/og.png"],
+  },
   // Black "n" on white — the brand's light-surface mark.
   icons: {
     icon: [
