@@ -106,6 +106,25 @@ export const FINDING_CODES = [
   "aeo.aicrawlers.blocked",
   "aeo.headings.structure",
   "aeo.summary.absent",
+
+  // cta.* — Calls to Action scorer codes (src/lib/audit/scoring/cta.ts)
+  "cta.pages.none",
+  "cta.homepage.missing",
+  "cta.keywords.none",
+  "cta.keywords.few",
+  "cta.form.pagelinked",
+  "cta.form.missing",
+  "cta.phone.nothomepage",
+  "cta.phone.missing",
+  "cta.email.nothomepage",
+  "cta.email.missing",
+  "cta.paths.partial",
+  "cta.paths.single",
+  "cta.paths.none",
+  "cta.coverage.partial",
+  "cta.coverage.missing",
+  "cta.contactpage.missing",
+  "cta.language.weak",
 ] as const;
 
 export type KnownCode = (typeof FINDING_CODES)[number];

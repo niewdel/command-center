@@ -1,4 +1,4 @@
-import { CategoryResult } from '../types';
+import { CategoryResult, Finding } from '../types';
 import { ScoringInput } from './index';
 import { generateNarrative } from './narratives';
 
@@ -30,7 +30,7 @@ const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
 export function score(input: ScoringInput): CategoryResult {
   const { pages } = input;
   let total = 0;
-  const findings: string[] = [];
+  const findings: Finding[] = [];
 
   if (pages.length === 0) {
     return {
@@ -40,7 +40,9 @@ export function score(input: ScoringInput): CategoryResult {
       severity: 'critical',
       headline: 'No pages could be analyzed.',
       narrative: 'The crawl returned no pages, so calls to action could not be assessed.',
-      findings: ['No pages were available for analysis'],
+      findings: [
+        { code: 'cta.pages.none', label: 'No pages were available for analysis', pointsLost: 100 },
+      ],
     };
   }
 
@@ -70,7 +72,7 @@ export function score(input: ScoringInput): CategoryResult {
   if (homepageHasCTA) {
     total += 10;
   } else {
-    findings.push('Homepage has no clear call-to-action element');
+    findings.push({ code: 'cta.homepage.missing', label: 'Homepage has no clear call-to-action element', pointsLost: 10 });
   }
 
   // --- CTA keywords present (2 pts per unique keyword, max 12 pts) ---
@@ -83,9 +85,17 @@ export function score(input: ScoringInput): CategoryResult {
   total += keywordPoints;
 
   if (foundKeywords.length === 0) {
-    findings.push('No CTA keywords found anywhere on the site (contact, call, get started, schedule, etc.)');
+    findings.push({
+      code: 'cta.keywords.none',
+      label: 'No CTA keywords found anywhere on the site (contact, call, get started, schedule, etc.)',
+      pointsLost: 12,
+    });
   } else if (foundKeywords.length <= 2) {
-    findings.push(`Only ${foundKeywords.length} CTA keyword(s) found: ${foundKeywords.join(', ')}`);
+    findings.push({
+      code: 'cta.keywords.few',
+      label: `Only ${foundKeywords.length} CTA keyword(s) found: ${foundKeywords.join(', ')}`,
+      pointsLost: 12 - keywordPoints,
+    });
   }
 
   // --- Contact form on any page (15 pts) ---
@@ -116,9 +126,13 @@ export function score(input: ScoringInput): CategoryResult {
     total += 15;
   } else if (hasFormPage) {
     total += 15;
-    findings.push('Contact/form page linked but form content not directly detected');
+    findings.push({
+      code: 'cta.form.pagelinked',
+      label: 'Contact/form page linked but form content not directly detected',
+      pointsLost: 0,
+    });
   } else {
-    findings.push('No contact form detected on any page');
+    findings.push({ code: 'cta.form.missing', label: 'No contact form detected on any page', pointsLost: 15 });
   }
 
   // --- Phone number (10 pts homepage, 5 pts any page) ---
@@ -129,9 +143,9 @@ export function score(input: ScoringInput): CategoryResult {
     total += 10;
   } else if (hasPhoneAny) {
     total += 5;
-    findings.push('Phone number found but not on the homepage');
+    findings.push({ code: 'cta.phone.nothomepage', label: 'Phone number found but not on the homepage', pointsLost: 5 });
   } else {
-    findings.push('No phone number found on any page');
+    findings.push({ code: 'cta.phone.missing', label: 'No phone number found on any page', pointsLost: 10 });
   }
 
   // --- Email address (8 pts homepage, 4 pts any page) ---
@@ -142,9 +156,9 @@ export function score(input: ScoringInput): CategoryResult {
     total += 8;
   } else if (hasEmailAny) {
     total += 4;
-    findings.push('Email address found but not on the homepage');
+    findings.push({ code: 'cta.email.nothomepage', label: 'Email address found but not on the homepage', pointsLost: 4 });
   } else {
-    findings.push('No email address found on any page');
+    findings.push({ code: 'cta.email.missing', label: 'No email address found on any page', pointsLost: 8 });
   }
 
   // --- Multiple conversion paths (15 / 8 / 3 pts) ---
@@ -158,12 +172,24 @@ export function score(input: ScoringInput): CategoryResult {
     if (!hasForm && !hasFormPage) missing.push('contact form');
     if (!hasPhoneAny) missing.push('phone number');
     if (!hasEmailAny) missing.push('email address');
-    findings.push(`Missing conversion path: ${missing.join(', ')}`);
+    findings.push({
+      code: 'cta.paths.partial',
+      label: `Missing conversion path: ${missing.join(', ')}`,
+      pointsLost: 7,
+    });
   } else if (pathCount === 1) {
     total += 3;
-    findings.push('Only one type of contact method available -- visitors need options');
+    findings.push({
+      code: 'cta.paths.single',
+      label: 'Only one type of contact method available -- visitors need options',
+      pointsLost: 12,
+    });
   } else {
-    findings.push('No contact methods (form, phone, or email) detected anywhere');
+    findings.push({
+      code: 'cta.paths.none',
+      label: 'No contact methods (form, phone, or email) detected anywhere',
+      pointsLost: 15,
+    });
   }
 
   // --- CTAs on multiple pages (10 / 5 pts) ---
@@ -174,9 +200,17 @@ export function score(input: ScoringInput): CategoryResult {
     total += 10;
   } else if (ctaRatio > 0.25) {
     total += 5;
-    findings.push(`CTAs found on only ${pagesWithCTA.length} of ${pages.length} pages (${Math.round(ctaRatio * 100)}%)`);
+    findings.push({
+      code: 'cta.coverage.partial',
+      label: `CTAs found on only ${pagesWithCTA.length} of ${pages.length} pages (${Math.round(ctaRatio * 100)}%)`,
+      pointsLost: 5,
+    });
   } else {
-    findings.push(`CTAs found on only ${pagesWithCTA.length} of ${pages.length} pages -- most pages are dead ends`);
+    findings.push({
+      code: 'cta.coverage.missing',
+      label: `CTAs found on only ${pagesWithCTA.length} of ${pages.length} pages -- most pages are dead ends`,
+      pointsLost: 10,
+    });
   }
 
   // --- Dedicated contact page (8 pts) ---
@@ -197,7 +231,7 @@ export function score(input: ScoringInput): CategoryResult {
   if (hasContactPage) {
     total += 8;
   } else {
-    findings.push('No dedicated contact page detected');
+    findings.push({ code: 'cta.contactpage.missing', label: 'No dedicated contact page detected', pointsLost: 8 });
   }
 
   // --- Action-oriented CTA language (5 pts) ---
@@ -213,7 +247,11 @@ export function score(input: ScoringInput): CategoryResult {
   if (hasStrongVerbs) {
     total += 5;
   } else {
-    findings.push('CTA language lacks strong action verbs -- generic "click here" or "submit" style CTAs');
+    findings.push({
+      code: 'cta.language.weak',
+      label: 'CTA language lacks strong action verbs -- generic "click here" or "submit" style CTAs',
+      pointsLost: 5,
+    });
   }
 
   // --- Chat widget (7 pts) ---
@@ -231,7 +269,7 @@ export function score(input: ScoringInput): CategoryResult {
 
   const finalScore = Math.max(0, Math.min(100, total));
   const severity = scoreToSeverity(finalScore);
-  const { headline, narrative } = generateNarrative('cta', finalScore, findings);
+  const { headline, narrative } = generateNarrative('cta', finalScore, findings.map((f) => f.label));
 
   return {
     category_id: 'cta',
