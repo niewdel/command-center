@@ -1,15 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Plus, KanbanSquare, Search, Clock3 } from "lucide-react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { Plus, KanbanSquare, Search, Clock3, LayoutList, Rows3 } from "lucide-react";
 import { PageLayout } from "@/components/layout/page-layout";
 import { PipelineTabs } from "@/components/pipeline/pipeline-tabs";
 import { useRealtime } from "@/lib/providers/realtime-provider";
 import { DEAL_STAGES, STAGE_LABEL, STAGE_COLOR, ACTIVE_STAGES, type DealStage, type DealWithLinks } from "@/types/pipeline";
 import { isDealStale } from "@/lib/pipeline/stale";
+import { pipelineForecast } from "@/lib/pipeline/forecast";
 import { NewDealDialog } from "@/components/pipeline/new-deal-dialog";
+import { DealsTable } from "@/components/pipeline/deals-table";
+
+type BoardView = "kanban" | "table";
+const VIEW_STORAGE_KEY = "pipeline:view";
 
 function formatCurrency(cents: number | null): string {
   if (cents == null) return "—";
@@ -17,13 +22,49 @@ function formatCurrency(cents: number | null): string {
 }
 
 export default function PipelinePage() {
+  return (
+    <Suspense fallback={null}>
+      <PipelinePageContent />
+    </Suspense>
+  );
+}
+
+function PipelinePageContent() {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [deals, setDeals] = useState<DealWithLinks[]>([]);
   const [loading, setLoading] = useState(true);
   const [newDealOpen, setNewDealOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [dragId, setDragId] = useState<string | null>(null);
   const [needsAttentionOnly, setNeedsAttentionOnly] = useState(false);
+  const [view, setView] = useState<BoardView>("kanban");
+
+  // View toggle: URL param wins (shareable link), else localStorage, else kanban.
+  useEffect(() => {
+    const fromUrl = searchParams.get("view");
+    if (fromUrl === "table" || fromUrl === "kanban") {
+      setView(fromUrl);
+      return;
+    }
+    const fromStorage = typeof window !== "undefined" ? window.localStorage.getItem(VIEW_STORAGE_KEY) : null;
+    if (fromStorage === "table" || fromStorage === "kanban") setView(fromStorage);
+    // Only resolve the initial view once on mount — subsequent explicit
+    // toggles are driven by handleSetView below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleSetView = useCallback(
+    (next: BoardView) => {
+      setView(next);
+      if (typeof window !== "undefined") window.localStorage.setItem(VIEW_STORAGE_KEY, next);
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("view", next);
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    },
+    [router, pathname, searchParams]
+  );
 
   const fetchDeals = useCallback(async () => {
     const res = await fetch("/api/pipeline/deals");
@@ -71,6 +112,7 @@ export default function PipelinePage() {
   const totalValue = totalActive.reduce((s, d) => s + (d.value_cents ?? 0), 0);
   const live = searched.filter((d) => d.stage === "live");
   const liveValue = live.reduce((s, d) => s + (d.value_cents ?? 0), 0);
+  const forecast = pipelineForecast(searched);
 
   return (
     <PageLayout
@@ -87,6 +129,7 @@ export default function PipelinePage() {
       <div className="flex flex-wrap items-end gap-x-10 gap-y-4 pb-2">
         <Stat label="Open deals" value={String(totalActive.length)} />
         <Stat label="Open value" value={formatCurrency(totalValue)} />
+        <Stat label="Forecast" value={formatCurrency(forecast.weightedValue)} hint="Weighted by stage/probability" />
         <Stat label="Live" value={String(live.length)} />
         <Stat label="Live value" value={formatCurrency(liveValue)} />
       </div>
@@ -104,6 +147,34 @@ export default function PipelinePage() {
           />
         </div>
         <div className="flex items-center gap-2">
+          <div className="flex items-center rounded-md border border-border overflow-hidden">
+            <button
+              type="button"
+              onClick={() => handleSetView("kanban")}
+              aria-pressed={view === "kanban"}
+              aria-label="Kanban view"
+              className="flex items-center gap-1.5 px-2.5 py-2 text-xs font-medium transition-colors"
+              style={{
+                backgroundColor: view === "kanban" ? "var(--foreground)" : "transparent",
+                color: view === "kanban" ? "var(--background)" : "var(--ink-soft)",
+              }}
+            >
+              <Rows3 size={13} /> Board
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSetView("table")}
+              aria-pressed={view === "table"}
+              aria-label="Table view"
+              className="flex items-center gap-1.5 px-2.5 py-2 text-xs font-medium transition-colors border-l border-border"
+              style={{
+                backgroundColor: view === "table" ? "var(--foreground)" : "transparent",
+                color: view === "table" ? "var(--background)" : "var(--ink-soft)",
+              }}
+            >
+              <LayoutList size={13} /> Table
+            </button>
+          </div>
           <button
             onClick={() => setNeedsAttentionOnly((v) => !v)}
             aria-pressed={needsAttentionOnly}
@@ -133,105 +204,108 @@ export default function PipelinePage() {
         </div>
       </div>
 
-      {/* Kanban */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3">
-        {DEAL_STAGES.map((stage) => {
-          const stageDeals = dealsByStage[stage];
-          const stageTotal = stageDeals.reduce((s, d) => s + (d.value_cents ?? 0), 0);
-          return (
-            <section
-              key={stage}
-              onDragOver={(e) => {
-                if (dragId) e.preventDefault();
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                if (dragId) {
-                  handleMoveStage(dragId, stage);
-                  setDragId(null);
-                }
-              }}
-              className="rounded-lg p-2.5 min-h-[60vh] bg-card border border-border"
-            >
-              <header className="flex items-center justify-between mb-2 px-1">
-                <span className="flex items-center gap-1.5 text-[11px] font-mono font-semibold uppercase tracking-[0.18em] text-foreground">
-                  <span className="size-1.5 rounded-full" style={{ backgroundColor: STAGE_COLOR[stage] }} />
-                  {STAGE_LABEL[stage]}
-                </span>
-                <span className="text-[11px] font-mono tabular-nums text-muted-foreground">
-                  {stageDeals.length}
-                </span>
-              </header>
-              {stageDeals.length > 0 && (
-                <p className="text-[11px] mb-2 px-1 tabular-nums font-mono text-muted-foreground">
-                  {formatCurrency(stageTotal)}
-                </p>
-              )}
-              <div className="space-y-1.5">
-                {stageDeals.map((deal) => (
-                  <Link
-                    key={deal.id}
-                    href={`/pipeline/deals/${deal.id}`}
-                    draggable
-                    onDragStart={() => setDragId(deal.id)}
-                    onDragEnd={() => setDragId(null)}
-                    className={`block p-3 rounded-md border bg-background hover:border-foreground/30 cursor-grab active:cursor-grabbing transition-colors ${
-                      dragId === deal.id ? "border-primary/60" : "border-border"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-semibold text-foreground line-clamp-2 text-pretty">
-                        {deal.title}
-                      </p>
-                      {isDealStale(deal) && (
-                        <span
-                          className="flex items-center gap-1 shrink-0 px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider font-mono"
-                          style={{ backgroundColor: "rgba(239,68,68,0.12)", color: "#EF4444" }}
-                          title="No upcoming next action"
-                        >
-                          <Clock3 size={9} /> Stale
-                        </span>
-                      )}
-                    </div>
-                    {deal.company && (
-                      <p className="text-xs mt-0.5 truncate text-muted-foreground">
-                        {deal.company.name}
-                      </p>
-                    )}
-                    {deal.contact && (() => {
-                      const total = deal.contact_count?.[0]?.count ?? (deal.contact ? 1 : 0);
-                      const extras = Math.max(0, total - 1);
-                      return (
-                        <p className="text-[11px] mt-1 truncate font-mono text-muted-foreground">
-                          {deal.contact.full_name}
-                          {extras > 0 && (
-                            <span className="text-primary"> +{extras}</span>
-                          )}
-                        </p>
-                      );
-                    })()}
-                    <div className="flex items-center justify-between mt-2.5 gap-2">
-                      <span className="text-xs tabular-nums font-mono font-semibold text-foreground">
-                        {formatCurrency(deal.value_cents)}
-                      </span>
-                      {deal.close_date_est && (
-                        <span className="text-[11px] tabular-nums font-mono text-muted-foreground">
-                          {new Date(deal.close_date_est + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                        </span>
-                      )}
-                    </div>
-                  </Link>
-                ))}
-                {stageDeals.length === 0 && (
-                  <div className="text-center py-8 text-[11px] font-mono text-muted-foreground">
-                    —
-                  </div>
+      {view === "table" ? (
+        <DealsTable deals={filtered} />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3">
+          {DEAL_STAGES.map((stage) => {
+            const stageDeals = dealsByStage[stage];
+            const stageTotal = stageDeals.reduce((s, d) => s + (d.value_cents ?? 0), 0);
+            return (
+              <section
+                key={stage}
+                onDragOver={(e) => {
+                  if (dragId) e.preventDefault();
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (dragId) {
+                    handleMoveStage(dragId, stage);
+                    setDragId(null);
+                  }
+                }}
+                className="rounded-lg p-2.5 min-h-[60vh] bg-card border border-border"
+              >
+                <header className="flex items-center justify-between mb-2 px-1">
+                  <span className="flex items-center gap-1.5 text-[11px] font-mono font-semibold uppercase tracking-[0.18em] text-foreground">
+                    <span className="size-1.5 rounded-full" style={{ backgroundColor: STAGE_COLOR[stage] }} />
+                    {STAGE_LABEL[stage]}
+                  </span>
+                  <span className="text-[11px] font-mono tabular-nums text-muted-foreground">
+                    {stageDeals.length}
+                  </span>
+                </header>
+                {stageDeals.length > 0 && (
+                  <p className="text-[11px] mb-2 px-1 tabular-nums font-mono text-muted-foreground">
+                    {formatCurrency(stageTotal)}
+                  </p>
                 )}
-              </div>
-            </section>
-          );
-        })}
-      </div>
+                <div className="space-y-1.5">
+                  {stageDeals.map((deal) => (
+                    <Link
+                      key={deal.id}
+                      href={`/pipeline/deals/${deal.id}`}
+                      draggable
+                      onDragStart={() => setDragId(deal.id)}
+                      onDragEnd={() => setDragId(null)}
+                      className={`block p-3 rounded-md border bg-background hover:border-foreground/30 cursor-grab active:cursor-grabbing transition-colors ${
+                        dragId === deal.id ? "border-primary/60" : "border-border"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-sm font-semibold text-foreground line-clamp-2 text-pretty">
+                          {deal.title}
+                        </p>
+                        {isDealStale(deal) && (
+                          <span
+                            className="flex items-center gap-1 shrink-0 px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider font-mono"
+                            style={{ backgroundColor: "rgba(239,68,68,0.12)", color: "#EF4444" }}
+                            title="No upcoming next action"
+                          >
+                            <Clock3 size={9} /> Stale
+                          </span>
+                        )}
+                      </div>
+                      {deal.company && (
+                        <p className="text-xs mt-0.5 truncate text-muted-foreground">
+                          {deal.company.name}
+                        </p>
+                      )}
+                      {deal.contact && (() => {
+                        const total = deal.contact_count?.[0]?.count ?? (deal.contact ? 1 : 0);
+                        const extras = Math.max(0, total - 1);
+                        return (
+                          <p className="text-[11px] mt-1 truncate font-mono text-muted-foreground">
+                            {deal.contact.full_name}
+                            {extras > 0 && (
+                              <span className="text-primary"> +{extras}</span>
+                            )}
+                          </p>
+                        );
+                      })()}
+                      <div className="flex items-center justify-between mt-2.5 gap-2">
+                        <span className="text-xs tabular-nums font-mono font-semibold text-foreground">
+                          {formatCurrency(deal.value_cents)}
+                        </span>
+                        {deal.close_date_est && (
+                          <span className="text-[11px] tabular-nums font-mono text-muted-foreground">
+                            {new Date(deal.close_date_est + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                          </span>
+                        )}
+                      </div>
+                    </Link>
+                  ))}
+                  {stageDeals.length === 0 && (
+                    <div className="text-center py-8 text-[11px] font-mono text-muted-foreground">
+                      —
+                    </div>
+                  )}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      )}
 
       <NewDealDialog
         open={newDealOpen}
@@ -245,10 +319,10 @@ export default function PipelinePage() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <span className="mono-tag-muted">{label}</span>
+      <span className="mono-tag-muted" title={hint}>{label}</span>
       <span className="text-2xl font-bold tabular-nums tracking-tight text-foreground">{value}</span>
     </div>
   );

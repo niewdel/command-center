@@ -7,7 +7,7 @@ import { ArrowLeft, Mail, Phone, ExternalLink, Trash2, Upload, FileText, Video, 
 import { PageLayout } from "@/components/layout/page-layout";
 import { PipelineTabs } from "@/components/pipeline/pipeline-tabs";
 import { supabase } from "@/lib/supabase";
-import { DEAL_STAGES, STAGE_LABEL, STAGE_COLOR, type DealStage, type CrmDeal, type CrmCompany, type CrmContact } from "@/types/pipeline";
+import { DEAL_STAGES, STAGE_LABEL, STAGE_COLOR, STAGE_PROBABILITY, type DealStage, type CrmDeal, type CrmCompany, type CrmContact } from "@/types/pipeline";
 import { extractDriveFileId, getDriveThumbnailUrl } from "@/lib/google/drive-preview";
 import { ContactPickerDialog } from "@/components/pipeline/contact-picker-dialog";
 import { CompanyPickerDialog } from "@/components/pipeline/company-picker-dialog";
@@ -72,6 +72,7 @@ export default function DealDetailPage() {
   const [owner, setOwner] = useState("");
   const [lostReason, setLostReason] = useState("");
   const [nextActionAt, setNextActionAt] = useState("");
+  const [probability, setProbability] = useState("");
 
   // Attachments
   const [proposalUrl, setProposalUrl] = useState("");
@@ -99,6 +100,7 @@ export default function DealDetailPage() {
       setOwner(d.owner ?? "");
       setLostReason(d.lost_reason ?? "");
       setNextActionAt(toDatetimeLocalValue(d.next_action_at));
+      setProbability(d.probability != null ? String(d.probability) : "");
       setProposalUrl(d.proposal_url ?? "");
       setProposalFilename(d.proposal_filename ?? "");
       setFathomUrl(d.fathom_url ?? "");
@@ -390,7 +392,7 @@ export default function DealDetailPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
               <div className="space-y-1.5">
                 <p className="text-[10px] uppercase tracking-wider" style={{ color: "var(--ink-soft)", fontFamily: mono }}>
                   Value ($)
@@ -405,6 +407,26 @@ export default function DealDetailPage() {
                     });
                   }}
                   placeholder="5000"
+                  className="w-full text-sm bg-transparent outline-none border rounded-md px-2 py-1.5"
+                  style={{ borderColor: "var(--border)" }}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <p className="text-[10px] uppercase tracking-wider" style={{ color: "var(--ink-soft)", fontFamily: mono }}>
+                  Win % {deal.probability == null && `(default ${STAGE_PROBABILITY[stage]}%)`}
+                </p>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={probability}
+                  onChange={(e) => {
+                    setProbability(e.target.value);
+                    const raw = e.target.value;
+                    const clamped = raw === "" ? null : Math.min(100, Math.max(0, Math.round(parseFloat(raw))));
+                    queueSave({ probability: clamped });
+                  }}
+                  placeholder={String(STAGE_PROBABILITY[stage])}
                   className="w-full text-sm bg-transparent outline-none border rounded-md px-2 py-1.5"
                   style={{ borderColor: "var(--border)" }}
                 />
