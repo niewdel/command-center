@@ -79,6 +79,24 @@ function isDisallowed(urlStr: string, rules: RobotsRules): boolean {
 }
 
 /**
+ * Resolve the ORIGIN a URL actually lands on after redirects (e.g. apex →
+ * www, or the reverse). Without this, `rootOrigin` stays pinned to the
+ * pre-redirect input URL, every nav/sitemap link on the redirected homepage
+ * gets misclassified as external, and `discoverMainPages` (used by "main"
+ * crawl mode) silently returns just the homepage. Falls back to the
+ * pre-redirect origin if the request fails (bot-blocking, timeouts, etc.) —
+ * that preserves today's behavior rather than breaking the crawl further.
+ */
+async function resolveEffectiveOrigin(url: string, fallbackOrigin: string): Promise<string> {
+  try {
+    const res = await fetch(url, { method: 'GET', redirect: 'follow' });
+    return new URL(res.url).origin;
+  } catch {
+    return fallbackOrigin;
+  }
+}
+
+/**
  * AEO-specific robots + llms.txt signals for a site, used by the AEO scoring
  * adapter (`scoring/aeo.ts`). Kept separate from `fetchRobotsTxt`/`isDisallowed`
  * above (which only care about the "*" crawl-disallow group for BFS discovery).
@@ -306,7 +324,13 @@ export async function crawlSite(
   const mode = options.mode;
   const maxPages = options.maxPages ?? (mode === "main" ? MAIN_MODE_CAP : DEFAULT_MAX_PAGES);
   const skipDiscovery = options.skipDiscovery ?? maxPages === 1;
-  const rootOrigin = new URL(rootUrl).origin;
+  const inputOrigin = new URL(rootUrl).origin;
+  // Resolve apex↔www (or any other) redirects up front so robots.txt,
+  // sitemap discovery, and every internal-link check below all agree on
+  // the domain the site actually serves from. Recomputed again after the
+  // homepage loads in the browser, below, in case this pre-flight fetch
+  // and the real browser navigation land on different origins.
+  let rootOrigin = await resolveEffectiveOrigin(rootUrl, inputOrigin);
   const normalizedRoot = normalizeUrl(rootUrl) || rootUrl;
 
   const progress = (msg: string, done: number, total: number) => {
@@ -379,6 +403,20 @@ export async function crawlSite(
           waitUntil: 'domcontentloaded',
           timeout: PAGE_TIMEOUT,
         });
+
+        // Re-derive the effective origin from the homepage's actual final
+        // URL. Covers cases where the pre-flight fetch() above followed a
+        // different redirect path than the real browser navigation (JS
+        // redirects, geo/UA-based redirects, etc). Every isInternal /
+        // isSameDomain check downstream reads this same `rootOrigin`.
+        if (pageUrl === normalizedRoot && response) {
+          try {
+            const finalOrigin = new URL(response.url()).origin;
+            if (finalOrigin !== rootOrigin) rootOrigin = finalOrigin;
+          } catch {
+            // Keep the already-resolved rootOrigin.
+          }
+        }
 
         // Wait for JS frameworks to render content (React, Vue, etc.)
         try {
