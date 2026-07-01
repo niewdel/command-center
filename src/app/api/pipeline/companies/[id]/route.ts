@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPipelineClient, getDefaultPipelineWorkspaceId } from "@/lib/pipeline/db";
+import { getUserScopedClient, resolveActiveWorkspace } from "@/lib/tenancy";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const sb = getPipelineClient();
-  const workspace_id = await getDefaultPipelineWorkspaceId();
+  const ws = await resolveActiveWorkspace();
+  if (!ws) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const sb = await getUserScopedClient();
+  const workspace_id = ws.id;
 
   const { data, error } = await sb
     .from("crm_companies")
@@ -26,8 +28,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const sb = getPipelineClient();
-  const workspace_id = await getDefaultPipelineWorkspaceId();
+  const ws = await resolveActiveWorkspace();
+  if (!ws) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const sb = await getUserScopedClient();
+  const workspace_id = ws.id;
   const body = await req.json();
 
   const patch: Record<string, unknown> = {};
@@ -49,8 +53,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const sb = getPipelineClient();
-  const workspace_id = await getDefaultPipelineWorkspaceId();
+  const ws = await resolveActiveWorkspace();
+  if (!ws) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const sb = await getUserScopedClient();
+  const workspace_id = ws.id;
 
   const { error } = await sb.from("crm_companies").delete().eq("workspace_id", workspace_id).eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

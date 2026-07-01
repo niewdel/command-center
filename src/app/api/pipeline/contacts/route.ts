@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPipelineClient, getDefaultPipelineWorkspaceId } from "@/lib/pipeline/db";
+import { getUserScopedClient, resolveActiveWorkspace } from "@/lib/tenancy";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const sb = getPipelineClient();
-  const workspace_id = await getDefaultPipelineWorkspaceId();
+  const ws = await resolveActiveWorkspace();
+  if (!ws) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const sb = await getUserScopedClient();
+  const workspace_id = ws.id;
 
   const { data, error } = await sb
     .from("crm_contacts")
@@ -20,8 +22,10 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const sb = getPipelineClient();
-  const workspace_id = await getDefaultPipelineWorkspaceId();
+  const ws = await resolveActiveWorkspace();
+  if (!ws) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const sb = await getUserScopedClient();
+  const workspace_id = ws.id;
   const body = await req.json();
   if (!body.full_name?.trim()) {
     return NextResponse.json({ error: "full_name is required" }, { status: 400 });
