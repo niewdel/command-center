@@ -22,7 +22,7 @@ export function ReportHeader({ data, mode }: Props) {
       <div className="flex items-end justify-between gap-6 flex-wrap">
         <div>
           <span className="report-eyebrow block">
-            SEO Report · {data.client.period_label}
+            Visibility Report · {data.client.period_label}
           </span>
           <h1 className="mt-3 text-3xl md:text-4xl font-bold tracking-tight text-balance text-foreground">
             {data.client.name}

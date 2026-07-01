@@ -131,7 +131,7 @@ export function ScoreHistoryChart({ points }: { points: ScoreHistoryPoint[] }) {
           viewBox={`0 0 ${W} ${H}`}
           className="w-full h-auto"
           role="img"
-          aria-label="SEO score history"
+          aria-label="Visibility score history"
           onMouseLeave={() => setHoverIdx(null)}
           onMouseMove={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();

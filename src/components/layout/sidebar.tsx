@@ -8,8 +8,8 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 
 const agentsNav = [
-  { name: "SEO Agent", href: "/seo", icon: TrendingUp },
-  { name: "Website Scoring Agent", href: "/audits", icon: Gauge },
+  { name: "Visibility Agent", href: "/seo", icon: TrendingUp },
+  { name: "Site Audit Agent", href: "/audits", icon: Gauge },
 ];
 
 export function Sidebar() {

@@ -138,7 +138,7 @@ export function renderMonthlyReportEmail(
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
   <tr>
     <td style="padding:40px 32px 24px 32px;">
-      ${tag(`SEO Report · ${escapeHtml(data.client.period_label)}`)}
+      ${tag(`Visibility Report · ${escapeHtml(data.client.period_label)}`)}
       <h1 style="margin:0 0 12px 0;${FONT}font-size:30px;font-weight:700;color:${TEXT};line-height:1.15;letter-spacing:-0.015em;">${escapeHtml(data.client.name)}<span style="color:${BLUE};">.</span></h1>
       <div style="width:40px;height:3px;background:${BLUE};background:linear-gradient(135deg,${BLUE},${NAVY});border-radius:2px;margin:0 0 12px 0;font-size:0;line-height:0;">&nbsp;</div>
       <p style="margin:0;${FONT}font-size:14px;color:${MUTED};">${escapeHtml(data.client.domain)}</p>
@@ -654,7 +654,7 @@ export function renderMonthlyReportEmail(
 <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
 <meta name="color-scheme" content="dark light"/>
 <meta name="supported-color-schemes" content="dark light"/>
-<title>SEO Report: ${escapeHtml(data.client.name)}</title>
+<title>Visibility Report: ${escapeHtml(data.client.name)}</title>
 </head>
 <body style="margin:0;padding:0;background:${BG};${FONT}">
 <!--[if mso]><table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"><tr><td><![endif]-->
