@@ -13,6 +13,12 @@ export const CLIENT_UPLOADS_BUCKET = "client-uploads";
 
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10MB
 
+// Per-client cap on the number of objects allowed under
+// `client-uploads/${clientId}/`. Stops a forwarded/leaked portal link from
+// filling storage indefinitely — enforced in the upload route BEFORE we
+// buffer/store a new file.
+export const MAX_FILES_PER_CLIENT = 100;
+
 export const ALLOWED_IMAGE_TYPES = new Set([
   "image/jpeg",
   "image/png",
@@ -103,4 +109,65 @@ export function buildUploadPath(
 // future refactor that queries a wider prefix by mistake.
 export function pathBelongsToClient(path: string, clientId: string): boolean {
   return path === clientId || path.startsWith(`${clientId}/`);
+}
+
+// Returns true when a client is already at/over MAX_FILES_PER_CLIENT and
+// should be blocked from uploading more. Pure so it's trivially testable —
+// the route supplies the current count from a storage `list()` call.
+export function isOverFileCap(currentFileCount: number): boolean {
+  return currentFileCount >= MAX_FILES_PER_CLIENT;
+}
+
+// Checks a client-declared Content-Length header against the max allowed
+// upload size BEFORE the request body is parsed/buffered. Returns true when
+// the request should be rejected outright. A missing/unparseable header is
+// NOT rejected here — it falls through to the post-parse validateUpload
+// check, since Content-Length can be absent or spoofed either way.
+export function exceedsContentLength(
+  contentLengthHeader: string | null
+): boolean {
+  if (!contentLengthHeader) return false;
+  const declared = Number(contentLengthHeader);
+  if (!Number.isFinite(declared) || declared <= 0) return false;
+  return declared > MAX_UPLOAD_BYTES;
+}
+
+// Magic-byte signatures for the image types we accept. Multipart form
+// fields for `file.type`/`contentType` are entirely client-declared, so we
+// verify the actual bytes before trusting/storing them as an image.
+const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47];
+const JPEG_SIGNATURE = [0xff, 0xd8, 0xff];
+const GIF_SIGNATURE = [0x47, 0x49, 0x46, 0x38]; // "GIF8"
+
+function matchesSignature(bytes: Uint8Array, signature: number[]): boolean {
+  if (bytes.length < signature.length) return false;
+  for (let i = 0; i < signature.length; i++) {
+    if (bytes[i] !== signature[i]) return false;
+  }
+  return true;
+}
+
+function isWebp(bytes: Uint8Array): boolean {
+  // RIFF....WEBP: bytes 0-3 "RIFF", bytes 8-11 "WEBP".
+  if (bytes.length < 12) return false;
+  const riff = [0x52, 0x49, 0x46, 0x46]; // "RIFF"
+  const webp = [0x57, 0x45, 0x42, 0x50]; // "WEBP"
+  for (let i = 0; i < 4; i++) {
+    if (bytes[i] !== riff[i]) return false;
+  }
+  for (let i = 0; i < 4; i++) {
+    if (bytes[8 + i] !== webp[i]) return false;
+  }
+  return true;
+}
+
+// Sniffs the true image type from magic bytes, ignoring any client-declared
+// content type. Returns the canonical mime type string for a recognized
+// image format, or null if the bytes don't match any allowed signature.
+export function sniffImageType(bytes: Uint8Array): string | null {
+  if (matchesSignature(bytes, PNG_SIGNATURE)) return "image/png";
+  if (matchesSignature(bytes, JPEG_SIGNATURE)) return "image/jpeg";
+  if (matchesSignature(bytes, GIF_SIGNATURE)) return "image/gif";
+  if (isWebp(bytes)) return "image/webp";
+  return null;
 }

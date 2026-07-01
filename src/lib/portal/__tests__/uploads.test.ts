@@ -1,11 +1,15 @@
 import { describe, it, expect } from "vitest";
 import {
   MAX_UPLOAD_BYTES,
+  MAX_FILES_PER_CLIENT,
   isAllowedImageType,
   validateUpload,
   sanitizeFilename,
   buildUploadPath,
   pathBelongsToClient,
+  isOverFileCap,
+  exceedsContentLength,
+  sniffImageType,
 } from "../uploads";
 
 describe("isAllowedImageType", () => {
@@ -117,5 +121,74 @@ describe("pathBelongsToClient", () => {
 
   it("rejects a prefix-similar but distinct client id", () => {
     expect(pathBelongsToClient("client-1234/1000-a.png", "client-123")).toBe(false);
+  });
+});
+
+describe("isOverFileCap", () => {
+  it("allows uploads below the cap", () => {
+    expect(isOverFileCap(0)).toBe(false);
+    expect(isOverFileCap(MAX_FILES_PER_CLIENT - 1)).toBe(false);
+  });
+
+  it("blocks uploads at or over the cap", () => {
+    expect(isOverFileCap(MAX_FILES_PER_CLIENT)).toBe(true);
+    expect(isOverFileCap(MAX_FILES_PER_CLIENT + 1)).toBe(true);
+  });
+});
+
+describe("exceedsContentLength", () => {
+  it("allows a missing header (falls through to post-parse check)", () => {
+    expect(exceedsContentLength(null)).toBe(false);
+  });
+
+  it("allows a header within the max size", () => {
+    expect(exceedsContentLength(String(MAX_UPLOAD_BYTES))).toBe(false);
+  });
+
+  it("rejects a header over the max size", () => {
+    expect(exceedsContentLength(String(MAX_UPLOAD_BYTES + 1))).toBe(true);
+  });
+
+  it("ignores a garbage/non-numeric header", () => {
+    expect(exceedsContentLength("not-a-number")).toBe(false);
+  });
+});
+
+describe("sniffImageType", () => {
+  it("recognizes a PNG signature", () => {
+    const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    expect(sniffImageType(bytes)).toBe("image/png");
+  });
+
+  it("recognizes a JPEG signature", () => {
+    const bytes = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]);
+    expect(sniffImageType(bytes)).toBe("image/jpeg");
+  });
+
+  it("recognizes a GIF signature", () => {
+    const bytes = new Uint8Array([0x47, 0x49, 0x46, 0x38, 0x39, 0x61]);
+    expect(sniffImageType(bytes)).toBe("image/gif");
+  });
+
+  it("recognizes a WebP signature", () => {
+    const bytes = new Uint8Array([
+      0x52, 0x49, 0x46, 0x46, 0x00, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50,
+    ]);
+    expect(sniffImageType(bytes)).toBe("image/webp");
+  });
+
+  it("returns null for HTML bytes mislabeled as an image", () => {
+    const bytes = new TextEncoder().encode("<html><body>hi</body></html>");
+    expect(sniffImageType(bytes)).toBeNull();
+  });
+
+  it("returns null for plain text bytes", () => {
+    const bytes = new TextEncoder().encode("just some plain text");
+    expect(sniffImageType(bytes)).toBeNull();
+  });
+
+  it("returns null for truncated/empty bytes", () => {
+    expect(sniffImageType(new Uint8Array([]))).toBeNull();
+    expect(sniffImageType(new Uint8Array([0x89, 0x50]))).toBeNull();
   });
 });

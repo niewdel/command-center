@@ -83,6 +83,7 @@ describe("POST /api/portal/[id]/upload", () => {
 
   it("uploads to a path scoped to the verified client id, ignoring any client-supplied path", async () => {
     uploadMock.mockResolvedValue({ error: null });
+    listMock.mockResolvedValue({ data: [], error: null });
     const signViewToken = await importSignToken();
     const { POST } = await import("../[id]/upload/route");
 
@@ -92,11 +93,15 @@ describe("POST /api/portal/[id]/upload", () => {
     // Even if a caller tried to smuggle a path/prefix field, the route
     // never reads one from the form — it only reads `file` and `token`.
     form.set("path", "client-456/hijacked.png");
+    // Real PNG magic bytes so the post-parse magic-byte sniff passes —
+    // the filename itself is still the traversal attempt under test.
     form.set(
       "file",
-      new File([new Uint8Array([1, 2, 3])], "../../evil.png", {
-        type: "image/png",
-      })
+      new File(
+        [new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])],
+        "../../evil.png",
+        { type: "image/png" }
+      )
     );
 
     const req = new NextRequest("http://localhost/api/portal/client-123/upload", {
@@ -154,6 +159,88 @@ describe("POST /api/portal/[id]/upload", () => {
 
     const res = await POST(req, { params: Promise.resolve({ id: "client-123" }) });
     expect(res.status).toBe(400);
+    expect(uploadMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects a request with a spoofed oversize Content-Length header before parsing the body", async () => {
+    const signViewToken = await importSignToken();
+    const { POST } = await import("../[id]/upload/route");
+
+    const token = signViewToken("client-123");
+    const form = new FormData();
+    form.set("token", token);
+    form.set(
+      "file",
+      new File([new Uint8Array([1, 2, 3])], "tiny.png", { type: "image/png" })
+    );
+
+    const req = new NextRequest("http://localhost/api/portal/client-123/upload", {
+      method: "POST",
+      body: form,
+      headers: { "content-length": String(10 * 1024 * 1024 + 1) },
+    });
+
+    const res = await POST(req, { params: Promise.resolve({ id: "client-123" }) });
+    expect(res.status).toBe(413);
+    expect(uploadMock).not.toHaveBeenCalled();
+    expect(listMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects uploads once the client is at the per-client file cap", async () => {
+    listMock.mockResolvedValue({
+      data: Array.from({ length: 100 }, (_, i) => ({
+        id: String(i),
+        name: `${i}.png`,
+      })),
+      error: null,
+    });
+    const signViewToken = await importSignToken();
+    const { POST } = await import("../[id]/upload/route");
+
+    const token = signViewToken("client-123");
+    const form = new FormData();
+    form.set("token", token);
+    form.set(
+      "file",
+      new File(
+        [new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])],
+        "photo.png",
+        { type: "image/png" }
+      )
+    );
+
+    const req = new NextRequest("http://localhost/api/portal/client-123/upload", {
+      method: "POST",
+      body: form,
+    });
+
+    const res = await POST(req, { params: Promise.resolve({ id: "client-123" }) });
+    expect(res.status).toBe(429);
+    expect(uploadMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects non-image bytes mislabeled with an image content type", async () => {
+    listMock.mockResolvedValue({ data: [], error: null });
+    const signViewToken = await importSignToken();
+    const { POST } = await import("../[id]/upload/route");
+
+    const token = signViewToken("client-123");
+    const form = new FormData();
+    form.set("token", token);
+    form.set(
+      "file",
+      new File([new TextEncoder().encode("<html>not an image</html>")], "photo.png", {
+        type: "image/png",
+      })
+    );
+
+    const req = new NextRequest("http://localhost/api/portal/client-123/upload", {
+      method: "POST",
+      body: form,
+    });
+
+    const res = await POST(req, { params: Promise.resolve({ id: "client-123" }) });
+    expect(res.status).toBe(415);
     expect(uploadMock).not.toHaveBeenCalled();
   });
 });

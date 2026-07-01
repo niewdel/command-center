@@ -21,7 +21,10 @@ export async function GET(
     const url = `${baseUrl}/portal/${id}?token=${token}`;
     return NextResponse.json({ url });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("Failed to generate portal link:", err);
+    return NextResponse.json(
+      { error: "Failed to generate link" },
+      { status: 500 }
+    );
   }
 }
