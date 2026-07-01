@@ -24,6 +24,9 @@
 //     open-issues severity breakdown, the "what needs attention" issue
 //     list, and the traffic-source % split. These are internal triage,
 //     not client deliverables.
+//   - Exception: AI Search (AEO) gets its own compact single-metric card
+//     right after the score hero (Task 11) — it's the differentiator we're
+//     selling, so it stays even though the rest of the technical grid is cut.
 
 import type { ReportData } from "./report-data";
 import { humanizePath } from "./page-name";
@@ -164,6 +167,46 @@ export function renderMonthlyReportEmail(
             <p style="margin:0;${FONT}font-size:60px;font-weight:700;color:${TEXT};line-height:1;letter-spacing:-0.025em;font-feature-settings:'tnum';">${escapeHtml(scoreDisplay)}<span style="font-size:20px;font-weight:500;color:${BLUE_SOFT};margin-left:6px;opacity:0.7;">/100</span></p>
             <div style="margin:16px 0 0 0;">${bar(score ?? 0, "#7FB0EA", "#123A6B", 10)}</div>
             <p style="margin:14px 0 0 0;${FONT}font-size:13px;color:#C7D6EA;">${escapeHtml(deltaLine)}</p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>`;
+  }
+
+  // Compact single-metric AEO card, right after the overall-score hero.
+  // Deliberately NOT the full Technical/On-Page/Lighthouse grid (cut from
+  // the client email — see file header) but this one metric is surfaced on
+  // its own because it's the modern differentiator: how visible the client
+  // is to ChatGPT, Perplexity, and Google AI Overviews.
+  function aeoScoreLabel(score: number | null): string {
+    if (score == null) return "Getting started";
+    if (score >= 76) return "Strong";
+    if (score >= 51) return "On track";
+    return "Building";
+  }
+
+  function buildAeoCard(): string {
+    const card = data.health.aeo;
+    const scoreDisplay = card.current != null ? String(card.current) : "—";
+    const label = aeoScoreLabel(card.current);
+    const showDelta = card.delta != null && card.delta > 0;
+
+    return `
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+  <tr>
+    <td style="padding:0 32px 24px 32px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:${CARD};border:1px solid ${LINE};border-radius:10px;">
+        <tr>
+          <td style="padding:18px;">
+            <p style="margin:0 0 4px 0;${FONT}font-size:10px;font-weight:700;color:${MUTED};text-transform:uppercase;letter-spacing:0.18em;">AI Search (AEO)</p>
+            <p style="margin:0 0 4px 0;${FONT}font-size:36px;font-weight:700;color:${TEXT};font-feature-settings:'tnum';letter-spacing:-0.025em;">${escapeHtml(scoreDisplay)}<span style="font-size:14px;font-weight:500;color:${MUTED};margin-left:6px;">/100 · ${escapeHtml(label)}</span></p>
+            ${
+              showDelta
+                ? `<p style="margin:0;${FONT}font-size:12px;color:${SUCCESS};font-feature-settings:'tnum';">↑ +${card.delta} since the start of this period.</p>`
+                : `<p style="margin:0;${FONT}font-size:12px;color:${MUTED};">How visible you are to ChatGPT, Perplexity, and Google AI Overviews.</p>`
+            }
           </td>
         </tr>
       </table>
@@ -590,6 +633,7 @@ export function renderMonthlyReportEmail(
     opts.intro ?? "",
     buildHeader(),
     buildOverallScoreHero(),
+    buildAeoCard(),
     buildTrafficSection(),
     buildTopPages(),
     buildKeywordRankings(),

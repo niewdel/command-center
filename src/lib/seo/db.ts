@@ -155,6 +155,7 @@ export async function insertSeoCheck(input: {
       lighthouse_desktop: input.scores.lighthouse_desktop,
       onpage_score: input.scores.onpage,
       freshness_days: input.scores.freshness_days,
+      aeo_score: input.scores.aeo,
       pages_crawled: input.pages.length,
       pages: input.pages,
       diff_from_previous: input.diff_from_previous ?? null,

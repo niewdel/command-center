@@ -1,12 +1,19 @@
 import type { CrawledPage, PSIMetrics } from "@/lib/audit/types";
 import type { CheckScores, PageSnapshot } from "./types";
 import { computeFreshnessDays } from "./freshness";
+import { scoreAeo, type AeoPage } from "./aeo-score";
 
 // Aggregate scores derived from per-page snapshots + PSI metrics.
 //
 // Phase 2 adds: lighthouse_desktop (separate PSI run) and freshness_days
 // (median age across pages, derived from sitemap lastmod or prior-check
 // content_hash diff).
+//
+// Task 11 adds: aeo (AI-search health) via the shared, pure `scoreAeo` —
+// same scorer the standalone audit tool uses (src/lib/audit/scoring/aeo.ts).
+// `CrawledPage` already carries every field `AeoPage` needs (headings,
+// bodyText, structuredData, metaDescription, ogTags), so no crawl changes
+// were required — just the mapping below.
 
 interface FreshnessContext {
   client_id: string;
@@ -14,11 +21,31 @@ interface FreshnessContext {
   snapshots: PageSnapshot[];
 }
 
+// AI-crawler + /llms.txt signals gathered by the caller (via
+// `fetchAeoRobotsSignals` in @/lib/audit/crawl, which itself wraps
+// src/lib/seo/site-checks.ts's parseRobots/checkUrlExists).
+export interface AeoContext {
+  blockedAiBots: string[];
+  hasLlmsTxt: boolean;
+}
+
+function toAeoPage(page: CrawledPage): AeoPage {
+  return {
+    url: page.url,
+    headings: page.headings,
+    bodyText: page.bodyText,
+    structuredData: page.structuredData,
+    metaDescription: page.metaDescription,
+    ogTags: page.ogTags,
+  };
+}
+
 export async function computeScores(
   pages: CrawledPage[],
   psiMobile: PSIMetrics[],
   psiDesktop: PSIMetrics[] = [],
-  freshnessCtx?: FreshnessContext
+  freshnessCtx?: FreshnessContext,
+  aeoCtx?: AeoContext
 ): Promise<CheckScores> {
   if (pages.length === 0) {
     return {
@@ -27,6 +54,7 @@ export async function computeScores(
       lighthouse_desktop: null,
       onpage: 0,
       freshness_days: null,
+      aeo: null,
     };
   }
 
@@ -99,11 +127,22 @@ export async function computeScores(
     }
   }
 
+  let aeo: number | null = null;
+  if (aeoCtx) {
+    const { score } = scoreAeo({
+      pages: pages.map(toAeoPage),
+      blockedAiBots: aeoCtx.blockedAiBots,
+      hasLlmsTxt: aeoCtx.hasLlmsTxt,
+    });
+    aeo = score;
+  }
+
   return {
     technical,
     lighthouse_mobile: lighthouseMobile,
     lighthouse_desktop: lighthouseDesktop,
     onpage,
     freshness_days: freshnessDays,
+    aeo,
   };
 }

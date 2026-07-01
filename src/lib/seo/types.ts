@@ -108,4 +108,5 @@ export interface CheckScores {
   lighthouse_desktop: number | null;
   onpage: number;             // 0-100
   freshness_days: number | null;
+  aeo: number | null;         // 0-100, AI-search (AEO) health via scoreAeo — null until computed
 }
