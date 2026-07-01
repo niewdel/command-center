@@ -55,6 +55,23 @@ export const FINDING_CODES = [
   "perf.pageweight.high",
   "perf.variance.high",
 
+  // visual.* — Visual Design & Branding scorer codes (src/lib/audit/scoring/visual-design.ts)
+  "visual.pages.none",
+  "visual.viewport.missing",
+  "visual.favicon.missing",
+  "visual.fonts.missing",
+  "visual.images.homepage.none",
+  "visual.images.unique.low",
+  "visual.images.responsive.missing",
+  "visual.h1.partial",
+  "visual.h1.missing",
+  "visual.alt.partial",
+  "visual.alt.missing",
+  "visual.ogimage.missing",
+  "visual.imageformats.legacy",
+  "visual.brokenimages.minor",
+  "visual.brokenimages.severe",
+
   // aeo.* — AI-search / answer-engine optimization (src/lib/seo/aeo-score.ts)
   "aeo.schema.absent",
   "aeo.schema.coverage.low",
