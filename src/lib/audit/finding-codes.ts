@@ -157,6 +157,24 @@ export const FINDING_CODES = [
   "content.ratio.thin",
   "content.meta.thin",
   "content.depth.limited",
+
+  // conversion.* — Conversion Architecture scorer codes (src/lib/audit/scoring/conversion.ts)
+  "conversion.pages.none",
+  "conversion.forms.none",
+  "conversion.form.fields.moderate",
+  "conversion.form.fields.excessive",
+  "conversion.paths.partial",
+  "conversion.paths.single",
+  "conversion.paths.none",
+  "conversion.socialproof.notcolocated",
+  "conversion.socialproof.missing",
+  "conversion.h1.tooshort",
+  "conversion.h1.missing",
+  "conversion.abovefold.partial",
+  "conversion.abovefold.missing",
+  "conversion.leadmagnet.missing",
+  "conversion.pricing.missing",
+  "conversion.depth.limited",
 ] as const;
 
 export type KnownCode = (typeof FINDING_CODES)[number];
