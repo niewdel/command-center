@@ -1,7 +1,8 @@
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase-server";
 
-export const ACTIVE_WORKSPACE_COOKIE = "active_workspace";
+export { ACTIVE_WORKSPACE_COOKIE } from "./constants";
+import { ACTIVE_WORKSPACE_COOKIE } from "./constants";
 
 export type ActiveWorkspace = {
   id: string;

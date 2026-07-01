@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronsUpDown, Check } from "lucide-react";
 import {
   DropdownMenu,
@@ -9,16 +9,24 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useWorkspaces } from "@/lib/providers/workspaces-provider";
+import { ACTIVE_WORKSPACE_COOKIE } from "@/lib/tenancy/constants";
+
+const ACTIVE_COOKIE_REGEX = new RegExp(
+  "(?:^|;\\s*)" + ACTIVE_WORKSPACE_COOKIE + "=([^;]+)"
+);
 
 function readActiveCookie(): string | null {
   if (typeof document === "undefined") return null;
-  const m = document.cookie.match(/(?:^|;\s*)active_workspace=([^;]+)/);
+  const m = document.cookie.match(ACTIVE_COOKIE_REGEX);
   return m ? decodeURIComponent(m[1]) : null;
 }
 
 export function WorkspaceSwitcher() {
   const { workspaces } = useWorkspaces();
-  const activeId = readActiveCookie();
+  const [activeId, setActiveId] = useState<string | null>(null);
+  useEffect(() => {
+    setActiveId(readActiveCookie());
+  }, []);
   const active = useMemo(
     () =>
       workspaces.find((w) => w.id === activeId) ??
