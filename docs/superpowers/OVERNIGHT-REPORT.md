@@ -1,2 +1,3 @@
 - 02:06 EDT — CRM migration-037 applied (crm_activities, crm_tasks, next_action_at+probability, crm_saved_views, user_onboarding). Building activity timeline + next-action nudge.
 - 02:16 EDT — CRM activity timeline + next-action-or-stale nudge done (40 tests). Building tasks + My Day.
+- 02:23 EDT — CRM tasks + My Day done (63 tests). Building weighted forecast + table view.
