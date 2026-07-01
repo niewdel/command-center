@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { requireAgencyAdmin } from "@/lib/tenancy";
 import { runAudit } from "@/lib/audit/runner";
 
 // Audits launch Playwright + PSI; on Railway the start-to-finish run takes
@@ -21,18 +22,6 @@ function getServiceClient(): SupabaseClient {
     });
   }
   return serviceClient;
-}
-
-async function getCurrentUserId(): Promise<string | null> {
-  // Justin's app uses PIN auth + a single Supabase user per workspace.
-  // Resolve the user from the seeded organizations row (same pattern
-  // as src/lib/leads/db.ts:getOrg).
-  const { data } = await getServiceClient()
-    .from("organizations")
-    .select("user_id")
-    .limit(1)
-    .single();
-  return data?.user_id ?? null;
 }
 
 function normalizeUrl(raw: string): string | null {
@@ -72,10 +61,11 @@ export async function POST(req: NextRequest) {
   // explicit numeric maxPages (10/25/50) always wins over "main".
   const maxPages = mode === "main" && body.maxPages === undefined ? undefined : clampMaxPages(body.maxPages);
 
-  const userId = await getCurrentUserId();
-  if (!userId) {
-    return NextResponse.json({ error: "No user found" }, { status: 401 });
+  const admin = await requireAgencyAdmin();
+  if (!admin) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+  const userId = admin.userId;
 
   const sb = getServiceClient();
   const { data: audit, error } = await sb

@@ -19,6 +19,27 @@ export async function getUserScopedClient() {
   return createClient();
 }
 
+// Gate for agency-internal tools (leads, SEO, audits, issues, uploads, AI
+// commands). These tools span workspaces by design, so membership isn't
+// enough — the caller must be in agency_admins. Returns the caller's user id
+// on success, null otherwise (fail closed on any error).
+export async function requireAgencyAdmin(): Promise<{ userId: string } | null> {
+  const supabase = await getUserScopedClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data, error } = await supabase.rpc("is_agency_admin", {
+    uid: user.id,
+  });
+  if (error) {
+    console.error("[tenancy] is_agency_admin check failed; failing closed:", error.message);
+    return null;
+  }
+  return data === true ? { userId: user.id } : null;
+}
+
 // Resolve the active tenant. The workspaces SELECT is already RLS-filtered to
 // the user's memberships, so an invalid/foreign cookie simply misses the list
 // and falls through to the default — no separate membership check needed.

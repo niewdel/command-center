@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceClient, getOrg, sweepStaleLeadJobs } from "@/lib/leads/db";
 import { runPipeline } from "@/lib/leads/pipeline";
+import { requireAgencyAdmin } from "@/lib/tenancy";
 
 // Audit/scrape jobs need real wall-clock time on Railway. Default Railway
 // function timeout is 5 min; the pipeline can take 3-8 min for 25 leads,
@@ -22,6 +23,9 @@ type CreateJobBody = {
 };
 
 export async function POST(req: NextRequest) {
+  if (!(await requireAgencyAdmin())) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   let body: CreateJobBody;
   try {
     body = await req.json();
@@ -132,6 +136,9 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+  if (!(await requireAgencyAdmin())) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   // Opportunistic sweep — fail any orphaned non-terminal jobs before
   // returning, so the UI never shows a stuck "researching..." row.
   // Logged-and-swallowed because a sweep failure shouldn't block the read.

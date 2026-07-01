@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { requireAgencyAdmin } from "@/lib/tenancy";
 import type { AiParseResult } from "@/types/database";
 
 function getSupabaseAdmin() {
@@ -11,13 +12,12 @@ function getSupabaseAdmin() {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = getSupabaseAdmin();
-    const { data: users } = await supabase.auth.admin.listUsers();
-    const userId = users?.users?.[0]?.id;
-
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const admin = await requireAgencyAdmin();
+    if (!admin) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
+    const userId = admin.userId;
+    const supabase = getSupabaseAdmin();
 
     const { parsed, source = "command_bar" } = (await request.json()) as {
       parsed: AiParseResult & { duration_ms?: number };

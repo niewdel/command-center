@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { requireAgencyAdmin } from "@/lib/tenancy";
 
 function getSupabaseAdmin() {
   return createClient(
@@ -10,6 +11,9 @@ function getSupabaseAdmin() {
 
 export async function POST(request: NextRequest) {
   try {
+    if (!(await requireAgencyAdmin())) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
     const folder = (formData.get("folder") as string) || "workspace-logos";

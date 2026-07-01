@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/seo/db";
 import { renderFixPlanMarkdown } from "@/lib/seo/fix-plan-md";
 import type { PageSnapshot, SeoConfig } from "@/lib/seo/types";
+import { requireAgencyAdmin } from "@/lib/tenancy";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,9 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!(await requireAgencyAdmin())) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   const { id } = await params;
   const sb = getServiceClient();
   const format = request.nextUrl.searchParams.get("format") ?? "markdown";

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { requireAgencyAdmin } from "@/lib/tenancy";
 
 let serviceClient: SupabaseClient | null = null;
 function getServiceClient(): SupabaseClient {
@@ -15,6 +16,10 @@ function getServiceClient(): SupabaseClient {
 }
 
 export async function GET(req: NextRequest) {
+  if (!(await requireAgencyAdmin())) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const limit = Math.min(parseInt(req.nextUrl.searchParams.get("limit") ?? "50"), 200);
   const sb = getServiceClient();
   const { data, error } = await sb

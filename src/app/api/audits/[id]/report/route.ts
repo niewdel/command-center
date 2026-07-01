@@ -1,5 +1,6 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { requireAgencyAdmin } from "@/lib/tenancy";
 
 // Supabase Storage's public CDN serves all our audit HTML files with
 // content-type: text/plain + x-content-type-options: nosniff, which makes
@@ -26,6 +27,10 @@ export async function GET(
   _req: NextRequest,
   ctx: { params: Promise<{ id: string }> }
 ) {
+  if (!(await requireAgencyAdmin())) {
+    return new NextResponse("Forbidden", { status: 403 });
+  }
+
   const { id } = await ctx.params;
   const sb = getServiceClient();
 

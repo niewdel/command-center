@@ -21,6 +21,7 @@ import {
   AdsPermissionError,
   AdsPendingApprovalError,
 } from "@/lib/google/google-ads";
+import { requireAgencyAdmin } from "@/lib/tenancy";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,9 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  if (!(await requireAgencyAdmin())) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   const { id: clientId } = await params;
   const sb = getServiceClient();
 

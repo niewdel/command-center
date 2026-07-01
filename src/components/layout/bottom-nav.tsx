@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useIsAgencyAdmin } from "@/lib/hooks/use-agency-admin";
 import { TrendingUp, Gauge } from "lucide-react";
 
 const tabs = [
@@ -12,6 +13,10 @@ const tabs = [
 
 export function BottomNav() {
   const pathname = usePathname();
+  const isAgencyAdmin = useIsAgencyAdmin();
+
+  // Both tabs are agency-internal tools; non-admins get no bar at all.
+  if (!isAgencyAdmin) return null;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-30 md:hidden bg-card border-t border-border safe-area-bottom">

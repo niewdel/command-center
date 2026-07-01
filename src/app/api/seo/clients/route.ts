@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/seo/db";
+import { requireAgencyAdmin } from "@/lib/tenancy";
 
 export const dynamic = "force-dynamic";
 
 // Returns all clients that have ANY seo_config (enabled or paused), with the
 // latest seo_check + open issue counts. Used by the /seo overview page.
 export async function GET() {
+  if (!(await requireAgencyAdmin())) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   const sb = getServiceClient();
 
   const { data: clients, error } = await sb
