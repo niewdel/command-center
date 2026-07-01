@@ -20,7 +20,7 @@ create index if not exists idx_clients_workspace_stage on public.clients(workspa
 
 -- ── 2. Demo workspace (tenant #2, team-owned so the switcher can reach it) ──
 insert into public.workspaces (id, user_id, name, slug, type, position)
-values ('d0000000-0000-4000-8000-000000000001', '82340bcc-47b7-4217-b5ce-887270928b98', 'Demo', 'demo', 'demo', 99)
+values ('d0000000-0000-4000-8000-000000000001', '82340bcc-47b7-4217-b5ce-887270928b98', 'Demo', 'demo', 'business', 99)
 on conflict (id) do nothing;
 
 -- ── 3. New CRM tables (workspace_id denormalized) ──────────────────────────
