@@ -30,7 +30,7 @@ function makeRequest(url: string, body: unknown) {
   });
 }
 
-function seedProposal(overrides: Record<string, unknown> = {}) {
+function seedProposal(overrides: Record<string, unknown> = {}, deals: Record<string, unknown>[] = []) {
   fake = createFakeSupabase({
     crm_proposals: [
       {
@@ -41,9 +41,13 @@ function seedProposal(overrides: Record<string, unknown> = {}) {
         signed_at: null,
         signer_name: null,
         viewed_at: null,
+        deal_id: null,
+        title: "Test Proposal",
         ...overrides,
       },
     ],
+    crm_deals: deals,
+    crm_activities: [],
     crm_proposal_line_items: [
       {
         id: "li-1",
@@ -160,6 +164,63 @@ describe("POST /api/proposals/[id]/sign", () => {
     expect(signedEvent?.actor).toBe("Jane Doe");
     expect(signedEvent?.ip).toBe("203.0.113.7");
     expect(signedEvent?.user_agent).toBe("vitest");
+  });
+
+  it("advances a linked deal from scope to build and logs a deal activity note on sign", async () => {
+    seedProposal({ deal_id: "deal-1", title: "Acme Website Build" }, [
+      { id: "deal-1", workspace_id: WORKSPACE_ID, stage: "scope" },
+    ]);
+
+    const res = await signPOST(
+      makeRequest("http://localhost/api/proposals/prop-1/sign", {
+        token: VALID_TOKEN,
+        signerName: "Jane Doe",
+        consent: true,
+      }),
+      { params: Promise.resolve({ id: "prop-1" }) }
+    );
+    expect(res.status).toBe(200);
+
+    const deal = fake.store.crm_deals?.find((d) => d.id === "deal-1");
+    expect(deal?.stage).toBe("build");
+
+    const activities = fake.store.crm_activities ?? [];
+    const note = activities.find((a) => a.deal_id === "deal-1");
+    expect(note).toBeDefined();
+    expect(note?.type).toBe("note");
+    expect(String(note?.body)).toContain("Acme Website Build");
+    expect(String(note?.body)).toContain("Jane Doe");
+  });
+
+  it("does not touch a linked deal already in build", async () => {
+    seedProposal({ deal_id: "deal-1" }, [{ id: "deal-1", workspace_id: WORKSPACE_ID, stage: "build" }]);
+
+    await signPOST(
+      makeRequest("http://localhost/api/proposals/prop-1/sign", {
+        token: VALID_TOKEN,
+        signerName: "Jane Doe",
+        consent: true,
+      }),
+      { params: Promise.resolve({ id: "prop-1" }) }
+    );
+
+    const deal = fake.store.crm_deals?.find((d) => d.id === "deal-1");
+    expect(deal?.stage).toBe("build");
+  });
+
+  it("does nothing to any deal or activity when the proposal has no deal_id", async () => {
+    seedProposal({ deal_id: null });
+
+    await signPOST(
+      makeRequest("http://localhost/api/proposals/prop-1/sign", {
+        token: VALID_TOKEN,
+        signerName: "Jane Doe",
+        consent: true,
+      }),
+      { params: Promise.resolve({ id: "prop-1" }) }
+    );
+
+    expect(fake.store.crm_activities ?? []).toHaveLength(0);
   });
 
   it("rejects double-sign on an already-signed proposal with 409", async () => {

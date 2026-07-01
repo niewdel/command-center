@@ -17,8 +17,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPipelineClient, getDefaultPipelineWorkspaceId } from "@/lib/pipeline/db";
 import { verifyProposalToken } from "@/lib/proposals/token";
-import { computeTotals } from "@/lib/proposals/pricing";
+import { computeTotals, formatCents } from "@/lib/proposals/pricing";
 import type { CrmProposalLineItem } from "@/types/proposals";
+
+/** Stages that are still pre-build; signing a proposal nudges the deal past them. */
+const PRE_BUILD_STAGES = new Set(["discovery", "scope", "proposal"]);
 
 export const dynamic = "force-dynamic";
 
@@ -87,7 +90,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const { data: proposal } = await sb
     .from("crm_proposals")
-    .select("id, status, requires_dual_sign")
+    .select("id, status, requires_dual_sign, deal_id, title")
     .eq("workspace_id", workspace_id)
     .eq("id", id)
     .maybeSingle();
@@ -157,6 +160,34 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     user_agent: userAgent,
     meta: { signerEmail, selectedOptions, totals, requiresDualSign: proposal.requires_dual_sign },
   });
+
+  // Surface the signature on the deal timeline and nudge the deal forward,
+  // but only when this proposal is attached to a deal.
+  const dealId = proposal.deal_id as string | null;
+  if (dealId) {
+    await sb.from("crm_activities").insert({
+      workspace_id,
+      deal_id: dealId,
+      type: "note",
+      body: `Proposal signed by ${signerName}: "${proposal.title}" (${formatCents(totals.oneTimeCents)})`,
+      occurred_at: signedAt,
+    });
+
+    const { data: deal } = await sb
+      .from("crm_deals")
+      .select("id, stage")
+      .eq("workspace_id", workspace_id)
+      .eq("id", dealId)
+      .maybeSingle();
+
+    if (deal && PRE_BUILD_STAGES.has(deal.stage as string)) {
+      await sb
+        .from("crm_deals")
+        .update({ stage: "build" })
+        .eq("workspace_id", workspace_id)
+        .eq("id", dealId);
+    }
+  }
 
   return NextResponse.json({ data: updated });
 }

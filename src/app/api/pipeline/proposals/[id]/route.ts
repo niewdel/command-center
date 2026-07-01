@@ -6,7 +6,7 @@ import {
   PROPOSAL_TYPES,
   type CrmProposalLineItem,
 } from "@/types/proposals";
-import { computeTotals } from "@/lib/proposals/pricing";
+import { computeTotals, formatCents } from "@/lib/proposals/pricing";
 
 export const dynamic = "force-dynamic";
 
@@ -68,7 +68,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const { data: existing } = await sb
     .from("crm_proposals")
-    .select("id, status")
+    .select("id, status, deal_id, title")
     .eq("workspace_id", workspace_id)
     .eq("id", id)
     .maybeSingle();
@@ -149,6 +149,21 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       type: "sent",
       meta: {},
     });
+
+    // Surface the send on the deal timeline. crm_activities.type has no
+    // 'proposal_sent' value, so this is logged as a plain 'note' with a
+    // clear body (see the deal activities API CHECK constraint).
+    const dealId = "deal_id" in patch ? (patch.deal_id as string | null) : existing.deal_id;
+    if (dealId) {
+      const title = "title" in patch ? String(patch.title) : (existing.title as string);
+      await sb.from("crm_activities").insert({
+        workspace_id,
+        deal_id: dealId,
+        type: "note",
+        body: `Proposal sent: "${title}" (${formatCents(totals.oneTimeCents)})`,
+        occurred_at: new Date().toISOString(),
+      });
+    }
   }
 
   return NextResponse.json({ data });

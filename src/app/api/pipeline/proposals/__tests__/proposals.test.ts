@@ -126,9 +126,27 @@ describe("proposals API", () => {
       );
       const secondJson = await second.json();
 
-      const res = await listGET();
+      const res = await listGET(makeGetRequest("http://localhost/api/pipeline/proposals"));
       const json = await res.json();
       expect(json.data.map((p: { id: string }) => p.id)).toEqual([secondJson.data.id, firstJson.data.id]);
+    });
+
+    it("filters by deal_id when provided", async () => {
+      const forDeal = await listPOST(
+        makeJsonRequest("http://localhost/api/pipeline/proposals", "POST", {
+          type: "custom",
+          title: "For deal-1",
+          deal_id: "deal-1",
+        })
+      );
+      const forDealJson = await forDeal.json();
+      await listPOST(
+        makeJsonRequest("http://localhost/api/pipeline/proposals", "POST", { type: "custom", title: "No deal" })
+      );
+
+      const res = await listGET(makeGetRequest("http://localhost/api/pipeline/proposals?deal_id=deal-1"));
+      const json = await res.json();
+      expect(json.data.map((p: { id: string }) => p.id)).toEqual([forDealJson.data.id]);
     });
   });
 

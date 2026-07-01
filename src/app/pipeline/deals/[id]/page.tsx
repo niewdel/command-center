@@ -14,6 +14,7 @@ import { CompanyPickerDialog } from "@/components/pipeline/company-picker-dialog
 import { NewContactDialog } from "@/components/pipeline/new-contact-dialog";
 import { ActivityTimeline } from "@/components/pipeline/deal-activities";
 import { TaskList } from "@/components/pipeline/deal-tasks";
+import { DealProposals } from "@/components/pipeline/deal-proposals";
 import { isDealStale } from "@/lib/pipeline/stale";
 import { Clock3 } from "lucide-react";
 
@@ -696,6 +697,12 @@ export default function DealDetailPage() {
           </div>
 
           <TaskList scope={{ dealId: id }} />
+
+          <DealProposals
+            dealId={id}
+            crmCompanyId={deal.crm_company_id}
+            primaryContactId={deal.primary_contact_id}
+          />
 
           <ActivityTimeline scope={{ dealId: id }} />
         </div>

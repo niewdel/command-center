@@ -10,15 +10,17 @@ const PROPOSAL_SELECT = `*,
   company:crm_companies(id, name, domain, industry),
   contact:crm_contacts!crm_proposals_primary_contact_id_fkey(id, full_name, title, email, phone)`;
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const sb = getPipelineClient();
   const workspace_id = await getDefaultPipelineWorkspaceId();
+  const dealId = req.nextUrl.searchParams.get("deal_id");
 
-  const { data, error } = await sb
+  let query = sb
     .from("crm_proposals")
     .select(PROPOSAL_SELECT)
-    .eq("workspace_id", workspace_id)
-    .order("created_at", { ascending: false });
+    .eq("workspace_id", workspace_id);
+  if (dealId) query = query.eq("deal_id", dealId);
+  const { data, error } = await query.order("created_at", { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ data: data ?? [] });
