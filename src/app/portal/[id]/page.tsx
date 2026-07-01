@@ -18,6 +18,7 @@ import { RankingsPanel } from "@/components/portal/RankingsPanel";
 import { LeadsPanel } from "@/components/portal/LeadsPanel";
 import { AdsPanel } from "@/components/portal/AdsPanel";
 import { WhatWeDid } from "@/components/portal/WhatWeDid";
+import { PhotosSection } from "@/components/portal/PhotosSection";
 
 export const dynamic = "force-dynamic";
 
@@ -87,6 +88,10 @@ export default async function PortalPage({ params, searchParams }: PageProps) {
             <WhatWeDid data={data} />
           </div>
         )}
+
+        <div className="mt-12">
+          <PhotosSection clientId={id} token={token} />
+        </div>
 
         <footer className="mt-16 pt-6 border-t border-border text-muted-foreground text-xs flex justify-between items-center flex-wrap gap-2">
           <div className="inline-flex items-center gap-2">
