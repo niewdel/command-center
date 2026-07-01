@@ -56,7 +56,7 @@ function clampMaxPages(n: unknown): number {
 }
 
 export async function POST(req: NextRequest) {
-  let body: { url?: string; maxPages?: number };
+  let body: { url?: string; maxPages?: number; mode?: string };
   try {
     body = await req.json();
   } catch {
@@ -67,7 +67,10 @@ export async function POST(req: NextRequest) {
   if (!url) {
     return NextResponse.json({ error: "Valid URL required" }, { status: 400 });
   }
-  const maxPages = clampMaxPages(body.maxPages);
+  const mode = body.mode === "main" ? "main" : undefined;
+  // "main" mode lets crawlSite/discoverMainPages decide the page cap; an
+  // explicit numeric maxPages (10/25/50) always wins over "main".
+  const maxPages = mode === "main" && body.maxPages === undefined ? undefined : clampMaxPages(body.maxPages);
 
   const userId = await getCurrentUserId();
   if (!userId) {
@@ -96,7 +99,7 @@ export async function POST(req: NextRequest) {
 
   // Fire-and-forget: pipeline writes progress + result back to the audits row.
   setImmediate(() => {
-    runAudit(audit.id, url, maxPages).catch(async (err: unknown) => {
+    runAudit(audit.id, url, { maxPages, mode }).catch(async (err: unknown) => {
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`[audit ${audit.id}] failed:`, msg);
       try {

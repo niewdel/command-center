@@ -1,8 +1,11 @@
 import { chromium, type Browser, type Page, type Response } from 'playwright';
 import { CrawledPage } from './types';
 import { parseRobots, checkUrlExists } from '../seo/site-checks';
+import { normalizeUrl, isSameDomain, hasSkippableExtension } from './url-utils';
+import { discoverMainPages } from './discover-main-pages';
 
 const DEFAULT_MAX_PAGES = 50;
+const MAIN_MODE_CAP = 15;
 const PAGE_TIMEOUT = 15_000;
 
 export interface CrawlOptions {
@@ -10,52 +13,15 @@ export interface CrawlOptions {
   maxPages?: number;
   /** Skip robots.txt + sitemap discovery. Useful for fast single-URL audits. */
   skipDiscovery?: boolean;
-}
-const SKIP_EXTENSIONS = new Set([
-  '.pdf', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.ico',
-  '.mp4', '.mp3', '.wav', '.avi', '.mov', '.zip', '.tar', '.gz',
-  '.css', '.js', '.woff', '.woff2', '.ttf', '.eot', '.xml',
-]);
-
-// ---------------------------------------------------------------------------
-// URL helpers
-// ---------------------------------------------------------------------------
-
-function normalizeUrl(raw: string, base?: string): string | null {
-  try {
-    const url = new URL(raw, base);
-    // Only crawl http(s)
-    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
-    // Strip fragment
-    url.hash = '';
-    // Strip common tracking query params but keep meaningful ones
-    // For dedup we strip ALL query params — most small-biz sites don't rely on them
-    url.search = '';
-    // Remove trailing slash (except for root)
-    let path = url.pathname.replace(/\/+$/, '') || '/';
-    url.pathname = path;
-    return url.toString();
-  } catch {
-    return null;
-  }
+  /**
+   * "main" — crawl the homepage first, seed the queue from its primary nav
+   * (header/nav/footer links, via `discoverMainPages`), and top up from the
+   * existing sitemap/BFS discovery if nav yields too few pages.
+   */
+  mode?: "main";
 }
 
-function isSameDomain(urlStr: string, rootOrigin: string): boolean {
-  try {
-    return new URL(urlStr).origin === rootOrigin;
-  } catch {
-    return false;
-  }
-}
-
-function hasSkippableExtension(urlStr: string): boolean {
-  try {
-    const pathname = new URL(urlStr).pathname.toLowerCase();
-    return Array.from(SKIP_EXTENSIONS).some((ext) => pathname.endsWith(ext));
-  } catch {
-    return false;
-  }
-}
+export { normalizeUrl, hasSkippableExtension };
 
 // ---------------------------------------------------------------------------
 // robots.txt
@@ -208,7 +174,16 @@ async function extractPageData(page: Page, response: Response | null, pageUrl: s
     const bodyText = document.body?.innerText?.trim() || '';
 
     // Links
-    const links: { href: string; text: string; isInternal: boolean }[] = [];
+    const links: { href: string; text: string; isInternal: boolean; location: 'header' | 'nav' | 'footer' | 'body' }[] = [];
+    const closestSection = (el: Element): 'header' | 'nav' | 'footer' | 'body' => {
+      let cur: Element | null = el;
+      while (cur) {
+        const tag = cur.tagName?.toLowerCase();
+        if (tag === 'header' || tag === 'nav' || tag === 'footer') return tag;
+        cur = cur.parentElement;
+      }
+      return 'body';
+    };
     document.querySelectorAll('a[href]').forEach((el) => {
       const anchor = el as HTMLAnchorElement;
       const href = anchor.href;
@@ -219,7 +194,7 @@ async function extractPageData(page: Page, response: Response | null, pageUrl: s
       } catch {
         isInternal = true; // relative URLs are internal
       }
-      links.push({ href, text, isInternal });
+      links.push({ href, text, isInternal, location: closestSection(anchor) });
     });
 
     // Images
@@ -328,7 +303,8 @@ export async function crawlSite(
   onProgress?: (message: string, done: number, total: number) => void,
   options: CrawlOptions = {},
 ): Promise<CrawledPage[]> {
-  const maxPages = options.maxPages ?? DEFAULT_MAX_PAGES;
+  const mode = options.mode;
+  const maxPages = options.maxPages ?? (mode === "main" ? MAIN_MODE_CAP : DEFAULT_MAX_PAGES);
   const skipDiscovery = options.skipDiscovery ?? maxPages === 1;
   const rootOrigin = new URL(rootUrl).origin;
   const normalizedRoot = normalizeUrl(rootUrl) || rootUrl;
@@ -360,10 +336,15 @@ export async function crawlSite(
     queue.push(url);
   }
 
-  // Always start with the root
+  // Always start with the root. In "main" mode, hold off on seeding the
+  // sitemap URLs — we seed from the homepage's primary nav instead, once
+  // it's been crawled (see below), and only fall back to sitemap/BFS to
+  // top up if nav is thin.
   enqueue(normalizedRoot);
-  for (const u of sitemapUrls) {
-    enqueue(u);
+  if (mode !== "main") {
+    for (const u of sitemapUrls) {
+      enqueue(u);
+    }
   }
 
   progress(`Found ${queue.length} page(s) to crawl`, 0, Math.min(queue.length, maxPages));
@@ -421,6 +402,23 @@ export async function crawlSite(
         const crawled = await extractPageData(page, response, pageUrl, rootOrigin);
         results.push(crawled);
 
+        // "main" mode: once the homepage is crawled, seed the queue from its
+        // primary nav (header/nav/footer links). If nav is thin (< ~5 pages
+        // total, including the homepage), top up with the sitemap URLs we
+        // already fetched — BFS link-following below fills in the rest.
+        if (mode === "main" && crawled.url === normalizedRoot && results.length === 1) {
+          const navUrls = discoverMainPages(crawled, maxPages).filter((u) => u !== normalizedRoot);
+          progress(`Found ${navUrls.length} nav page(s) on homepage`, results.length, Math.min(queue.length, maxPages));
+          for (const navUrl of navUrls) {
+            enqueue(navUrl);
+          }
+          if (navUrls.length < 4) {
+            for (const u of sitemapUrls) {
+              enqueue(u);
+            }
+          }
+        }
+
         // Discover new links from this page for BFS traversal
         const newLinks = extractInternalLinks(crawled, rootOrigin);
         for (const link of newLinks) {
@@ -429,6 +427,13 @@ export async function crawlSite(
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         progress(`Skipping ${pageUrl}: ${message}`, results.length, total);
+        // "main" mode couldn't discover nav from a failed homepage load —
+        // fall back to sitemap/BFS discovery so the crawl isn't left empty.
+        if (mode === "main" && pageUrl === normalizedRoot && results.length === 0) {
+          for (const u of sitemapUrls) {
+            enqueue(u);
+          }
+        }
       } finally {
         if (page) {
           try { await page.close(); } catch { /* ignore */ }

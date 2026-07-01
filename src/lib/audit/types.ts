@@ -8,7 +8,13 @@ export interface CrawledPage {
   metaDescription: string;
   headings: { level: number; text: string }[];
   bodyText: string;
-  links: { href: string; text: string; isInternal: boolean }[];
+  links: {
+    href: string;
+    text: string;
+    isInternal: boolean;
+    /** Nearest ancestor landmark — used to rank nav prominence for main-pages discovery. */
+    location?: "header" | "nav" | "footer" | "body";
+  }[];
   headLinks: { rel: string; href: string }[];
   images: { src: string; alt: string; srcset?: string }[];
   forms: { action: string; method: string; fieldCount: number; fields: string[] }[];
