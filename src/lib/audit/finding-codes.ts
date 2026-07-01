@@ -36,6 +36,25 @@ export const FINDING_CODES = [
   "seo.orphan.pages",
   "seo.title.length",
 
+  // perf.* — Performance & Speed scorer codes (src/lib/audit/scoring/performance.ts)
+  "perf.psi.unavailable",
+  "perf.lighthouse.needsimprovement",
+  "perf.lighthouse.poor",
+  "perf.lighthouse.verypoor",
+  "perf.lcp.slow",
+  "perf.lcp.verypoor",
+  "perf.fcp.slow",
+  "perf.fcp.verypoor",
+  "perf.cls.high",
+  "perf.cls.veryhigh",
+  "perf.tbt.high",
+  "perf.tbt.veryhigh",
+  "perf.speedindex.slow",
+  "perf.speedindex.veryslow",
+  "perf.page.below50",
+  "perf.pageweight.high",
+  "perf.variance.high",
+
   // aeo.* — AI-search / answer-engine optimization (src/lib/seo/aeo-score.ts)
   "aeo.schema.absent",
   "aeo.schema.coverage.low",
