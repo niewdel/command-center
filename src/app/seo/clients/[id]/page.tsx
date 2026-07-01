@@ -13,6 +13,7 @@ import {
   Mail,
   Check as CheckIcon,
   Link2,
+  LayoutDashboard,
 } from "lucide-react";
 import { PageLayout } from "@/components/layout/page-layout";
 import { Card } from "@/components/ui/card";
@@ -152,6 +153,8 @@ export default function SeoClientDetailPage({
   const [copied, setCopied] = useState(false);
   const [magicLinkCopied, setMagicLinkCopied] = useState(false);
   const [magicLinkLoading, setMagicLinkLoading] = useState(false);
+  const [portalLinkCopied, setPortalLinkCopied] = useState(false);
+  const [portalLinkLoading, setPortalLinkLoading] = useState(false);
 
   const fetchAll = useCallback(async () => {
     const [res, reportRes] = await Promise.all([
@@ -421,6 +424,28 @@ export default function SeoClientDetailPage({
     }
   };
 
+  const copyPortalLink = async () => {
+    setPortalLinkLoading(true);
+    try {
+      const res = await fetch(`/api/seo/clients/${id}/portal-link`);
+      const json = await res.json();
+      if (!res.ok || !json.url) {
+        alert(json.error ?? "Failed to generate portal link");
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(json.url as string);
+        setPortalLinkCopied(true);
+        setTimeout(() => setPortalLinkCopied(false), 1800);
+      } catch {
+        // Clipboard denied — fall back to a prompt so the user can still grab it.
+        window.prompt("Copy this portal link:", json.url as string);
+      }
+    } finally {
+      setPortalLinkLoading(false);
+    }
+  };
+
   const openFixPlan = async () => {
     setFixPlanOpen(true);
     setFixPlanLoading(true);
@@ -551,6 +576,23 @@ export default function SeoClientDetailPage({
               <Link2 className="size-3.5" />
             )}
             {magicLinkCopied ? "Copied" : "Magic link"}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={copyPortalLink}
+            disabled={portalLinkLoading || !cfg.domain}
+            className="rounded gap-1.5"
+            title="Copy the client's portal link (live reporting, ads, uploads — no login required)"
+          >
+            {portalLinkLoading ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : portalLinkCopied ? (
+              <CheckIcon className="size-3.5 text-emerald-400" />
+            ) : (
+              <LayoutDashboard className="size-3.5" />
+            )}
+            {portalLinkCopied ? "Copied" : "Copy portal link"}
           </Button>
           <Button
             size="sm"

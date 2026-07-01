@@ -8,7 +8,7 @@ export default defineConfig({
     },
   },
   test: {
-    include: ["src/**/*.test.ts"],
+    include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
     environment: "node",
     // Dummy values so modules that construct a Supabase client at import
     // time (e.g. src/lib/supabase.ts) don't throw in tests that never
@@ -17,5 +17,6 @@ export default defineConfig({
       NEXT_PUBLIC_SUPABASE_URL: "https://test.supabase.co",
       NEXT_PUBLIC_SUPABASE_ANON_KEY: "test-anon-key",
     },
+    setupFiles: ["./vitest.setup.ts"],
   },
 });
