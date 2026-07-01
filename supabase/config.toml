@@ -18,6 +18,19 @@ enable_confirmations = true
 max_frequency = "1m0s"
 otp_length = 8
 
+# Auth mail via Resend so emails come from Niewdel instead of
+# noreply@mail.app.supabase.io. Requires RESEND_API_KEY in the shell:
+#   RESEND_API_KEY=$(grep '^RESEND_API_KEY=' .env.local | cut -d= -f2-) \
+#     supabase config push --project-ref mrnuwlxmzxzhqadhktef --yes
+[auth.email.smtp]
+enabled = true
+host = "smtp.resend.com"
+port = 465
+user = "resend"
+pass = "env(RESEND_API_KEY)"
+admin_email = "noreply@niewdel.com"
+sender_name = "Niewdel"
+
 [auth.email.template.recovery]
 subject = "Reset your Niewdel password"
 content_path = "./supabase/templates/recovery.html"
