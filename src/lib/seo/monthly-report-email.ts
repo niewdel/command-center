@@ -95,12 +95,19 @@ const SOURCE_SEGMENTS: { key: "search" | "direct" | "referral" | "social" | "oth
 
 export function renderMonthlyReportEmail(
   data: ReportData,
-  opts: { intro?: string } = {},
+  opts: { intro?: string; baseUrl?: string } = {},
 ): string {
   const generatedDate = new Date(data.client.generated_at).toLocaleDateString(
     "en-US",
     { month: "long", day: "numeric", year: "numeric" },
   );
+
+  // Email images MUST be absolute https URLs. `baseUrl` can be missing or a
+  // localhost dev value; in either case fall back to the production origin so
+  // the footer logo always loads in a real inbox.
+  const rawBase = opts.baseUrl ?? "";
+  const assetBase = /^https:\/\//.test(rawBase) ? rawBase.replace(/\/$/, "") : "https://app.niewdel.com";
+  const logoUrl = `${assetBase}/logos/niewdel-growth-services-white.png`;
 
   function escapeHtml(s: string): string {
     return s
@@ -565,19 +572,19 @@ export function renderMonthlyReportEmail(
     }
 
     // Placeholder. Same block for not_configured, needs_reconnect, and
-    // error states. Niewdel does NOT run ad campaigns; we only report on
-    // existing ones. CTA asks the client to grant manager access so we
-    // can pull their data, not to hire us to run ads.
+    // error states. Niewdel now runs and manages paid ad campaigns, so this
+    // empty state is a subtle upsell: no ads running yet → invite them to
+    // have Niewdel run them. Routed to sales@niewdel.com.
     return `
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
   <tr>
     <td style="padding:0 32px 24px 32px;">
-      ${tag("05 · Google Ads")}
+      ${tag("05 · Paid Ads")}
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:${CARD};border:1px dashed ${LINE};border-radius:12px;">
         <tr>
           <td style="padding:22px 26px;">
-            <p style="margin:0 0 6px 0;${FONT}font-size:16px;font-weight:700;color:${TEXT};letter-spacing:-0.01em;">Link your Google Ads.</p>
-            <p style="margin:0;${FONT}font-size:14px;color:${MUTED};line-height:1.6;">If you run Google Ads campaigns and want the performance included here each month, add Niewdel as a manager on your Google Ads account. We don't run the campaigns, we just pull the data for your monthly report. Reply if you'd like to set it up.</p>
+            <p style="margin:0 0 6px 0;${FONT}font-size:16px;font-weight:700;color:${TEXT};letter-spacing:-0.01em;">Ready to turn on paid ads?</p>
+            <p style="margin:0;${FONT}font-size:14px;color:${MUTED};line-height:1.6;">You are not currently set up to run ads. Organic search is working for you, and paid campaigns are how we accelerate it. If you would like Niewdel to build and manage your ad campaigns, reach out to your salesperson or email <a href="mailto:sales@niewdel.com" style="color:${TEXT};font-weight:600;text-decoration:underline;">sales@niewdel.com</a>.</p>
           </td>
         </tr>
       </table>
@@ -613,8 +620,7 @@ export function renderMonthlyReportEmail(
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
         <tr>
           <td style="vertical-align:middle;">
-            <p style="margin:0;${FONT}font-size:15px;font-weight:700;color:${TEXT};letter-spacing:-0.01em;">niewdel</p>
-            <p style="margin:3px 0 0 0;${FONT}font-size:9px;font-weight:700;color:${MUTED};text-transform:uppercase;letter-spacing:0.2em;">Growth Services</p>
+            <img src="${logoUrl}" alt="Niewdel Growth Services" height="34" style="display:block;height:34px;width:auto;border:0;outline:none;text-decoration:none;" />
           </td>
           <td style="text-align:right;vertical-align:middle;">
             <p style="margin:0;${FONT}font-size:11px;color:${MUTED};letter-spacing:0.04em;">${escapeHtml(generatedDate)}</p>
