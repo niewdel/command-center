@@ -15,6 +15,21 @@ export type FindingCode = string & { readonly __brand: "FindingCode" };
 export const FINDING_CODES = [
   "seo.title.missing",
   "seo.title.duplicate",
+
+  // aeo.* — AI-search / answer-engine optimization (src/lib/seo/aeo-score.ts)
+  "aeo.schema.absent",
+  "aeo.schema.coverage.low",
+  "aeo.entity.schema.missing",
+  "aeo.faq.absent",
+  "aeo.headings.notquestions",
+  "aeo.content.notanswerfirst",
+  "aeo.llms.absent",
+  "aeo.entity.sameas.missing",
+  "aeo.nap.inconsistent",
+  "aeo.freshness.absent",
+  "aeo.aicrawlers.blocked",
+  "aeo.headings.structure",
+  "aeo.summary.absent",
 ] as const;
 
 export type KnownCode = (typeof FINDING_CODES)[number];

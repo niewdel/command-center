@@ -1,5 +1,6 @@
 import { chromium, type Browser, type Page, type Response } from 'playwright';
 import { CrawledPage } from './types';
+import { parseRobots, checkUrlExists } from '../seo/site-checks';
 
 const DEFAULT_MAX_PAGES = 50;
 const PAGE_TIMEOUT = 15_000;
@@ -109,6 +110,39 @@ function isDisallowed(urlStr: string, rules: RobotsRules): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * AEO-specific robots + llms.txt signals for a site, used by the AEO scoring
+ * adapter (`scoring/aeo.ts`). Kept separate from `fetchRobotsTxt`/`isDisallowed`
+ * above (which only care about the "*" crawl-disallow group for BFS discovery).
+ *
+ * Reuses the AI-bot-aware robots.txt parser from `src/lib/seo/site-checks.ts`
+ * rather than re-implementing user-agent-group parsing a second time.
+ */
+export interface AeoRobotsSignals {
+  /** AI crawler user-agent names disallowed for "/" (GPTBot, ClaudeBot, etc). */
+  blockedAiBots: string[];
+  hasLlmsTxt: boolean;
+}
+
+export async function fetchAeoRobotsSignals(rootUrl: string): Promise<AeoRobotsSignals> {
+  const rootOrigin = new URL(rootUrl).origin;
+
+  let blockedAiBots: string[] = [];
+  try {
+    const res = await fetch(`${rootOrigin}/robots.txt`);
+    if (res.ok) {
+      const text = await res.text();
+      blockedAiBots = parseRobots(text).blockedAiBots;
+    }
+  } catch {
+    // robots.txt fetch failed — treat as unblocked
+  }
+
+  const hasLlmsTxt = await checkUrlExists(`${rootOrigin}/llms.txt`);
+
+  return { blockedAiBots, hasLlmsTxt };
 }
 
 // ---------------------------------------------------------------------------
