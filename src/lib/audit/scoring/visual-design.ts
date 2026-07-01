@@ -1,4 +1,4 @@
-import { CategoryResult } from '../types';
+import { CategoryResult, Finding } from '../types';
 import { ScoringInput } from './index';
 import { generateNarrative } from './narratives';
 import { detectFrameworks } from './framework';
@@ -6,7 +6,7 @@ import { detectFrameworks } from './framework';
 export function score(input: ScoringInput): CategoryResult {
   const { pages, screenshots } = input;
   let total = 0;
-  const findings: string[] = [];
+  const findings: Finding[] = [];
 
   if (pages.length === 0) {
     return {
@@ -16,7 +16,9 @@ export function score(input: ScoringInput): CategoryResult {
       severity: 'critical',
       headline: 'No pages could be analyzed.',
       narrative: 'The crawl returned no pages, so visual design could not be assessed.',
-      findings: ['No pages were available for analysis'],
+      findings: [
+        { code: 'visual.pages.none', label: 'No pages were available for analysis', pointsLost: 100 },
+      ],
     };
   }
 
@@ -36,7 +38,11 @@ export function score(input: ScoringInput): CategoryResult {
   if (hasViewportSignal) {
     total += 8;
   } else {
-    findings.push('No viewport meta tag detected -- site may not be mobile-friendly');
+    findings.push({
+      code: 'visual.viewport.missing',
+      label: 'No viewport meta tag detected -- site may not be mobile-friendly',
+      pointsLost: 8,
+    });
   }
 
   // --- Favicon (7 pts) ---
@@ -52,7 +58,11 @@ export function score(input: ScoringInput): CategoryResult {
   if (hasFavicon) {
     total += 7;
   } else {
-    findings.push('No favicon detected -- browsers show a generic icon in tabs');
+    findings.push({
+      code: 'visual.favicon.missing',
+      label: 'No favicon detected -- browsers show a generic icon in tabs',
+      pointsLost: 7,
+    });
   }
 
   // --- Custom web fonts (8 pts) ---
@@ -75,7 +85,11 @@ export function score(input: ScoringInput): CategoryResult {
   if (hasWebFonts) {
     total += 8;
   } else {
-    findings.push('No custom web fonts detected -- site relies on default system fonts');
+    findings.push({
+      code: 'visual.fonts.missing',
+      label: 'No custom web fonts detected -- site relies on default system fonts',
+      pointsLost: 8,
+    });
   }
 
   // --- Images across site (5 + 5 + 5 = up to 15 pts) ---
@@ -87,7 +101,11 @@ export function score(input: ScoringInput): CategoryResult {
   if (homepageImages > 0) {
     total += 5;
   } else {
-    findings.push('No images found on the homepage');
+    findings.push({
+      code: 'visual.images.homepage.none',
+      label: 'No images found on the homepage',
+      pointsLost: 5,
+    });
   }
 
   if (totalUniqueImages >= 10) {
@@ -95,7 +113,11 @@ export function score(input: ScoringInput): CategoryResult {
   } else if (totalUniqueImages >= 5) {
     total += 5;
   } else {
-    findings.push(`Only ${totalUniqueImages} unique image(s) found across the entire site`);
+    findings.push({
+      code: 'visual.images.unique.low',
+      label: `Only ${totalUniqueImages} unique image(s) found across the entire site`,
+      pointsLost: 10,
+    });
   }
 
   // --- Responsive images (8 pts) ---
@@ -120,7 +142,11 @@ export function score(input: ScoringInput): CategoryResult {
   if (hasResponsiveImages) {
     total += 8;
   } else if (allImages.length > 0) {
-    findings.push('No responsive images (srcset/picture) detected -- images may not scale properly on mobile');
+    findings.push({
+      code: 'visual.images.responsive.missing',
+      label: 'No responsive images (srcset/picture) detected -- images may not scale properly on mobile',
+      pointsLost: 8,
+    });
   }
 
   // --- Consistent font usage (7 pts) ---
@@ -141,9 +167,17 @@ export function score(input: ScoringInput): CategoryResult {
     total += 8;
   } else if (h1Ratio > 0.75) {
     total += 4;
-    findings.push(`${pagesWithH1} of ${pages.length} pages have an H1 heading (${Math.round(h1Ratio * 100)}%)`);
+    findings.push({
+      code: 'visual.h1.partial',
+      label: `${pagesWithH1} of ${pages.length} pages have an H1 heading (${Math.round(h1Ratio * 100)}%)`,
+      pointsLost: 4,
+    });
   } else {
-    findings.push(`Only ${pagesWithH1} of ${pages.length} pages have an H1 heading (${Math.round(h1Ratio * 100)}%)`);
+    findings.push({
+      code: 'visual.h1.missing',
+      label: `Only ${pagesWithH1} of ${pages.length} pages have an H1 heading (${Math.round(h1Ratio * 100)}%)`,
+      pointsLost: 8,
+    });
   }
 
   // --- Image alt text coverage (10 / 5 / 0 pts) ---
@@ -157,9 +191,17 @@ export function score(input: ScoringInput): CategoryResult {
       total += 10;
     } else if (altRatio >= 0.5) {
       total += 5;
-      findings.push(`${Math.round(altRatio * 100)}% of images have alt text (${imagesWithAlt}/${allImages.length}) -- should be above 80%`);
+      findings.push({
+        code: 'visual.alt.partial',
+        label: `${Math.round(altRatio * 100)}% of images have alt text (${imagesWithAlt}/${allImages.length}) -- should be above 80%`,
+        pointsLost: 5,
+      });
     } else {
-      findings.push(`Only ${Math.round(altRatio * 100)}% of images have alt text (${imagesWithAlt}/${allImages.length}) -- poor accessibility`);
+      findings.push({
+        code: 'visual.alt.missing',
+        label: `Only ${Math.round(altRatio * 100)}% of images have alt text (${imagesWithAlt}/${allImages.length}) -- poor accessibility`,
+        pointsLost: 10,
+      });
     }
   }
 
@@ -168,7 +210,11 @@ export function score(input: ScoringInput): CategoryResult {
   if (hasOgImage) {
     total += 7;
   } else {
-    findings.push('Homepage is missing an Open Graph image tag -- social shares will lack a preview image');
+    findings.push({
+      code: 'visual.ogimage.missing',
+      label: 'Homepage is missing an Open Graph image tag -- social shares will lack a preview image',
+      pointsLost: 7,
+    });
   }
 
   // --- Color consistency via CSS custom properties (7 pts) ---
@@ -204,7 +250,11 @@ export function score(input: ScoringInput): CategoryResult {
   if (hasModernFormats) {
     total += 5;
   } else if (allImages.length > 0) {
-    findings.push('No modern image formats (WebP, AVIF, SVG) detected -- using only legacy formats');
+    findings.push({
+      code: 'visual.imageformats.legacy',
+      label: 'No modern image formats (WebP, AVIF, SVG) detected -- using only legacy formats',
+      pointsLost: 5,
+    });
   }
 
   // --- No broken images (10 pts, -5 for 1-2, 0 for 3+) ---
@@ -216,14 +266,22 @@ export function score(input: ScoringInput): CategoryResult {
     total += 10;
   } else if (brokenImages.length <= 2) {
     total += 5;
-    findings.push(`${brokenImages.length} broken image(s) detected`);
+    findings.push({
+      code: 'visual.brokenimages.minor',
+      label: `${brokenImages.length} broken image(s) detected`,
+      pointsLost: 5,
+    });
   } else {
-    findings.push(`${brokenImages.length} broken images detected -- significant visual degradation`);
+    findings.push({
+      code: 'visual.brokenimages.severe',
+      label: `${brokenImages.length} broken images detected -- significant visual degradation`,
+      pointsLost: 10,
+    });
   }
 
   const finalScore = Math.max(0, Math.min(100, total));
   const severity = scoreToSeverity(finalScore);
-  const { headline, narrative } = generateNarrative('visual-design', finalScore, findings);
+  const { headline, narrative } = generateNarrative('visual-design', finalScore);
 
   return {
     category_id: 'visual-design',

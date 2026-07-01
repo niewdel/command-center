@@ -1,4 +1,4 @@
-import { CategoryResult } from '../types';
+import { CategoryResult, Finding } from '../types';
 import { ScoringInput } from './index';
 import { generateNarrative } from './narratives';
 
@@ -12,7 +12,7 @@ function wordCount(text: string): number {
 export function score(input: ScoringInput): CategoryResult {
   const { pages, screenshots } = input;
   let total = 0;
-  const findings: string[] = [];
+  const findings: Finding[] = [];
 
   if (pages.length === 0) {
     return {
@@ -22,7 +22,9 @@ export function score(input: ScoringInput): CategoryResult {
       severity: 'critical',
       headline: 'No pages could be analyzed.',
       narrative: 'The crawl returned no pages, so content quality could not be assessed.',
-      findings: ['No pages were available for analysis'],
+      findings: [
+        { code: 'content.pages.none', label: 'No pages were available for analysis', pointsLost: 100 },
+      ],
     };
   }
 
@@ -41,12 +43,24 @@ export function score(input: ScoringInput): CategoryResult {
     total += 15;
   } else if (homepageWords > 300) {
     total += 8;
-    findings.push(`Homepage has ${homepageWords} words -- could use more substantive content`);
+    findings.push({
+      code: 'content.homepage.words.moderate',
+      label: `Homepage has ${homepageWords} words -- could use more substantive content`,
+      pointsLost: 7,
+    });
   } else if (homepageWords > 200) {
     total += 3;
-    findings.push(`Homepage has only ${homepageWords} words -- thin content hurts engagement and SEO`);
+    findings.push({
+      code: 'content.homepage.words.thin',
+      label: `Homepage has only ${homepageWords} words -- thin content hurts engagement and SEO`,
+      pointsLost: 12,
+    });
   } else {
-    findings.push(`Homepage has only ${homepageWords} words -- severely thin content`);
+    findings.push({
+      code: 'content.homepage.words.severelythin',
+      label: `Homepage has only ${homepageWords} words -- severely thin content`,
+      pointsLost: 15,
+    });
   }
 
   // --- Average words per page (10 / 5 / 0 pts) ---
@@ -56,9 +70,17 @@ export function score(input: ScoringInput): CategoryResult {
     total += 10;
   } else if (avgWords > 250) {
     total += 5;
-    findings.push(`Average page has ${Math.round(avgWords)} words -- below the 400-word target for strong content`);
+    findings.push({
+      code: 'content.avgwords.below',
+      label: `Average page has ${Math.round(avgWords)} words -- below the 400-word target for strong content`,
+      pointsLost: 5,
+    });
   } else {
-    findings.push(`Average page has only ${Math.round(avgWords)} words -- content is too thin across the site`);
+    findings.push({
+      code: 'content.avgwords.thin',
+      label: `Average page has only ${Math.round(avgWords)} words -- content is too thin across the site`,
+      pointsLost: 10,
+    });
   }
 
   // --- No thin pages < 150 words (15 / 8 / 0 pts) ---
@@ -68,9 +90,17 @@ export function score(input: ScoringInput): CategoryResult {
     total += 15;
   } else if (thinPages.length === 1) {
     total += 8;
-    findings.push(`1 page has thin content (fewer than 150 words)`);
+    findings.push({
+      code: 'content.thinpages.one',
+      label: `1 page has thin content (fewer than 150 words)`,
+      pointsLost: 7,
+    });
   } else {
-    findings.push(`${thinPages.length} pages have thin content (fewer than 150 words)`);
+    findings.push({
+      code: 'content.thinpages.many',
+      label: `${thinPages.length} pages have thin content (fewer than 150 words)`,
+      pointsLost: 15,
+    });
   }
 
   // --- All page titles unique (8 pts) ---
@@ -82,7 +112,11 @@ export function score(input: ScoringInput): CategoryResult {
       total += 8;
     } else {
       const dupeCount = titles.length - uniqueTitles;
-      findings.push(`${dupeCount} duplicate title tag(s) across ${pages.length} pages`);
+      findings.push({
+        code: 'content.titles.duplicate',
+        label: `${dupeCount} duplicate title tag(s) across ${pages.length} pages`,
+        pointsLost: 8,
+      });
     }
   } else {
     total += 8; // Single page, title is inherently unique
@@ -95,9 +129,17 @@ export function score(input: ScoringInput): CategoryResult {
     total += 10;
   } else if (emptyPages.length === 1) {
     total += 5;
-    findings.push(`1 page is essentially empty (fewer than 50 words)`);
+    findings.push({
+      code: 'content.emptypages.one',
+      label: `1 page is essentially empty (fewer than 50 words)`,
+      pointsLost: 5,
+    });
   } else {
-    findings.push(`${emptyPages.length} pages are essentially empty (fewer than 50 words)`);
+    findings.push({
+      code: 'content.emptypages.many',
+      label: `${emptyPages.length} pages are essentially empty (fewer than 50 words)`,
+      pointsLost: 10,
+    });
   }
 
   // --- Zero broken images (8 pts) ---
@@ -108,7 +150,11 @@ export function score(input: ScoringInput): CategoryResult {
   if (brokenImages.length === 0) {
     total += 8;
   } else {
-    findings.push(`${brokenImages.length} broken image(s) detected across the site`);
+    findings.push({
+      code: 'content.brokenimages',
+      label: `${brokenImages.length} broken image(s) detected across the site`,
+      pointsLost: 8,
+    });
   }
 
   // --- Has blog/news/articles section (10 pts) ---
@@ -131,7 +177,11 @@ export function score(input: ScoringInput): CategoryResult {
   if (hasBlog) {
     total += 10;
   } else {
-    findings.push('No blog, news, or articles section detected -- missing content marketing opportunity');
+    findings.push({
+      code: 'content.blog.missing',
+      label: 'No blog, news, or articles section detected -- missing content marketing opportunity',
+      pointsLost: 10,
+    });
   }
 
   // --- Content freshness -- copyright year (5 pts) ---
@@ -144,7 +194,11 @@ export function score(input: ScoringInput): CategoryResult {
   if (hasFreshCopyright) {
     total += 5;
   } else {
-    findings.push(`No reference to ${currentYear} or ${lastYear} found -- site may appear outdated`);
+    findings.push({
+      code: 'content.freshness.missing',
+      label: `No reference to ${currentYear} or ${lastYear} found -- site may appear outdated`,
+      pointsLost: 5,
+    });
   }
 
   // --- Good text-to-content ratio: >75% of pages have >200 words (8 pts) ---
@@ -154,7 +208,11 @@ export function score(input: ScoringInput): CategoryResult {
   if (substantialRatio > 0.75) {
     total += 8;
   } else {
-    findings.push(`Only ${substantialPages.length} of ${pages.length} pages have more than 200 words of content`);
+    findings.push({
+      code: 'content.ratio.thin',
+      label: `Only ${substantialPages.length} of ${pages.length} pages have more than 200 words of content`,
+      pointsLost: 8,
+    });
   }
 
   // --- Descriptive meta descriptions >50 chars for >75% of pages (6 pts) ---
@@ -166,19 +224,27 @@ export function score(input: ScoringInput): CategoryResult {
   if (goodMetaRatio > 0.75) {
     total += 6;
   } else {
-    findings.push(`Only ${goodMetas.length} of ${pages.length} pages have descriptive meta descriptions (>50 characters)`);
+    findings.push({
+      code: 'content.meta.thin',
+      label: `Only ${goodMetas.length} of ${pages.length} pages have descriptive meta descriptions (>50 characters)`,
+      pointsLost: 6,
+    });
   }
 
   // --- Content depth: site has >6 pages (5 pts) ---
   if (pages.length > 6) {
     total += 5;
   } else {
-    findings.push(`Site has only ${pages.length} page(s) -- limited content depth`);
+    findings.push({
+      code: 'content.depth.limited',
+      label: `Site has only ${pages.length} page(s) -- limited content depth`,
+      pointsLost: 5,
+    });
   }
 
   const finalScore = Math.max(0, Math.min(100, total));
   const severity = scoreToSeverity(finalScore);
-  const { headline, narrative } = generateNarrative('content', finalScore, findings);
+  const { headline, narrative } = generateNarrative('content', finalScore);
 
   return {
     category_id: 'content',

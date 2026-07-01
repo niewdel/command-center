@@ -92,6 +92,7 @@ export interface ReportData {
     onpage: ScoreCard;
     lighthouse_mobile: ScoreCard;
     lighthouse_desktop: ScoreCard;
+    aeo: ScoreCard;
     open_issues: {
       total: number;
       critical: number;

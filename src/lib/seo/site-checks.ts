@@ -4,7 +4,7 @@ import { issueFingerprint } from "./fingerprint";
 // Per Anthropic + ChatGPT + Perplexity + Google docs (and the ai-seo skill).
 // Each platform has its own crawler; blocking any of them prevents that
 // platform from citing you in AI answers.
-const AI_BOTS = [
+export const AI_BOTS = [
   { name: "GPTBot", platform: "ChatGPT (training)" },
   { name: "ChatGPT-User", platform: "ChatGPT (live search)" },
   { name: "PerplexityBot", platform: "Perplexity" },
@@ -14,7 +14,7 @@ const AI_BOTS = [
   { name: "OAI-SearchBot", platform: "ChatGPT search" },
 ];
 
-interface RobotsParseResult {
+export interface RobotsParseResult {
   text: string;
   hasSitemap: boolean;
   blockedAiBots: string[];          // user-agent names that are disallowed (any path) for "/"
@@ -34,7 +34,7 @@ async function fetchRobots(rootOrigin: string): Promise<RobotsParseResult | null
   }
 }
 
-function parseRobots(text: string): RobotsParseResult {
+export function parseRobots(text: string): RobotsParseResult {
   const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
   let hasSitemap = false;
   let catchAllDisallow = false;
@@ -87,7 +87,7 @@ function parseRobots(text: string): RobotsParseResult {
   return { text, hasSitemap, blockedAiBots, catchAllDisallow };
 }
 
-async function checkUrlExists(url: string): Promise<boolean> {
+export async function checkUrlExists(url: string): Promise<boolean> {
   try {
     const res = await fetch(url, {
       method: "HEAD",

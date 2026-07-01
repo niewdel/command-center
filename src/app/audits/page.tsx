@@ -40,6 +40,9 @@ type Audit = {
 
 const ACTIVE_STATUSES = ["pending", "crawling", "scoring", "rendering"];
 
+/** Page-count control value: "main" auto-discovers nav pages; numbers are explicit overrides. */
+type CrawlSelection = "main" | 10 | 25 | 50;
+
 function reportUrl(auditId: string, path: string | null): string | null {
   return path ? `/api/audits/${auditId}/report` : null;
 }
@@ -52,7 +55,7 @@ export default function AuditsPage() {
   const [audits, setAudits] = useState<Audit[]>([]);
   const [loading, setLoading] = useState(true);
   const [url, setUrl] = useState("");
-  const [maxPages, setMaxPages] = useState(1);
+  const [crawlSelection, setCrawlSelection] = useState<CrawlSelection>("main");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -78,7 +81,11 @@ export default function AuditsPage() {
       const res = await fetch("/api/audits/run", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: url.trim(), maxPages }),
+        body: JSON.stringify(
+          crawlSelection === "main"
+            ? { url: url.trim(), mode: "main" }
+            : { url: url.trim(), maxPages: crawlSelection }
+        ),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -125,12 +132,16 @@ export default function AuditsPage() {
             </div>
             <select
               aria-label="Pages to crawl"
-              value={maxPages}
-              onChange={(e) => setMaxPages(parseInt(e.target.value, 10))}
+              value={crawlSelection}
+              onChange={(e) =>
+                setCrawlSelection(
+                  e.target.value === "main" ? "main" : (parseInt(e.target.value, 10) as CrawlSelection)
+                )
+              }
               disabled={submitting}
               className="h-9 rounded-md border border-border bg-background px-3 text-sm"
             >
-              <option value={1}>1 page</option>
+              <option value="main">Main pages (auto)</option>
               <option value={10}>10 pages</option>
               <option value={25}>25 pages</option>
               <option value={50}>50 pages</option>
@@ -152,7 +163,9 @@ export default function AuditsPage() {
           )}
           <p className="text-xs text-muted-foreground">
             Crawls via Playwright, runs Google PageSpeed Insights on the homepage + up to 4 inner pages, scores 8 categories, and renders an HTML report + fix plan.
-            {maxPages > 1 && ` Multi-page crawl follows internal links + sitemap; expect ~${Math.max(30, maxPages * 4)}s.`}
+            {crawlSelection === "main"
+              ? " Main pages (auto) crawls the homepage + its primary nav (header/footer links), topping up from the sitemap if nav is thin; expect ~45–60s."
+              : ` Multi-page crawl follows internal links + sitemap; expect ~${Math.max(30, crawlSelection * 4)}s.`}
           </p>
         </form>
       </Card>

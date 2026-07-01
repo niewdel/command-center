@@ -1,5 +1,15 @@
 import { CategoryResult } from '../types';
 
+/**
+ * Client-facing narrative copy for the audit report.
+ *
+ * Voice: firm and direct about what's wrong (never insulting), written at
+ * roughly a 5-year-old reading level -- short sentences, plain words, no
+ * jargon. These narratives describe PROBLEMS and their COST. They never
+ * contain fix instructions or "how to" language; that lives in a separate,
+ * internal fix-plan module.
+ */
+
 const categoryLabels: Record<string, string> = {
   'visual-design': 'Visual Design & Branding',
   'usability': 'Usability & Navigation',
@@ -9,6 +19,7 @@ const categoryLabels: Record<string, string> = {
   'content': 'Content Quality',
   'trust': 'Trust & Credibility',
   'conversion': 'Conversion Architecture',
+  'aeo': 'AI Search (AEO)',
 };
 
 function getSeverity(score: number): 'critical' | 'serious' | 'acceptable' | 'strong' {
@@ -29,186 +40,207 @@ function joinFindings(findings: string[], max: number): string {
 const categoryNarratives: Record<string, Record<string, { headline: string; narrative: string }>> = {
   'visual-design': {
     critical: {
-      headline: 'Your visual presentation is driving visitors away.',
+      headline: 'Your site looks unfinished, and that turns people away.',
       narrative:
-        'Scoring just {score}/100, your site\'s design falls well below modern standards. {findings} These issues make your business look outdated and unprofessional, costing you credibility the moment someone lands on your page.',
+        'This part scored {score} out of 100. People decide how they feel about a business in seconds, just from how the page looks. Right now, your site is losing that first impression before anyone reads a word.',
     },
     serious: {
-      headline: 'Design gaps are undermining your brand image.',
+      headline: 'The look of your site is holding it back.',
       narrative:
-        'At {score}/100, your site has noticeable design deficiencies. {findings} Visitors form opinions in under 50 milliseconds, and these gaps erode trust before they read a single word.',
+        'This part scored {score} out of 100. These are the kind of small things people notice without realizing it, and they quietly chip away at trust.',
     },
     acceptable: {
-      headline: 'Solid design with room to polish.',
+      headline: 'The design is solid, with a few rough edges.',
       narrative:
-        'Your visual presentation scores {score}/100 -- respectable, but not yet at the level that commands premium perception. {findings}',
+        'This part scored {score} out of 100 -- a good starting point, not a finished one.',
     },
     strong: {
-      headline: 'Impressive visual execution.',
+      headline: 'Your site looks sharp.',
       narrative:
-        'At {score}/100, your site\'s design is well above average. Clean aesthetics and strong branding give visitors immediate confidence in your business.',
+        'This part scored {score} out of 100. The design is clean and well put-together, which gives visitors confidence right away.',
     },
   },
   'usability': {
     critical: {
-      headline: 'Visitors cannot navigate your site effectively.',
+      headline: 'People get lost trying to use your site.',
       narrative:
-        'A usability score of {score}/100 means people are struggling to find what they need. {findings} Every frustrated visitor is a lost customer walking straight to your competitor.',
+        'This part scored {score} out of 100. When people can\'t find what they\'re looking for, they don\'t stick around and figure it out -- they just leave.',
     },
     serious: {
-      headline: 'Navigation friction is losing you customers.',
+      headline: 'Getting around your site takes more effort than it should.',
       narrative:
-        'At {score}/100, your site\'s usability has significant gaps. {findings} Users expect seamless navigation, and these issues create friction that drives them away.',
+        'This part scored {score} out of 100. People expect a site to be easy to use. Every extra bit of friction is another reason for them to give up.',
     },
     acceptable: {
-      headline: 'Usable, but not effortless.',
+      headline: 'Your site works, but it could be smoother.',
       narrative:
-        'Your usability score of {score}/100 shows a functional site with room to streamline. {findings} Small improvements here can meaningfully reduce bounce rates.',
+        'This part scored {score} out of 100 -- functional, with room to improve. Small fixes here go a long way toward keeping people around.',
     },
     strong: {
-      headline: 'Smooth, intuitive navigation.',
+      headline: 'Your site is easy to get around.',
       narrative:
-        'At {score}/100, your site delivers a clean navigation experience. Visitors can find what they need quickly, which keeps them engaged and moving toward conversion.',
+        'This part scored {score} out of 100. People can find what they need quickly, which keeps them engaged instead of frustrated.',
     },
   },
   'cta': {
     critical: {
-      headline: 'Your site has no clear way for visitors to take action.',
+      headline: 'Your site never tells visitors what to do next.',
       narrative:
-        'A CTA score of {score}/100 is alarming. {findings} Without clear calls to action, your website is little more than a digital brochure that generates zero leads.',
+        'This part scored {score} out of 100. Without a clear next step, your site is just a brochure -- people read it and leave, instead of reaching out.',
     },
     serious: {
-      headline: 'Weak calls to action are leaving money on the table.',
+      headline: 'Your calls to action are too easy to miss.',
       narrative:
-        'Scoring {score}/100, your calls to action need serious work. {findings} Every page without a clear next step is a missed opportunity to convert a visitor into a customer.',
+        'This part scored {score} out of 100. Every page without an obvious next step is a missed chance to turn a visitor into a customer.',
     },
     acceptable: {
-      headline: 'CTAs are present but could convert harder.',
+      headline: 'The basics are there, but they could push harder.',
       narrative:
-        'At {score}/100, your site has basic conversion elements in place. {findings} Strengthening and diversifying your calls to action would capture more of the traffic you\'re already getting.',
+        'This part scored {score} out of 100. Making your calls to action clearer and more inviting would turn more of your existing visitors into leads.',
     },
     strong: {
-      headline: 'Strong calls to action throughout.',
+      headline: 'Your calls to action are clear and effective.',
       narrative:
-        'At {score}/100, your site does a good job guiding visitors toward action. Multiple conversion paths give users clear options to engage with your business.',
+        'This part scored {score} out of 100. Visitors are given a clear next step, with more than one way to take it.',
     },
   },
   'seo': {
     critical: {
-      headline: 'Search engines can barely understand your site.',
+      headline: 'Google barely knows your site exists.',
       narrative:
-        'An SEO score of {score}/100 means your site is virtually invisible to Google. {findings} Without fundamental SEO, you\'re relying entirely on direct traffic and paid ads while competitors get free organic leads.',
+        'This part scored {score} out of 100. Without the basics in place, you\'re invisible in search -- competitors with the fundamentals covered get the free traffic instead.',
     },
     serious: {
-      headline: 'SEO gaps are costing you organic visibility.',
+      headline: 'Search engines are struggling to understand your site.',
       narrative:
-        'At {score}/100, your site has notable SEO deficiencies. {findings} These issues suppress your search rankings and hand organic traffic to competitors who have their fundamentals in order.',
+        'This part scored {score} out of 100. These gaps hold your rankings down and send organic visitors to competitors instead.',
     },
     acceptable: {
-      headline: 'SEO basics covered, but opportunities remain.',
+      headline: 'The fundamentals are mostly covered.',
       narrative:
-        'Your SEO score of {score}/100 indicates the fundamentals are mostly in place. {findings} Addressing the remaining gaps could unlock meaningful gains in organic search traffic.',
+        'This part scored {score} out of 100. Closing the remaining gaps could bring in noticeably more search traffic.',
     },
     strong: {
-      headline: 'Strong SEO foundation.',
+      headline: 'Search engines understand your site well.',
       narrative:
-        'At {score}/100, your site\'s SEO fundamentals are well-executed. Search engines can easily crawl, understand, and rank your content.',
+        'This part scored {score} out of 100. Google can crawl, understand, and rank your content without trouble.',
     },
   },
   'performance': {
     critical: {
-      headline: 'Your site is painfully slow.',
+      headline: 'Your site is too slow, and it is costing you visitors.',
       narrative:
-        'A performance score of {score}/100 means visitors are waiting too long for your pages to load. {findings} Google penalizes slow sites in rankings, and 53% of mobile users abandon pages that take over 3 seconds to load.',
+        'This part scored {score} out of 100. Most people won\'t wait for a slow page to load -- they just leave. Google also ranks slow sites lower.',
     },
     serious: {
-      headline: 'Slow load times are hurting conversions and rankings.',
+      headline: 'Slow load times are pushing people away.',
       narrative:
-        'At {score}/100, your site\'s speed is below acceptable thresholds. {findings} Every additional second of load time reduces conversions by an average of 7%.',
+        'This part scored {score} out of 100. Every extra second of loading loses you more visitors and hurts your search rankings.',
     },
     acceptable: {
-      headline: 'Decent speed with optimization opportunities.',
+      headline: 'Your site loads fine, but not fast.',
       narrative:
-        'Your performance score of {score}/100 shows reasonable load times. {findings} Further optimization would improve both user experience and search ranking signals.',
+        'This part scored {score} out of 100. Shaving off more load time would keep more visitors around and help your search rankings too.',
     },
     strong: {
-      headline: 'Fast, responsive performance.',
+      headline: 'Your site loads fast.',
       narrative:
-        'At {score}/100, your site loads quickly and responds smoothly. Fast performance keeps visitors engaged and gives you a ranking advantage in search results.',
+        'This part scored {score} out of 100. Pages load quickly and respond right away, which keeps visitors engaged.',
     },
   },
   'content': {
     critical: {
-      headline: 'Your content is too thin to be effective.',
+      headline: 'There is not enough on your site to convince anyone.',
       narrative:
-        'A content score of {score}/100 indicates severe deficiencies. {findings} Thin, low-quality content fails to engage visitors, fails to rank in search, and fails to differentiate your business from competitors.',
+        'This part scored {score} out of 100. Thin content gives people little reason to stay, and gives Google little reason to rank you.',
     },
     serious: {
-      headline: 'Content gaps are weakening your site\'s effectiveness.',
+      headline: 'Your content needs more substance.',
       narrative:
-        'At {score}/100, your site\'s content needs substantial improvement. {findings} Inadequate content leaves visitors without the information they need to choose your business.',
+        'This part scored {score} out of 100. Visitors need enough information to decide to choose you -- right now, most of them don\'t get it.',
     },
     acceptable: {
-      headline: 'Content is functional but not compelling.',
+      headline: 'The content is there, but it is not doing much work for you.',
       narrative:
-        'Your content scores {score}/100 -- adequate, but not the kind that builds authority or drives conversions. {findings} Richer content would better serve both search engines and prospective customers.',
+        'This part scored {score} out of 100 -- adequate, not compelling. Stronger content would do more to build trust and bring in search traffic.',
     },
     strong: {
-      headline: 'Solid content foundation.',
+      headline: 'Your content does its job well.',
       narrative:
-        'At {score}/100, your site has strong content that informs and engages visitors. Quality content like this builds authority and supports organic search performance.',
+        'This part scored {score} out of 100. It gives visitors real information and gives search engines real reasons to rank you.',
     },
   },
   'trust': {
     critical: {
-      headline: 'Your site raises more questions than confidence.',
+      headline: 'Your site does not give people a reason to trust you yet.',
       narrative:
-        'A trust score of {score}/100 means your site lacks the credibility signals that modern consumers expect. {findings} Without trust indicators, visitors assume the worst and leave.',
+        'This part scored {score} out of 100. When people don\'t see signs a business is real and trustworthy, they assume the worst and leave.',
     },
     serious: {
-      headline: 'Missing trust signals are scaring away prospects.',
+      headline: 'Missing trust signals are costing you sales.',
       narrative:
-        'At {score}/100, your site is missing key elements that build confidence. {findings} In a market where consumers check multiple businesses before buying, these gaps put you at a serious disadvantage.',
+        'This part scored {score} out of 100. People check for these signals before they buy from a business they don\'t already know.',
     },
     acceptable: {
-      headline: 'Credibility established, but gaps remain.',
+      headline: 'You have some trust built in, but there are gaps.',
       narrative:
-        'Your trust score of {score}/100 shows you have some credibility elements in place. {findings} Strengthening social proof and transparency would increase conversion rates.',
+        'This part scored {score} out of 100. A few more of these signals would make people more comfortable saying yes.',
     },
     strong: {
-      headline: 'Strong trust and credibility signals.',
+      headline: 'Your site earns trust quickly.',
       narrative:
-        'At {score}/100, your site does an excellent job building visitor confidence. Clear trust signals and social proof give prospects the reassurance they need to take action.',
+        'This part scored {score} out of 100. The signals that make people comfortable doing business with you are all in place.',
     },
   },
   'conversion': {
     critical: {
-      headline: 'Your site is not built to convert visitors into customers.',
+      headline: 'Your site is not set up to turn visitors into customers.',
       narrative:
-        'A conversion architecture score of {score}/100 means your site lacks the structural elements needed to generate leads. {findings} Traffic without conversion infrastructure is wasted money.',
+        'This part scored {score} out of 100. Bringing people to a site that isn\'t built to convert them means paying for traffic that goes nowhere.',
     },
     serious: {
-      headline: 'Conversion bottlenecks are choking your lead flow.',
+      headline: 'Real gaps are keeping visitors from becoming leads.',
       narrative:
-        'At {score}/100, your site has significant gaps in its conversion structure. {findings} These structural issues mean you\'re converting only a fraction of the visitors you could be.',
+        'This part scored {score} out of 100. These gaps mean you\'re only converting a fraction of the people who could become customers.',
     },
     acceptable: {
-      headline: 'Conversion basics in place, optimization needed.',
+      headline: 'The basics are in place, but there is more to capture.',
       narrative:
-        'Your conversion architecture scores {score}/100 -- the foundation is there. {findings} Refining your conversion paths could significantly increase the leads your site generates.',
+        'This part scored {score} out of 100 -- a real foundation. Tightening these paths could bring in noticeably more leads from the traffic you already have.',
     },
     strong: {
-      headline: 'Well-architected for conversions.',
+      headline: 'Your site is built to convert.',
       narrative:
-        'At {score}/100, your site is structured to guide visitors toward action. Strong conversion architecture means you\'re capturing more of your traffic as leads.',
+        'This part scored {score} out of 100. Visitors are guided clearly toward becoming customers.',
+    },
+  },
+  'aeo': {
+    critical: {
+      headline: 'AI tools like ChatGPT do not know your business exists.',
+      narrative:
+        'This part scored {score} out of 100. More people are asking AI tools for recommendations instead of searching Google. Right now, those tools have nothing to go on, so they never mention you.',
+    },
+    serious: {
+      headline: 'AI search tools are missing key facts about your business.',
+      narrative:
+        'This part scored {score} out of 100. AI tools need clear, direct information to trust and recommend a business. Without it, they guess, or they skip you for a competitor who made it easy.',
+    },
+    acceptable: {
+      headline: 'AI tools can find some of what they need.',
+      narrative:
+        'This part scored {score} out of 100. Filling in the remaining gaps would make it easier for AI tools to understand and recommend your business with confidence.',
+    },
+    strong: {
+      headline: 'AI tools can understand and recommend your business.',
+      narrative:
+        'This part scored {score} out of 100. The clear facts and structure in place make it easy for AI tools to confidently mention your business in their answers.',
     },
   },
 };
 
 export function generateNarrative(
   categoryId: string,
-  score: number,
-  findings: string[]
+  score: number
 ): { headline: string; narrative: string } {
   const severity = getSeverity(score);
   const templates = categoryNarratives[categoryId];
@@ -221,12 +253,9 @@ export function generateNarrative(
   }
 
   const template = templates[severity];
-  const findingsText = findings.length > 0 ? joinFindings(findings, 3) + '.' : '';
 
   const headline = template.headline;
-  const narrative = template.narrative
-    .replace('{score}', String(score))
-    .replace('{findings}', findingsText);
+  const narrative = template.narrative.replace('{score}', String(score));
 
   return { headline, narrative };
 }
@@ -242,40 +271,42 @@ export function generateOverallNarrative(
 
   if (score <= 40) {
     return {
-      headline: 'Your website needs urgent, comprehensive attention.',
+      headline: 'Right now, your website is costing you more customers than it brings in.',
       narrative:
-        `With an overall score of ${score}/100, your website has critical deficiencies across multiple areas. ` +
-        `The most pressing problems are in ${weakestStr}. ` +
-        `In its current state, your site is likely losing far more customers than it captures. ` +
-        `Every day these issues persist, you\'re handing business to competitors with stronger web presence.`,
+        `Your site scored ${score} out of 100 overall. That's a serious number -- it means real, ` +
+        `fixable problems are showing up across the board, not just in one corner of the site. ` +
+        `The biggest ones right now are in ${weakestStr}. ` +
+        `Every day this sits as-is, people land on your site, get a bad first impression, and go find ` +
+        `one of your competitors instead. That's not an opinion -- it's what these numbers mean.`,
     };
   }
 
   if (score <= 65) {
     return {
-      headline: 'Significant issues are holding your website back.',
+      headline: 'Your website has real problems that are quietly losing you business.',
       narrative:
-        `Your site scores ${score}/100 overall, placing it below the level needed to compete effectively online. ` +
-        `The weakest areas are ${weakestStr}. ` +
-        `While not entirely broken, these gaps are measurably reducing the leads and revenue your website should be generating.`,
+        `Your site scored ${score} out of 100 overall -- below where it needs to be to compete well online. ` +
+        `The weakest spots are ${weakestStr}. ` +
+        `Nothing here is broken beyond repair, but these gaps are measurably shrinking the number of ` +
+        `people who turn into customers.`,
     };
   }
 
   if (score <= 85) {
     return {
-      headline: 'A solid foundation with clear opportunities.',
+      headline: 'You have a good foundation, with clear room to grow.',
       narrative:
-        `At ${score}/100, your website is above average but has identifiable areas holding it back from peak performance. ` +
-        `The biggest opportunities for improvement lie in ${weakestStr}. ` +
-        `Addressing these gaps would meaningfully increase your site\'s ability to attract and convert visitors.`,
+        `Your site scored ${score} out of 100 overall -- above average, with a few specific areas holding it back. ` +
+        `The best opportunities right now are in ${weakestStr}. ` +
+        `Closing those gaps would meaningfully increase how many visitors turn into customers.`,
     };
   }
 
   return {
     headline: 'Your website is performing at a high level.',
     narrative:
-      `With an overall score of ${score}/100, your website excels across most categories. ` +
-      `Even the relatively lower-scoring areas -- ${weakestStr} -- are still performing well. ` +
-      `Continued refinement will help maintain this competitive advantage.`,
+      `Your site scored ${score} out of 100 overall -- strong across nearly every area we checked. ` +
+      `Even your lower-scoring areas -- ${weakestStr} -- are still solid. ` +
+      `Keeping this up will help you stay ahead of competitors as they catch up.`,
   };
 }

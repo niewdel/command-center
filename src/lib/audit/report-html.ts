@@ -1,4 +1,5 @@
 import type { AuditResult, CategoryResult, PSIMetrics } from './types';
+import { findingCopy, type FindingCopyEntry } from './finding-copy';
 
 // ── Niewdel v3.0 palette (dark-first), inline hex ──────────────────────────
 const JET = '#0D0D0D';        // page background
@@ -65,16 +66,28 @@ function renderCategorySection(cat: CategoryResult, index: number): string {
   const color = getScoreColor(cat.score);
   const label = getScoreLabel(cat.score);
   const icon = getSeverityIcon(cat.score);
-  const issueCount = cat.findings.length;
   const categoryNumber = String(index + 1).padStart(2, '0');
 
-  const findingsHtml = cat.findings
+  const renderableCopies = cat.findings.reduce<FindingCopyEntry[]>((acc, f) => {
+    try {
+      acc.push(findingCopy(f.code));
+    } catch {
+      // Unknown/off-list code -- skip rather than crash report generation.
+    }
+    return acc;
+  }, []);
+  const issueCount = renderableCopies.length;
+
+  const findingsHtml = renderableCopies
     .map(
-      (f) => `
+      (copy) => `
       <li class="finding-item">
         <span class="finding-icon">&#10007;</span>
-        <span class="finding-text">${escapeHtml(f)}</span>
-      </li>`,
+        <div class="finding-body">
+          <p class="finding-plain">${escapeHtml(copy.plain)}</p>
+          <p class="finding-impact">${escapeHtml(copy.impact)}</p>
+        </div>
+      </li>`
     )
     .join('');
 
@@ -134,7 +147,7 @@ function renderPerformanceDashboard(psiMetrics: PSIMetrics[]): string {
   if (!psiMetrics || psiMetrics.length === 0) {
     return `
       <section class="perf-dashboard">
-        <p class="section-tag">03 · Performance</p>
+        <p class="section-tag">02 · Performance</p>
         <h2 class="section-title">Page speed</h2>
         <p class="section-subtitle">Core Web Vitals from Google PageSpeed Insights.</p>
         <div class="perf-unavailable">
@@ -170,7 +183,7 @@ function renderPerformanceDashboard(psiMetrics: PSIMetrics[]): string {
 
   return `
     <section class="perf-dashboard">
-      <p class="section-tag">03 · Performance</p>
+      <p class="section-tag">02 · Performance</p>
       <h2 class="section-title">Page speed</h2>
       <p class="section-subtitle">Core Web Vitals from Google PageSpeed Insights.</p>
 
@@ -535,12 +548,19 @@ export function generateHtmlReport(result: AuditResult, logoDataUri?: string): s
     .findings-list { list-style: none; padding: 0; }
     .finding-item {
       display: flex; align-items: flex-start; gap: 10px;
-      padding: 8px 0; font-size: 13px; color: ${CLOUD}; line-height: 1.5;
+      padding: 12px 0; font-size: 13px; color: ${CLOUD}; line-height: 1.5;
       border-bottom: 1px solid ${ELEVATED};
     }
     .finding-item:last-child { border-bottom: none; }
-    .finding-icon { color: ${ERROR}; font-size: 13px; flex-shrink: 0; margin-top: 1px; font-weight: 700; }
-    .finding-text { flex: 1; }
+    .finding-icon { color: ${ERROR}; font-size: 13px; flex-shrink: 0; margin-top: 2px; font-weight: 700; }
+    .finding-body { flex: 1; }
+    .finding-plain { font-size: 14px; color: ${CLOUD}; font-weight: 500; line-height: 1.55; }
+    .finding-impact { font-size: 12.5px; color: ${MUTED}; line-height: 1.55; margin-top: 4px; }
+
+    /* ── Soft Close ────────────────────────────────────── */
+
+    .closing { padding: 8px 0 24px; max-width: 68ch; }
+    .closing-copy { font-size: 15px; color: ${MUTED}; line-height: 1.75; }
 
     /* ── Footer ────────────────────────────────────────── */
 
@@ -600,18 +620,31 @@ export function generateHtmlReport(result: AuditResult, logoDataUri?: string): s
 
     <!-- Category Deep-Dives -->
     <section class="categories">
-      <p class="section-tag">02 · Findings</p>
-      <h2 class="section-title">Detailed findings</h2>
-      <p class="section-subtitle">Each category in full, with the underlying issues we identified.</p>
+      <p class="section-tag">03 · Findings</p>
+      <h2 class="section-title">What we found, category by category</h2>
+      <p class="section-subtitle">Plain-language problems and what each one is costing you -- no jargon.</p>
       <div style="margin-top: 24px;">
         ${categorySectionsHtml}
       </div>
     </section>
 
+    <div class="section-divider"></div>
+
+    <!-- Soft close -->
+    <section class="closing">
+      <p class="section-tag">04 · Next steps</p>
+      <h2 class="section-title">This is fixable.</h2>
+      <p class="closing-copy">
+        None of this is unusual, and none of it is permanent. Every issue in this report is one we fix
+        regularly for other businesses just like yours -- that's what we do. The next step is a short
+        conversation about which fixes will move the needle fastest for ${escapeHtml(result.siteName)}.
+      </p>
+    </section>
+
     <!-- Footer -->
     <div class="footer">
       <div class="footer-brand">niewdel</div>
-      <div class="footer-tagline">Internal audit report, ${escapeHtml(result.siteName)} · ${escapeHtml(result.auditDate)}</div>
+      <div class="footer-tagline">Website audit for ${escapeHtml(result.siteName)} · ${escapeHtml(result.auditDate)}</div>
     </div>
   </div>
 

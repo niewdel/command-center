@@ -90,7 +90,7 @@ export async function getReportData(
   // ── seo_checks within the window (or all if life)
   let q = sb
     .from("seo_checks")
-    .select("id, technical_score, onpage_score, lighthouse_mobile, lighthouse_desktop, freshness_days, pages_crawled, ai_summary, created_at")
+    .select("id, technical_score, onpage_score, lighthouse_mobile, lighthouse_desktop, freshness_days, aeo_score, pages_crawled, ai_summary, created_at")
     .eq("client_id", clientId)
     .order("created_at", { ascending: false })
     .limit(50);
@@ -104,6 +104,7 @@ export async function getReportData(
     lighthouse_mobile: number | null;
     lighthouse_desktop: number | null;
     freshness_days: number | null;
+    aeo_score: number | null;
     pages_crawled: number | null;
     ai_summary: string | null;
     created_at: string;
@@ -127,6 +128,9 @@ export async function getReportData(
   const onpage = scoreCard("onpage_score");
   const lighthouse_mobile = scoreCard("lighthouse_mobile");
   const lighthouse_desktop = scoreCard("lighthouse_desktop");
+  // AEO is a separately displayed metric — deliberately excluded from the
+  // overall_score formula below so existing score history stays continuous.
+  const aeo = scoreCard("aeo_score");
 
   // Overall = simple average of non-null current scores. When no scores at
   // all, overall is null.
@@ -437,6 +441,7 @@ export async function getReportData(
       onpage,
       lighthouse_mobile,
       lighthouse_desktop,
+      aeo,
       open_issues,
     },
     traffic,

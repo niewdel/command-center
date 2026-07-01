@@ -55,13 +55,21 @@ function cleanTitle(raw: string): string {
     .trim();
 }
 
+export interface RunAuditOptions {
+  /** Explicit page cap. Ignored (nav decides the cap) when `mode: "main"`. */
+  maxPages?: number;
+  /** "main" — crawl the homepage + its primary nav pages (see crawlSite). */
+  mode?: "main";
+}
+
 export async function runAudit(
   auditId: string,
   rawUrl: string,
-  maxPages: number = 1,
+  options: RunAuditOptions = { maxPages: 1 },
 ): Promise<void> {
   const sb = getServiceClient();
   const log = (msg: string) => console.log(`[audit ${auditId}] ${msg}`);
+  const { maxPages, mode } = options;
 
   let url = rawUrl.trim();
   if (!url.startsWith("http://") && !url.startsWith("https://")) {
@@ -69,15 +77,22 @@ export async function runAudit(
   }
   const hostname = new URL(url).hostname;
 
+  const stageLabel =
+    mode === "main"
+      ? "Crawling main pages"
+      : maxPages === 1
+      ? "Loading page"
+      : `Crawling up to ${maxPages} pages`;
+
   await patch(auditId, {
     status: "crawling",
-    current_stage: maxPages === 1 ? "Loading page" : `Crawling up to ${maxPages} pages`,
+    current_stage: stageLabel,
     progress_pct: 5,
     started_at: new Date().toISOString(),
   });
 
   // Phase 1: crawl
-  log(`Crawling ${url} (maxPages=${maxPages})`);
+  log(`Crawling ${url} (mode=${mode ?? "maxPages"}, maxPages=${maxPages ?? "auto"})`);
   const pages = await crawlSite(
     url,
     (msg, done, total) => {
@@ -89,7 +104,7 @@ export async function runAudit(
         pages_crawled: done,
       });
     },
-    { maxPages },
+    { maxPages, mode },
   );
   if (pages.length === 0) {
     throw new Error("Crawler returned no pages — site may be unreachable or blocked");
@@ -114,7 +129,7 @@ export async function runAudit(
 
   // Phase 3: scoring
   log("Scoring");
-  const scoring = runScoring({ pages, psiMetrics, screenshots, rootUrl: url });
+  const scoring = await runScoring({ pages, psiMetrics, screenshots, rootUrl: url });
 
   // Build siteName
   const homePage = pages.find((p) => p.url === url) ?? pages[0];

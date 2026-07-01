@@ -1,4 +1,4 @@
-import { crawlSite } from "@/lib/audit/crawl";
+import { crawlSite, fetchAeoRobotsSignals } from "@/lib/audit/crawl";
 import { runPerformanceAudit } from "@/lib/audit/performance";
 import type { PSIMetrics } from "@/lib/audit/types";
 import {
@@ -148,11 +148,22 @@ export async function runWeeklyCheck(jobId: string): Promise<void> {
     const d = psiDesktopByUrl.get(p.url);
     return pageToSnapshot(p, m?.scores.performance, d?.scores.performance);
   });
+  // AEO (AI-search) signals — same robots.txt/llms.txt fetch the standalone
+  // audit tool uses (src/lib/audit/crawl.ts's fetchAeoRobotsSignals, which
+  // wraps site-checks.ts's parseRobots/checkUrlExists). A second, cheap
+  // fetch here is simpler and lower-risk than threading these signals out of
+  // runSiteLevelChecks below, which returns issue drafts only.
+  let aeoCtx: { blockedAiBots: string[]; hasLlmsTxt: boolean } | undefined;
+  try {
+    aeoCtx = await fetchAeoRobotsSignals(rootUrl);
+  } catch (err) {
+    log(`AEO robots/llms.txt signal fetch failed: ${err instanceof Error ? err.message : String(err)}`);
+  }
   const scores = await computeScores(pages, psiMobile, psiDesktop, {
     client_id: job.client_id,
     rootUrl,
     snapshots,
-  });
+  }, aeoCtx);
 
   // ------- Stage 4: Persist seo_check -------
   const sb = getServiceClient();
@@ -348,7 +359,7 @@ export async function runWeeklyCheck(jobId: string): Promise<void> {
   });
 
   log(
-    `Complete in ${(elapsedMs / 1000).toFixed(1)}s — score (technical=${scores.technical}, onpage=${scores.onpage}, mobile=${scores.lighthouse_mobile}, desktop=${scores.lighthouse_desktop})`
+    `Complete in ${(elapsedMs / 1000).toFixed(1)}s — score (technical=${scores.technical}, onpage=${scores.onpage}, mobile=${scores.lighthouse_mobile}, desktop=${scores.lighthouse_desktop}, aeo=${scores.aeo})`
   );
 }
 

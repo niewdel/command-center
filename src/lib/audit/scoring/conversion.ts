@@ -1,4 +1,4 @@
-import { CategoryResult } from '../types';
+import { CategoryResult, Finding } from '../types';
 import { ScoringInput } from './index';
 import { generateNarrative } from './narratives';
 
@@ -36,7 +36,7 @@ const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
 export function score(input: ScoringInput): CategoryResult {
   const { pages } = input;
   let total = 0;
-  const findings: string[] = [];
+  const findings: Finding[] = [];
 
   if (pages.length === 0) {
     return {
@@ -46,7 +46,9 @@ export function score(input: ScoringInput): CategoryResult {
       severity: 'critical',
       headline: 'No pages could be analyzed.',
       narrative: 'The crawl returned no pages, so conversion architecture could not be assessed.',
-      findings: ['No pages were available for analysis'],
+      findings: [
+        { code: 'conversion.pages.none', label: 'No pages were available for analysis', pointsLost: 100 },
+      ],
     };
   }
 
@@ -87,7 +89,11 @@ export function score(input: ScoringInput): CategoryResult {
   if (hasForm || hasFormPage) {
     total += 15;
   } else {
-    findings.push('No forms detected on any page -- no way for visitors to submit information');
+    findings.push({
+      code: 'conversion.forms.none',
+      label: 'No forms detected on any page -- no way for visitors to submit information',
+      pointsLost: 15,
+    });
   }
 
   // --- Form simplicity: 5 or fewer fields (10 pts), 6-8 (5 pts), >8 (0 pts) ---
@@ -100,9 +106,17 @@ export function score(input: ScoringInput): CategoryResult {
       total += 10;
     } else if (detectedFields <= 8) {
       total += 5;
-      findings.push(`Forms have ${detectedFields} fields -- consider simplifying to reduce friction`);
+      findings.push({
+        code: 'conversion.form.fields.moderate',
+        label: `Forms have ${detectedFields} fields -- consider simplifying to reduce friction`,
+        pointsLost: 5,
+      });
     } else {
-      findings.push(`Forms have ${detectedFields}+ fields -- high friction reduces submissions significantly`);
+      findings.push({
+        code: 'conversion.form.fields.excessive',
+        label: `Forms have ${detectedFields}+ fields -- high friction reduces submissions significantly`,
+        pointsLost: 10,
+      });
     }
   } else if (hasIframeForm) {
     // Can't inspect iframe form fields; give benefit of the doubt
@@ -122,12 +136,24 @@ export function score(input: ScoringInput): CategoryResult {
     if (!hasForm && !hasFormPage) missing.push('contact form');
     if (!hasPhone) missing.push('phone number');
     if (!hasEmail) missing.push('email address');
-    findings.push(`Missing conversion path: ${missing.join(', ')}`);
+    findings.push({
+      code: 'conversion.paths.partial',
+      label: `Missing conversion path: ${missing.join(', ')}`,
+      pointsLost: 7,
+    });
   } else if (conversionPaths === 1) {
     total += 3;
-    findings.push('Only one type of contact method available -- visitors need options');
+    findings.push({
+      code: 'conversion.paths.single',
+      label: 'Only one type of contact method available -- visitors need options',
+      pointsLost: 12,
+    });
   } else {
-    findings.push('No contact methods (form, phone, or email) detected anywhere on the site');
+    findings.push({
+      code: 'conversion.paths.none',
+      label: 'No contact methods (form, phone, or email) detected anywhere on the site',
+      pointsLost: 15,
+    });
   }
 
   // --- Social proof near CTAs (12 / 5 pts) ---
@@ -152,9 +178,17 @@ export function score(input: ScoringInput): CategoryResult {
     total += 12;
   } else if (pagesWithTestimonials.length > 0) {
     total += 5;
-    findings.push('Social proof exists but not on the same pages as CTAs -- should be combined for maximum impact');
+    findings.push({
+      code: 'conversion.socialproof.notcolocated',
+      label: 'Social proof exists but not on the same pages as CTAs -- should be combined for maximum impact',
+      pointsLost: 7,
+    });
   } else {
-    findings.push('No social proof (testimonials/reviews) found near calls to action');
+    findings.push({
+      code: 'conversion.socialproof.missing',
+      label: 'No social proof (testimonials/reviews) found near calls to action',
+      pointsLost: 12,
+    });
   }
 
   // --- Homepage value proposition in H1 (10 / 3 pts) ---
@@ -165,10 +199,18 @@ export function score(input: ScoringInput): CategoryResult {
       total += 10;
     } else {
       total += 3;
-      findings.push(`Homepage H1 is only ${h1Words} words ("${homepageH1.text.trim()}") -- too short to communicate a value proposition`);
+      findings.push({
+        code: 'conversion.h1.tooshort',
+        label: `Homepage H1 is only ${h1Words} words ("${homepageH1.text.trim()}") -- too short to communicate a value proposition`,
+        pointsLost: 7,
+      });
     }
   } else {
-    findings.push('Homepage is missing an H1 heading -- no clear value proposition visible');
+    findings.push({
+      code: 'conversion.h1.missing',
+      label: 'Homepage is missing an H1 heading -- no clear value proposition visible',
+      pointsLost: 10,
+    });
   }
 
   // --- Homepage has CTA + supporting text + H1 all present (10 / 5 / 0 pts) ---
@@ -190,13 +232,21 @@ export function score(input: ScoringInput): CategoryResult {
     if (!hasHomepageH1) missingElements.push('H1 heading');
     if (!hasHomepageText) missingElements.push('supporting text');
     if (!hasHomepageCTA) missingElements.push('call to action');
-    findings.push(`Homepage is missing: ${missingElements.join(', ')}`);
+    findings.push({
+      code: 'conversion.abovefold.partial',
+      label: `Homepage is missing: ${missingElements.join(', ')}`,
+      pointsLost: 5,
+    });
   } else {
     const missingElements: string[] = [];
     if (!hasHomepageH1) missingElements.push('H1 heading');
     if (!hasHomepageText) missingElements.push('supporting text');
     if (!hasHomepageCTA) missingElements.push('call to action');
-    findings.push(`Homepage is missing key conversion elements: ${missingElements.join(', ')}`);
+    findings.push({
+      code: 'conversion.abovefold.missing',
+      label: `Homepage is missing key conversion elements: ${missingElements.join(', ')}`,
+      pointsLost: 10,
+    });
   }
 
   // --- Thank-you/confirmation page (8 pts) ---
@@ -225,7 +275,11 @@ export function score(input: ScoringInput): CategoryResult {
   if (hasLeadMagnet) {
     total += 8;
   } else {
-    findings.push('No lead magnet, special offer, or downloadable resource detected');
+    findings.push({
+      code: 'conversion.leadmagnet.missing',
+      label: 'No lead magnet, special offer, or downloadable resource detected',
+      pointsLost: 8,
+    });
   }
 
   // --- Pricing or quote path (7 pts) ---
@@ -247,19 +301,27 @@ export function score(input: ScoringInput): CategoryResult {
   if (hasPricingPath) {
     total += 7;
   } else {
-    findings.push('No pricing page or "get a quote" path detected -- visitors may leave to find pricing elsewhere');
+    findings.push({
+      code: 'conversion.pricing.missing',
+      label: 'No pricing page or "get a quote" path detected -- visitors may leave to find pricing elsewhere',
+      pointsLost: 7,
+    });
   }
 
   // --- Clear service/product pages: site has >3 pages (5 pts) ---
   if (pages.length > 3) {
     total += 5;
   } else {
-    findings.push(`Site has only ${pages.length} page(s) -- not enough depth to guide different visitor types`);
+    findings.push({
+      code: 'conversion.depth.limited',
+      label: `Site has only ${pages.length} page(s) -- not enough depth to guide different visitor types`,
+      pointsLost: 5,
+    });
   }
 
   const finalScore = Math.max(0, Math.min(100, total));
   const severity = scoreToSeverity(finalScore);
-  const { headline, narrative } = generateNarrative('conversion', finalScore, findings);
+  const { headline, narrative } = generateNarrative('conversion', finalScore);
 
   return {
     category_id: 'conversion',

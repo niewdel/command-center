@@ -1,7 +1,11 @@
 import { chromium, type Browser, type Page, type Response } from 'playwright';
 import { CrawledPage } from './types';
+import { parseRobots, checkUrlExists } from '../seo/site-checks';
+import { normalizeUrl, isSameDomain, hasSkippableExtension } from './url-utils';
+import { discoverMainPages } from './discover-main-pages';
 
 const DEFAULT_MAX_PAGES = 50;
+const MAIN_MODE_CAP = 15;
 const PAGE_TIMEOUT = 15_000;
 
 export interface CrawlOptions {
@@ -9,52 +13,15 @@ export interface CrawlOptions {
   maxPages?: number;
   /** Skip robots.txt + sitemap discovery. Useful for fast single-URL audits. */
   skipDiscovery?: boolean;
-}
-const SKIP_EXTENSIONS = new Set([
-  '.pdf', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.ico',
-  '.mp4', '.mp3', '.wav', '.avi', '.mov', '.zip', '.tar', '.gz',
-  '.css', '.js', '.woff', '.woff2', '.ttf', '.eot', '.xml',
-]);
-
-// ---------------------------------------------------------------------------
-// URL helpers
-// ---------------------------------------------------------------------------
-
-function normalizeUrl(raw: string, base?: string): string | null {
-  try {
-    const url = new URL(raw, base);
-    // Only crawl http(s)
-    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
-    // Strip fragment
-    url.hash = '';
-    // Strip common tracking query params but keep meaningful ones
-    // For dedup we strip ALL query params — most small-biz sites don't rely on them
-    url.search = '';
-    // Remove trailing slash (except for root)
-    let path = url.pathname.replace(/\/+$/, '') || '/';
-    url.pathname = path;
-    return url.toString();
-  } catch {
-    return null;
-  }
+  /**
+   * "main" — crawl the homepage first, seed the queue from its primary nav
+   * (header/nav/footer links, via `discoverMainPages`), and top up from the
+   * existing sitemap/BFS discovery if nav yields too few pages.
+   */
+  mode?: "main";
 }
 
-function isSameDomain(urlStr: string, rootOrigin: string): boolean {
-  try {
-    return new URL(urlStr).origin === rootOrigin;
-  } catch {
-    return false;
-  }
-}
-
-function hasSkippableExtension(urlStr: string): boolean {
-  try {
-    const pathname = new URL(urlStr).pathname.toLowerCase();
-    return Array.from(SKIP_EXTENSIONS).some((ext) => pathname.endsWith(ext));
-  } catch {
-    return false;
-  }
-}
+export { normalizeUrl, hasSkippableExtension };
 
 // ---------------------------------------------------------------------------
 // robots.txt
@@ -109,6 +76,57 @@ function isDisallowed(urlStr: string, rules: RobotsRules): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * Resolve the ORIGIN a URL actually lands on after redirects (e.g. apex →
+ * www, or the reverse). Without this, `rootOrigin` stays pinned to the
+ * pre-redirect input URL, every nav/sitemap link on the redirected homepage
+ * gets misclassified as external, and `discoverMainPages` (used by "main"
+ * crawl mode) silently returns just the homepage. Falls back to the
+ * pre-redirect origin if the request fails (bot-blocking, timeouts, etc.) —
+ * that preserves today's behavior rather than breaking the crawl further.
+ */
+async function resolveEffectiveOrigin(url: string, fallbackOrigin: string): Promise<string> {
+  try {
+    const res = await fetch(url, { method: 'GET', redirect: 'follow' });
+    return new URL(res.url).origin;
+  } catch {
+    return fallbackOrigin;
+  }
+}
+
+/**
+ * AEO-specific robots + llms.txt signals for a site, used by the AEO scoring
+ * adapter (`scoring/aeo.ts`). Kept separate from `fetchRobotsTxt`/`isDisallowed`
+ * above (which only care about the "*" crawl-disallow group for BFS discovery).
+ *
+ * Reuses the AI-bot-aware robots.txt parser from `src/lib/seo/site-checks.ts`
+ * rather than re-implementing user-agent-group parsing a second time.
+ */
+export interface AeoRobotsSignals {
+  /** AI crawler user-agent names disallowed for "/" (GPTBot, ClaudeBot, etc). */
+  blockedAiBots: string[];
+  hasLlmsTxt: boolean;
+}
+
+export async function fetchAeoRobotsSignals(rootUrl: string): Promise<AeoRobotsSignals> {
+  const rootOrigin = new URL(rootUrl).origin;
+
+  let blockedAiBots: string[] = [];
+  try {
+    const res = await fetch(`${rootOrigin}/robots.txt`);
+    if (res.ok) {
+      const text = await res.text();
+      blockedAiBots = parseRobots(text).blockedAiBots;
+    }
+  } catch {
+    // robots.txt fetch failed — treat as unblocked
+  }
+
+  const hasLlmsTxt = await checkUrlExists(`${rootOrigin}/llms.txt`);
+
+  return { blockedAiBots, hasLlmsTxt };
 }
 
 // ---------------------------------------------------------------------------
@@ -174,7 +192,16 @@ async function extractPageData(page: Page, response: Response | null, pageUrl: s
     const bodyText = document.body?.innerText?.trim() || '';
 
     // Links
-    const links: { href: string; text: string; isInternal: boolean }[] = [];
+    const links: { href: string; text: string; isInternal: boolean; location: 'header' | 'nav' | 'footer' | 'body' }[] = [];
+    const closestSection = (el: Element): 'header' | 'nav' | 'footer' | 'body' => {
+      let cur: Element | null = el;
+      while (cur) {
+        const tag = cur.tagName?.toLowerCase();
+        if (tag === 'header' || tag === 'nav' || tag === 'footer') return tag;
+        cur = cur.parentElement;
+      }
+      return 'body';
+    };
     document.querySelectorAll('a[href]').forEach((el) => {
       const anchor = el as HTMLAnchorElement;
       const href = anchor.href;
@@ -185,7 +212,7 @@ async function extractPageData(page: Page, response: Response | null, pageUrl: s
       } catch {
         isInternal = true; // relative URLs are internal
       }
-      links.push({ href, text, isInternal });
+      links.push({ href, text, isInternal, location: closestSection(anchor) });
     });
 
     // Images
@@ -294,9 +321,16 @@ export async function crawlSite(
   onProgress?: (message: string, done: number, total: number) => void,
   options: CrawlOptions = {},
 ): Promise<CrawledPage[]> {
-  const maxPages = options.maxPages ?? DEFAULT_MAX_PAGES;
+  const mode = options.mode;
+  const maxPages = options.maxPages ?? (mode === "main" ? MAIN_MODE_CAP : DEFAULT_MAX_PAGES);
   const skipDiscovery = options.skipDiscovery ?? maxPages === 1;
-  const rootOrigin = new URL(rootUrl).origin;
+  const inputOrigin = new URL(rootUrl).origin;
+  // Resolve apex↔www (or any other) redirects up front so robots.txt,
+  // sitemap discovery, and every internal-link check below all agree on
+  // the domain the site actually serves from. Recomputed again after the
+  // homepage loads in the browser, below, in case this pre-flight fetch
+  // and the real browser navigation land on different origins.
+  let rootOrigin = await resolveEffectiveOrigin(rootUrl, inputOrigin);
   const normalizedRoot = normalizeUrl(rootUrl) || rootUrl;
 
   const progress = (msg: string, done: number, total: number) => {
@@ -326,10 +360,15 @@ export async function crawlSite(
     queue.push(url);
   }
 
-  // Always start with the root
+  // Always start with the root. In "main" mode, hold off on seeding the
+  // sitemap URLs — we seed from the homepage's primary nav instead, once
+  // it's been crawled (see below), and only fall back to sitemap/BFS to
+  // top up if nav is thin.
   enqueue(normalizedRoot);
-  for (const u of sitemapUrls) {
-    enqueue(u);
+  if (mode !== "main") {
+    for (const u of sitemapUrls) {
+      enqueue(u);
+    }
   }
 
   progress(`Found ${queue.length} page(s) to crawl`, 0, Math.min(queue.length, maxPages));
@@ -365,6 +404,20 @@ export async function crawlSite(
           timeout: PAGE_TIMEOUT,
         });
 
+        // Re-derive the effective origin from the homepage's actual final
+        // URL. Covers cases where the pre-flight fetch() above followed a
+        // different redirect path than the real browser navigation (JS
+        // redirects, geo/UA-based redirects, etc). Every isInternal /
+        // isSameDomain check downstream reads this same `rootOrigin`.
+        if (pageUrl === normalizedRoot && response) {
+          try {
+            const finalOrigin = new URL(response.url()).origin;
+            if (finalOrigin !== rootOrigin) rootOrigin = finalOrigin;
+          } catch {
+            // Keep the already-resolved rootOrigin.
+          }
+        }
+
         // Wait for JS frameworks to render content (React, Vue, etc.)
         try {
           await page.waitForFunction(
@@ -387,6 +440,23 @@ export async function crawlSite(
         const crawled = await extractPageData(page, response, pageUrl, rootOrigin);
         results.push(crawled);
 
+        // "main" mode: once the homepage is crawled, seed the queue from its
+        // primary nav (header/nav/footer links). If nav is thin (< ~5 pages
+        // total, including the homepage), top up with the sitemap URLs we
+        // already fetched — BFS link-following below fills in the rest.
+        if (mode === "main" && crawled.url === normalizedRoot && results.length === 1) {
+          const navUrls = discoverMainPages(crawled, maxPages).filter((u) => u !== normalizedRoot);
+          progress(`Found ${navUrls.length} nav page(s) on homepage`, results.length, Math.min(queue.length, maxPages));
+          for (const navUrl of navUrls) {
+            enqueue(navUrl);
+          }
+          if (navUrls.length < 4) {
+            for (const u of sitemapUrls) {
+              enqueue(u);
+            }
+          }
+        }
+
         // Discover new links from this page for BFS traversal
         const newLinks = extractInternalLinks(crawled, rootOrigin);
         for (const link of newLinks) {
@@ -395,6 +465,13 @@ export async function crawlSite(
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         progress(`Skipping ${pageUrl}: ${message}`, results.length, total);
+        // "main" mode couldn't discover nav from a failed homepage load —
+        // fall back to sitemap/BFS discovery so the crawl isn't left empty.
+        if (mode === "main" && pageUrl === normalizedRoot && results.length === 0) {
+          for (const u of sitemapUrls) {
+            enqueue(u);
+          }
+        }
       } finally {
         if (page) {
           try { await page.close(); } catch { /* ignore */ }

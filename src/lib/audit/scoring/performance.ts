@@ -1,10 +1,10 @@
-import { CategoryResult } from '../types';
+import { CategoryResult, Finding } from '../types';
 import { ScoringInput } from './index';
 import { generateNarrative } from './narratives';
 
 export function score(input: ScoringInput): CategoryResult {
   const { psiMetrics } = input;
-  const findings: string[] = [];
+  const findings: Finding[] = [];
 
   // No PSI data = score 20 (unknown = bad)
   if (psiMetrics.length === 0) {
@@ -16,7 +16,13 @@ export function score(input: ScoringInput): CategoryResult {
       headline: 'Performance could not be measured.',
       narrative:
         'No PageSpeed Insights data was available, so performance could not be verified. A score of 20/100 is assigned by default when performance data is unavailable -- unverified performance is a red flag.',
-      findings: ['No PageSpeed Insights data available for analysis'],
+      findings: [
+        {
+          code: 'perf.psi.unavailable',
+          label: 'No PageSpeed Insights data available for analysis',
+          pointsLost: 80,
+        },
+      ],
     };
   }
 
@@ -43,13 +49,25 @@ export function score(input: ScoringInput): CategoryResult {
     total += 30;
   } else if (avgPerformance100 >= 70) {
     total += 20;
-    findings.push(`Average Lighthouse Performance score: ${avgPerformance100}/100 (needs improvement)`);
+    findings.push({
+      code: 'perf.lighthouse.needsimprovement',
+      label: `Average Lighthouse Performance score: ${avgPerformance100}/100 (needs improvement)`,
+      pointsLost: 10,
+    });
   } else if (avgPerformance100 >= 50) {
     total += 12;
-    findings.push(`Average Lighthouse Performance score: ${avgPerformance100}/100 (poor)`);
+    findings.push({
+      code: 'perf.lighthouse.poor',
+      label: `Average Lighthouse Performance score: ${avgPerformance100}/100 (poor)`,
+      pointsLost: 18,
+    });
   } else {
     total += 5;
-    findings.push(`Average Lighthouse Performance score: ${avgPerformance100}/100 (very poor)`);
+    findings.push({
+      code: 'perf.lighthouse.verypoor',
+      label: `Average Lighthouse Performance score: ${avgPerformance100}/100 (very poor)`,
+      pointsLost: 25,
+    });
   }
 
   // --- LCP (15 / 8 / 0 pts) ---
@@ -57,9 +75,17 @@ export function score(input: ScoringInput): CategoryResult {
     total += 15;
   } else if (avgLcp < 4000) {
     total += 8;
-    findings.push(`Largest Contentful Paint averages ${(avgLcp / 1000).toFixed(1)}s (should be under 2.5s)`);
+    findings.push({
+      code: 'perf.lcp.slow',
+      label: `Largest Contentful Paint averages ${(avgLcp / 1000).toFixed(1)}s (should be under 2.5s)`,
+      pointsLost: 7,
+    });
   } else {
-    findings.push(`Largest Contentful Paint averages ${(avgLcp / 1000).toFixed(1)}s (poor -- should be under 2.5s)`);
+    findings.push({
+      code: 'perf.lcp.verypoor',
+      label: `Largest Contentful Paint averages ${(avgLcp / 1000).toFixed(1)}s (poor -- should be under 2.5s)`,
+      pointsLost: 15,
+    });
   }
 
   // --- FCP (10 / 5 / 0 pts) ---
@@ -67,9 +93,17 @@ export function score(input: ScoringInput): CategoryResult {
     total += 10;
   } else if (avgFcp < 3000) {
     total += 5;
-    findings.push(`First Contentful Paint averages ${(avgFcp / 1000).toFixed(1)}s (should be under 1.8s)`);
+    findings.push({
+      code: 'perf.fcp.slow',
+      label: `First Contentful Paint averages ${(avgFcp / 1000).toFixed(1)}s (should be under 1.8s)`,
+      pointsLost: 5,
+    });
   } else {
-    findings.push(`First Contentful Paint averages ${(avgFcp / 1000).toFixed(1)}s (poor -- should be under 1.8s)`);
+    findings.push({
+      code: 'perf.fcp.verypoor',
+      label: `First Contentful Paint averages ${(avgFcp / 1000).toFixed(1)}s (poor -- should be under 1.8s)`,
+      pointsLost: 10,
+    });
   }
 
   // --- CLS (10 / 5 / 0 pts) ---
@@ -77,9 +111,17 @@ export function score(input: ScoringInput): CategoryResult {
     total += 10;
   } else if (avgCls < 0.25) {
     total += 5;
-    findings.push(`Cumulative Layout Shift averages ${avgCls.toFixed(3)} (should be under 0.1)`);
+    findings.push({
+      code: 'perf.cls.high',
+      label: `Cumulative Layout Shift averages ${avgCls.toFixed(3)} (should be under 0.1)`,
+      pointsLost: 5,
+    });
   } else {
-    findings.push(`Cumulative Layout Shift averages ${avgCls.toFixed(3)} (poor -- should be under 0.1)`);
+    findings.push({
+      code: 'perf.cls.veryhigh',
+      label: `Cumulative Layout Shift averages ${avgCls.toFixed(3)} (poor -- should be under 0.1)`,
+      pointsLost: 10,
+    });
   }
 
   // --- TBT (10 / 5 / 0 pts) ---
@@ -87,9 +129,17 @@ export function score(input: ScoringInput): CategoryResult {
     total += 10;
   } else if (avgTbt < 600) {
     total += 5;
-    findings.push(`Total Blocking Time averages ${Math.round(avgTbt)}ms (should be under 200ms)`);
+    findings.push({
+      code: 'perf.tbt.high',
+      label: `Total Blocking Time averages ${Math.round(avgTbt)}ms (should be under 200ms)`,
+      pointsLost: 5,
+    });
   } else {
-    findings.push(`Total Blocking Time averages ${Math.round(avgTbt)}ms (poor -- should be under 200ms)`);
+    findings.push({
+      code: 'perf.tbt.veryhigh',
+      label: `Total Blocking Time averages ${Math.round(avgTbt)}ms (poor -- should be under 200ms)`,
+      pointsLost: 10,
+    });
   }
 
   // --- Speed Index (10 / 5 / 0 pts) ---
@@ -97,9 +147,17 @@ export function score(input: ScoringInput): CategoryResult {
     total += 10;
   } else if (avgSi < 5800) {
     total += 5;
-    findings.push(`Speed Index averages ${(avgSi / 1000).toFixed(1)}s (should be under 3.4s)`);
+    findings.push({
+      code: 'perf.speedindex.slow',
+      label: `Speed Index averages ${(avgSi / 1000).toFixed(1)}s (should be under 3.4s)`,
+      pointsLost: 5,
+    });
   } else {
-    findings.push(`Speed Index averages ${(avgSi / 1000).toFixed(1)}s (poor -- should be under 3.4s)`);
+    findings.push({
+      code: 'perf.speedindex.veryslow',
+      label: `Speed Index averages ${(avgSi / 1000).toFixed(1)}s (poor -- should be under 3.4s)`,
+      pointsLost: 10,
+    });
   }
 
   // --- Consistency bonus (10 / 5 pts) or penalty ---
@@ -119,7 +177,11 @@ export function score(input: ScoringInput): CategoryResult {
     const worstPage = psiMetrics.reduce((worst, m) =>
       m.scores.performance < worst.scores.performance ? m : worst
     );
-    findings.push(`At least one page scores below 50 (${Math.round(worstPage.scores.performance * 100)}/100 at ${worstPage.url})`);
+    findings.push({
+      code: 'perf.page.below50',
+      label: `At least one page scores below 50 (${Math.round(worstPage.scores.performance * 100)}/100 at ${worstPage.url})`,
+      pointsLost: 5,
+    });
   }
 
   // --- Page weight bonus (5 pts) ---
@@ -133,7 +195,11 @@ export function score(input: ScoringInput): CategoryResult {
     if (totalByteWeightAudit.score >= 0.5) {
       total += 5;
     } else {
-      findings.push(`Homepage page weight is high: ${totalByteWeightAudit.displayValue || 'above recommended threshold'}`);
+      findings.push({
+        code: 'perf.pageweight.high',
+        label: `Homepage page weight is high: ${totalByteWeightAudit.displayValue || 'above recommended threshold'}`,
+        pointsLost: 5,
+      });
     }
   }
 
@@ -142,13 +208,17 @@ export function score(input: ScoringInput): CategoryResult {
     const min = Math.min(...allScores);
     const max = Math.max(...allScores);
     if (max - min > 20) {
-      findings.push(`Performance varies significantly across pages: ${min} to ${max} Lighthouse scores`);
+      findings.push({
+        code: 'perf.variance.high',
+        label: `Performance varies significantly across pages: ${min} to ${max} Lighthouse scores`,
+        pointsLost: 0,
+      });
     }
   }
 
   const finalScore = Math.max(0, Math.min(100, total));
   const severity = scoreToSeverity(finalScore);
-  const { headline, narrative } = generateNarrative('performance', finalScore, findings);
+  const { headline, narrative } = generateNarrative('performance', finalScore);
 
   return {
     category_id: 'performance',

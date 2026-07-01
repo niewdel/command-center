@@ -109,14 +109,15 @@ export function HealthSection({ data }: { data: ReportData }) {
         </div>
       </div>
 
-      {/* Bottom row: four score-component cards with sparklines */}
-      {(["technical", "onpage", "lighthouse_mobile", "lighthouse_desktop"] as const).map(
+      {/* Bottom row: five score-component cards with sparklines */}
+      {(["technical", "onpage", "lighthouse_mobile", "lighthouse_desktop", "aeo"] as const).map(
         (key) => {
           const labelMap = {
             technical: "Technical",
             onpage: "On-Page",
             lighthouse_mobile: "Lighthouse Mobile",
             lighthouse_desktop: "Lighthouse Desktop",
+            aeo: "AI Search",
           };
           const card = h[key];
           return (
