@@ -19,6 +19,15 @@ This is the first of three subsystems. **Proposals + e-sign** and **Invoicing + 
 5. **Pipeline stage lives on the Company** (not a separate Deals object). A separate Deals object is deliberately deferred (see "Deferred: Deals").
 6. **Payments engine (later subsystem):** Stripe, not Wave.
 7. **E-sign (later subsystem):** built internally (ESIGN/UETA-valid), not DocuSign.
+8. **Tenancy:** ONE system, **RLS-isolated tenants** (not a database per client). `workspace = tenant`. Build the CRM **generic** (no Niewdel-specific hardcoding) so it's a resellable, white-label product; Niewdel's workspace is tenant #1, a seeded **Demo** workspace is tenant #2 (for showing prospects). Self-serve tenant provisioning + subdomains are **deferred** (later phase).
+
+## Multi-tenancy (how isolation works)
+
+- **Tenant = workspace.** Every CRM table carries `workspace_id`. The existing `workspaces` table is the tenant registry; the existing `clients` table (= Companies) already has `workspace_id`.
+- **Isolation = `workspace_id` + Row-Level Security.** Each new table gets an RLS policy tying `workspace_id` to a workspace the authenticated user may access. Server-side data access uses the app's existing service-role + explicit workspace-scoping pattern (as the SEO agent does), with RLS as defense-in-depth. A client tenant sees only their own companies/contacts/activities/tasks — never another tenant's.
+- **Generic, not Niewdel-specific.** No hardcoded client names, copy, or pipeline assumptions beyond the `PIPELINE_STAGES` constant. Sample/demo content lives only in the seeded Demo workspace, not in code.
+- **Workspace resolution (v1).** A `currentWorkspace(session)` helper resolves the authenticated user's active workspace. For v1 the operator team (justin/dillon) maps to the Niewdel workspace; the Demo workspace is reachable via a workspace switcher in the UI (so the team can show the demo). The full per-tenant user-membership model + onboarding UI is the deferred provisioning layer.
+- **Deferred (explicitly NOT in v1):** self-serve signup, per-tenant admin invite flow, subdomain routing (`client.niewdel.com`), per-tenant theming. The v1 schema + RLS are designed so these bolt on without a rewrite.
 
 ## Goals / success criteria
 
@@ -65,7 +74,10 @@ Existing `clients` rows (Franky/HD/Niewdel) get `pipeline_stage = 'won'` in the 
 - `created_by uuid`
 
 ### RLS
-Every new table and the new `clients` columns are scoped by `workspace_id` via the app's existing RLS pattern (a policy tying `workspace_id` to the authenticated user's workspace). `contacts`/`crm_activities`/`crm_tasks` inherit scope through their `company_id → clients.workspace_id`.
+Every new table is workspace-scoped. `contacts`/`crm_activities`/`crm_tasks` carry a denormalized `workspace_id` (copied from the parent company on insert) so RLS policies are simple and fast: `workspace_id` must be a workspace the authenticated user may access. Policies follow the app's existing pattern; server-side access additionally scopes by the resolved current workspace (defense-in-depth). This guarantees one tenant can never read another tenant's records.
+
+### Demo tenant seed
+The migration seeds a **Demo** workspace with a handful of realistic sample companies (across every pipeline stage), contacts, activities, and tasks — generic, on-brand, no real client data — so the CRM can be shown to prospects immediately. This is the "demo model." Niewdel's own workspace is tenant #1 with its real clients (Franky/HD/Niewdel already there).
 
 ## Architecture / units
 
