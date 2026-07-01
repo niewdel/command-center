@@ -51,6 +51,45 @@ function tag(text: string, color = BLUE): string {
   return `<p style="margin:0 0 12px 0;${FONT}font-size:11px;font-weight:700;color:${color};text-transform:uppercase;letter-spacing:0.22em;">${text}</p>`;
 }
 
+// Email-safe horizontal bar: a filled track built from <td> widths — no SVG,
+// no CSS-only bars, so it renders in Gmail, Outlook, and Apple Mail alike.
+function bar(pct: number, fill: string, track: string, height = 8): string {
+  const p = Math.max(0, Math.min(100, Math.round(pct)));
+  const r = Math.round(height / 2);
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-radius:${r}px;overflow:hidden;background:${track};">
+  <tr>${p > 0 ? `<td width="${p}%" style="height:${height}px;background:${fill};font-size:0;line-height:0;">&nbsp;</td>` : ""}${p < 100 ? `<td style="height:${height}px;font-size:0;line-height:0;">&nbsp;</td>` : ""}</tr>
+</table>`;
+}
+
+// Email-safe stacked bar: one row of colored <td> segments summing to ~100%.
+function stackedBar(
+  segments: { pct: number; color: string }[],
+  track: string,
+  height = 10,
+): string {
+  const cells = segments
+    .filter((s) => s.pct > 0)
+    .map(
+      (s) =>
+        `<td width="${Math.round(s.pct)}%" style="height:${height}px;background:${s.color};font-size:0;line-height:0;">&nbsp;</td>`,
+    )
+    .join("");
+  const r = Math.round(height / 2);
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-radius:${r}px;overflow:hidden;background:${track};">
+  <tr>${cells || `<td style="height:${height}px;font-size:0;line-height:0;">&nbsp;</td>`}</tr>
+</table>`;
+}
+
+// Traffic-source palette (blue = search, greens/greys = the rest), matched to
+// the web report's tone.
+const SOURCE_SEGMENTS: { key: "search" | "direct" | "referral" | "social" | "other"; label: string; color: string }[] = [
+  { key: "search", label: "Search", color: "#3B86DB" },
+  { key: "social", label: "Social", color: "#35B37E" },
+  { key: "direct", label: "Direct", color: "#6B757C" },
+  { key: "referral", label: "Referral", color: "#8B95A0" },
+  { key: "other", label: "Other", color: "#5C666D" },
+];
+
 export function renderMonthlyReportEmail(
   data: ReportData,
   opts: { intro?: string } = {},
@@ -123,6 +162,7 @@ export function renderMonthlyReportEmail(
           <td style="padding:28px;">
             <p style="margin:0 0 12px 0;${FONT}font-size:11px;font-weight:700;color:${BLUE_SOFT};text-transform:uppercase;letter-spacing:0.22em;">Overall Score</p>
             <p style="margin:0;${FONT}font-size:60px;font-weight:700;color:${TEXT};line-height:1;letter-spacing:-0.025em;font-feature-settings:'tnum';">${escapeHtml(scoreDisplay)}<span style="font-size:20px;font-weight:500;color:${BLUE_SOFT};margin-left:6px;opacity:0.7;">/100</span></p>
+            <div style="margin:16px 0 0 0;">${bar(score ?? 0, "#7FB0EA", "#123A6B", 10)}</div>
             <p style="margin:14px 0 0 0;${FONT}font-size:13px;color:#C7D6EA;">${escapeHtml(deltaLine)}</p>
           </td>
         </tr>
@@ -173,6 +213,7 @@ export function renderMonthlyReportEmail(
             <p style="margin:0 0 2px 0;${FONT}font-size:12px;color:${sessD.color};font-feature-settings:'tnum';">${sessD.arrow} ${escapeHtml(sessD.text)} vs last period</p>
             <p style="margin:8px 0 0 0;${FONT}font-size:13px;color:${MUTED};">${escapeHtml(fromGoogle)}<span style="color:${orgD.color};font-feature-settings:'tnum';">${orgTrend}</span>.</p>
             <p style="margin:6px 0 0 0;${FONT}font-size:11px;color:${FAINT};letter-spacing:0.04em;">${escapeHtml(periodStart)} – ${escapeHtml(periodEnd)}</p>
+            ${buildSourcesBar(t.sources)}
           </td>
         </tr>
       </table>
@@ -181,17 +222,49 @@ export function renderMonthlyReportEmail(
 </table>`;
   }
 
+  // Stacked bar + legend of where visitors came from. Reads the source %
+  // split already on the report data; renders only if it sums to something.
+  function buildSourcesBar(sources: {
+    search: number;
+    direct: number;
+    referral: number;
+    social: number;
+    other: number;
+  }): string {
+    const segs = SOURCE_SEGMENTS.map((s) => ({ ...s, pct: sources[s.key] ?? 0 }));
+    if (segs.reduce((sum, s) => sum + s.pct, 0) <= 0) return "";
+    const legend = segs
+      .filter((s) => s.pct > 0)
+      .map(
+        (s) =>
+          `<span style="display:inline-block;${FONT}font-size:11px;color:${MUTED};margin:0 14px 0 0;white-space:nowrap;"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${s.color};margin-right:5px;"></span>${s.label} <span style="color:${TEXT};font-feature-settings:'tnum';">${s.pct}%</span></span>`,
+      )
+      .join("");
+    return `
+            <p style="margin:16px 0 8px 0;${FONT}font-size:10px;font-weight:700;color:${MUTED};text-transform:uppercase;letter-spacing:0.18em;">Where visitors came from</p>
+            ${stackedBar(segs, ELEVATED, 10)}
+            <p style="margin:10px 0 0 0;line-height:1.9;">${legend}</p>`;
+  }
+
   function buildTopPages(): string {
     if (data.top_pages.length === 0) return "";
 
+    // Each page renders as a labeled row (name + sessions + share) with a
+    // proportional bar underneath — a mini bar chart instead of a dense table.
     const rows = data.top_pages
       .slice(0, 3)
       .map(
         (p) => `
       <tr>
-        <td style="padding:10px 0;border-top:1px solid ${LINE};${FONT}font-size:13px;color:${TEXT};width:60%;word-break:break-word;">${escapeHtml(humanizePath(p.path))}</td>
-        <td style="padding:10px 8px;border-top:1px solid ${LINE};${FONT}font-size:13px;color:${TEXT};font-feature-settings:'tnum';white-space:nowrap;text-align:right;">${formatNumber(p.sessions)}</td>
-        <td style="padding:10px 0;border-top:1px solid ${LINE};${FONT}font-size:13px;color:${MUTED};font-feature-settings:'tnum';white-space:nowrap;text-align:right;">${p.pct_of_total}%</td>
+        <td style="padding:14px 0 0 0;">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+            <tr>
+              <td style="${FONT}font-size:13px;color:${TEXT};word-break:break-word;padding-right:10px;">${escapeHtml(humanizePath(p.path))}</td>
+              <td style="${FONT}font-size:13px;color:${MUTED};font-feature-settings:'tnum';white-space:nowrap;text-align:right;">${formatNumber(p.sessions)} <span style="color:${FAINT};">·</span> ${p.pct_of_total}%</td>
+            </tr>
+          </table>
+          <div style="margin:7px 0 0 0;">${bar(p.pct_of_total, BLUE, ELEVATED, 6)}</div>
+        </td>
       </tr>`,
       )
       .join("");
@@ -202,13 +275,6 @@ export function renderMonthlyReportEmail(
     <td style="padding:0 32px 24px 32px;">
       ${tag("02 · Top Pages")}
       <table cellpadding="0" cellspacing="0" border="0" width="100%">
-        <thead>
-          <tr>
-            <th style="padding:0 0 8px 0;text-align:left;${FONT}font-size:10px;font-weight:700;color:${MUTED};text-transform:uppercase;letter-spacing:0.18em;">Page</th>
-            <th style="padding:0 8px 8px 8px;text-align:right;${FONT}font-size:10px;font-weight:700;color:${MUTED};text-transform:uppercase;letter-spacing:0.18em;">Sessions</th>
-            <th style="padding:0 0 8px 0;text-align:right;${FONT}font-size:10px;font-weight:700;color:${MUTED};text-transform:uppercase;letter-spacing:0.18em;">% Total</th>
-          </tr>
-        </thead>
         <tbody>
           ${rows}
         </tbody>
