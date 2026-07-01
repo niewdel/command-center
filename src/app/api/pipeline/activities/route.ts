@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPipelineClient, getDefaultPipelineWorkspaceId } from "@/lib/pipeline/db";
+import { getUserScopedClient, resolveActiveWorkspace } from "@/lib/tenancy";
 import { ACTIVITY_TYPES, type ActivityType } from "@/types/pipeline";
 
 export const dynamic = "force-dynamic";
@@ -15,8 +15,10 @@ const LOGGABLE_ACTIVITY_TYPES: ActivityType[] = ACTIVITY_TYPES.filter((t) => t !
  * used deal-scoped too via `?deal_id=`).
  */
 export async function GET(req: NextRequest) {
-  const sb = getPipelineClient();
-  const workspace_id = await getDefaultPipelineWorkspaceId();
+  const ws = await resolveActiveWorkspace();
+  if (!ws) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const sb = await getUserScopedClient();
+  const workspace_id = ws.id;
   const { searchParams } = new URL(req.url);
   const dealId = searchParams.get("deal_id");
   const companyId = searchParams.get("crm_company_id");
@@ -34,8 +36,10 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const sb = getPipelineClient();
-  const workspace_id = await getDefaultPipelineWorkspaceId();
+  const ws = await resolveActiveWorkspace();
+  if (!ws) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const sb = await getUserScopedClient();
+  const workspace_id = ws.id;
   const body = await req.json();
 
   const type = body.type as ActivityType;

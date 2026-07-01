@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getPipelineClient, getDefaultPipelineWorkspaceId } from "@/lib/pipeline/db";
+import { getUserScopedClient, resolveActiveWorkspace } from "@/lib/tenancy";
 import { computeMrr, mrrByCompany, newMrrThisMonth, type ProposalForMrr } from "@/lib/proposals/mrr";
 import type { CrmProposalLineItem, ProposalStatus } from "@/types/proposals";
 
@@ -15,8 +15,10 @@ type SignedProposalRow = {
 
 export async function GET() {
   try {
-    const sb = getPipelineClient();
-    const workspace_id = await getDefaultPipelineWorkspaceId();
+    const ws = await resolveActiveWorkspace();
+    if (!ws) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const sb = await getUserScopedClient();
+    const workspace_id = ws.id;
 
     const { data: proposals, error: proposalsError } = await sb
       .from("crm_proposals")
