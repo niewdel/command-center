@@ -1,16 +1,21 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-// Accounts allowed into the app. Comma-separated list via ALLOWED_LOGIN_EMAILS
-// (legacy ALLOWED_LOGIN_EMAIL still works). Anyone else — even a self-registered
-// anon session — is rejected here, and RLS would show them nothing regardless.
+// Accounts allowed into the app. The core operators are ALWAYS allowed —
+// hardcoded here so a stale/single-value env var can never lock the team out.
+// ALLOWED_LOGIN_EMAILS (comma-separated; legacy ALLOWED_LOGIN_EMAIL honored)
+// only ADDS further emails on top. Anyone else — even a self-registered anon
+// session — is rejected here, and RLS would show them nothing regardless.
+const CORE_EMAILS = ["justin@niewdel.com", "dillon@niewdel.com"];
 const ALLOWED_EMAILS = new Set(
-  (
-    process.env.ALLOWED_LOGIN_EMAILS ||
-    process.env.ALLOWED_LOGIN_EMAIL ||
-    "justin@niewdel.com,dillon@niewdel.com"
-  )
-    .split(",")
+  [
+    ...CORE_EMAILS,
+    ...(
+      process.env.ALLOWED_LOGIN_EMAILS ||
+      process.env.ALLOWED_LOGIN_EMAIL ||
+      ""
+    ).split(","),
+  ]
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean)
 );
