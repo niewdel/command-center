@@ -1,11 +1,11 @@
-import { CategoryResult } from '../types';
+import { CategoryResult, Finding } from '../types';
 import { ScoringInput } from './index';
 import { generateNarrative } from './narratives';
 
 export function score(input: ScoringInput): CategoryResult {
   const { pages, rootUrl, screenshots } = input;
   let total = 0;
-  const findings: string[] = [];
+  const findings: Finding[] = [];
 
   if (pages.length === 0) {
     return {
@@ -15,7 +15,9 @@ export function score(input: ScoringInput): CategoryResult {
       severity: 'critical',
       headline: 'No pages could be analyzed.',
       narrative: 'The crawl returned no pages, so usability could not be assessed.',
-      findings: ['No pages were available for analysis'],
+      findings: [
+        { code: 'usability.pages.none', label: 'No pages were available for analysis', pointsLost: 100 },
+      ],
     };
   }
 
@@ -57,9 +59,17 @@ export function score(input: ScoringInput): CategoryResult {
     total += 10;
   } else if (totalNavElements >= 3) {
     total += 5;
-    findings.push('Navigation links found but may not use semantic <nav> element');
+    findings.push({
+      code: 'usability.nav.semantic.missing',
+      label: 'Navigation links found but may not use semantic <nav> element',
+      pointsLost: 5,
+    });
   } else {
-    findings.push('No recognizable navigation structure detected on homepage');
+    findings.push({
+      code: 'usability.nav.missing',
+      label: 'No recognizable navigation structure detected on homepage',
+      pointsLost: 10,
+    });
   }
 
   // --- Navigation present on ALL pages (8 pts) or most (4 pts) ---
@@ -78,9 +88,17 @@ export function score(input: ScoringInput): CategoryResult {
     total += 8;
   } else if (navRatio > 0.5) {
     total += 4;
-    findings.push(`Navigation found on ${pagesWithNav} of ${pages.length} pages (${Math.round(navRatio * 100)}%)`);
+    findings.push({
+      code: 'usability.nav.coverage.partial',
+      label: `Navigation found on ${pagesWithNav} of ${pages.length} pages (${Math.round(navRatio * 100)}%)`,
+      pointsLost: 4,
+    });
   } else {
-    findings.push(`Navigation only found on ${pagesWithNav} of ${pages.length} pages -- inconsistent navigation`);
+    findings.push({
+      code: 'usability.nav.coverage.missing',
+      label: `Navigation only found on ${pagesWithNav} of ${pages.length} pages -- inconsistent navigation`,
+      pointsLost: 8,
+    });
   }
 
   // --- Click depth: all pages within 2 clicks (10 pts), within 3 (5 pts) ---
@@ -118,9 +136,17 @@ export function score(input: ScoringInput): CategoryResult {
     total += 10;
   } else if (allWithin3) {
     total += 5;
-    findings.push('All pages reachable within 3 clicks, but not all within 2');
+    findings.push({
+      code: 'usability.clickdepth.partial',
+      label: 'All pages reachable within 3 clicks, but not all within 2',
+      pointsLost: 5,
+    });
   } else {
-    findings.push(`${unreachableCount} page(s) not reachable within 3 clicks from homepage`);
+    findings.push({
+      code: 'usability.clickdepth.severe',
+      label: `${unreachableCount} page(s) not reachable within 3 clicks from homepage`,
+      pointsLost: 10,
+    });
   }
 
   // --- Broken links (15 / 8 / 0 pts) ---
@@ -129,9 +155,17 @@ export function score(input: ScoringInput): CategoryResult {
     total += 15;
   } else if (brokenPages.length <= 2) {
     total += 8;
-    findings.push(`${brokenPages.length} broken page(s) detected (HTTP ${brokenPages.map((p) => p.statusCode).join(', ')})`);
+    findings.push({
+      code: 'usability.brokenlinks.minor',
+      label: `${brokenPages.length} broken page(s) detected (HTTP ${brokenPages.map((p) => p.statusCode).join(', ')})`,
+      pointsLost: 7,
+    });
   } else {
-    findings.push(`${brokenPages.length} broken pages detected -- significant navigation failures`);
+    findings.push({
+      code: 'usability.brokenlinks.severe',
+      label: `${brokenPages.length} broken pages detected -- significant navigation failures`,
+      pointsLost: 15,
+    });
   }
 
   // --- Internal linking avg >5 (10 pts), >3 (5 pts) ---
@@ -142,9 +176,17 @@ export function score(input: ScoringInput): CategoryResult {
     total += 10;
   } else if (avgInternalLinks > 3) {
     total += 5;
-    findings.push(`Average of ${avgInternalLinks.toFixed(1)} internal links per page -- could be stronger`);
+    findings.push({
+      code: 'usability.internallinks.moderate',
+      label: `Average of ${avgInternalLinks.toFixed(1)} internal links per page -- could be stronger`,
+      pointsLost: 5,
+    });
   } else {
-    findings.push(`Only ${avgInternalLinks.toFixed(1)} internal links per page on average -- weak internal linking`);
+    findings.push({
+      code: 'usability.internallinks.weak',
+      label: `Only ${avgInternalLinks.toFixed(1)} internal links per page on average -- weak internal linking`,
+      pointsLost: 10,
+    });
   }
 
   // --- Skip navigation link (8 pts) ---
@@ -158,7 +200,11 @@ export function score(input: ScoringInput): CategoryResult {
   if (hasSkipNav) {
     total += 8;
   } else {
-    findings.push('No skip navigation link found -- accessibility gap for keyboard users');
+    findings.push({
+      code: 'usability.skipnav.missing',
+      label: 'No skip navigation link found -- accessibility gap for keyboard users',
+      pointsLost: 8,
+    });
   }
 
   // --- Accessibility violations (10 / 5 / 0 pts) ---
@@ -172,9 +218,17 @@ export function score(input: ScoringInput): CategoryResult {
     total += 10;
   } else if (criticalAccessibilityIssues.length <= 3) {
     total += 5;
-    findings.push(`${criticalAccessibilityIssues.length} critical accessibility issue(s) detected`);
+    findings.push({
+      code: 'usability.a11y.partial',
+      label: `${criticalAccessibilityIssues.length} critical accessibility issue(s) detected`,
+      pointsLost: 5,
+    });
   } else {
-    findings.push(`${criticalAccessibilityIssues.length} critical accessibility issues detected -- significant barrier for users with disabilities`);
+    findings.push({
+      code: 'usability.a11y.severe',
+      label: `${criticalAccessibilityIssues.length} critical accessibility issues detected -- significant barrier for users with disabilities`,
+      pointsLost: 10,
+    });
   }
 
   // --- Unique, descriptive titles (8 / 4 pts) ---
@@ -195,9 +249,17 @@ export function score(input: ScoringInput): CategoryResult {
     total += 8;
   } else if (titleRatio > 0.75) {
     total += 4;
-    findings.push(`${goodTitles.length} of ${pages.length} pages have unique, descriptive titles`);
+    findings.push({
+      code: 'usability.titles.partial',
+      label: `${goodTitles.length} of ${pages.length} pages have unique, descriptive titles`,
+      pointsLost: 4,
+    });
   } else {
-    findings.push(`Only ${goodTitles.length} of ${pages.length} pages have descriptive titles (>10 chars, not just domain name)`);
+    findings.push({
+      code: 'usability.titles.poor',
+      label: `Only ${goodTitles.length} of ${pages.length} pages have descriptive titles (>10 chars, not just domain name)`,
+      pointsLost: 8,
+    });
   }
 
   // --- Mobile tap targets (8 pts) ---
@@ -207,7 +269,11 @@ export function score(input: ScoringInput): CategoryResult {
   if (tapTargetIssues.length === 0) {
     total += 8;
   } else {
-    findings.push(`${tapTargetIssues.length} tap target issue(s) detected -- mobile users may struggle to interact`);
+    findings.push({
+      code: 'usability.taptargets.issues',
+      label: `${tapTargetIssues.length} tap target issue(s) detected -- mobile users may struggle to interact`,
+      pointsLost: 8,
+    });
   }
 
   // --- Content without JS (5 pts) ---
@@ -222,7 +288,11 @@ export function score(input: ScoringInput): CategoryResult {
     // Lower word count acceptable if video content is embedded
     total += 5;
   } else {
-    findings.push(`Homepage has only ${homepageWords} words of visible text -- may rely heavily on JavaScript to render content`);
+    findings.push({
+      code: 'usability.content.jsdependent',
+      label: `Homepage has only ${homepageWords} words of visible text -- may rely heavily on JavaScript to render content`,
+      pointsLost: 5,
+    });
   }
 
   // --- Breadcrumbs (3 pts) ---
@@ -250,7 +320,7 @@ export function score(input: ScoringInput): CategoryResult {
 
   const finalScore = Math.max(0, Math.min(100, total));
   const severity = scoreToSeverity(finalScore);
-  const { headline, narrative } = generateNarrative('usability', finalScore, findings);
+  const { headline, narrative } = generateNarrative('usability', finalScore, findings.map((f) => f.label));
 
   return {
     category_id: 'usability',

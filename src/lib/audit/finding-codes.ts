@@ -72,6 +72,26 @@ export const FINDING_CODES = [
   "visual.brokenimages.minor",
   "visual.brokenimages.severe",
 
+  // usability.* — Usability & Navigation scorer codes (src/lib/audit/scoring/usability.ts)
+  "usability.pages.none",
+  "usability.nav.semantic.missing",
+  "usability.nav.missing",
+  "usability.nav.coverage.partial",
+  "usability.nav.coverage.missing",
+  "usability.clickdepth.partial",
+  "usability.clickdepth.severe",
+  "usability.brokenlinks.minor",
+  "usability.brokenlinks.severe",
+  "usability.internallinks.moderate",
+  "usability.internallinks.weak",
+  "usability.skipnav.missing",
+  "usability.a11y.partial",
+  "usability.a11y.severe",
+  "usability.titles.partial",
+  "usability.titles.poor",
+  "usability.taptargets.issues",
+  "usability.content.jsdependent",
+
   // aeo.* — AI-search / answer-engine optimization (src/lib/seo/aeo-score.ts)
   "aeo.schema.absent",
   "aeo.schema.coverage.low",
