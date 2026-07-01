@@ -191,4 +191,27 @@ describe("sniffImageType", () => {
     expect(sniffImageType(new Uint8Array([]))).toBeNull();
     expect(sniffImageType(new Uint8Array([0x89, 0x50]))).toBeNull();
   });
+
+  it("recognizes an iPhone HEIC signature (ftyp + heic brand)", () => {
+    // bytes 0-3 box size, 4-7 "ftyp", 8-11 major brand "heic"
+    const bytes = new Uint8Array([
+      0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70, 0x68, 0x65, 0x69, 0x63,
+    ]);
+    expect(sniffImageType(bytes)).toBe("image/heic");
+  });
+
+  it("recognizes a HEIF signature (ftyp + mif1 brand)", () => {
+    const bytes = new Uint8Array([
+      0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70, 0x6d, 0x69, 0x66, 0x31,
+    ]);
+    expect(sniffImageType(bytes)).toBe("image/heif");
+  });
+
+  it("returns null for an ftyp box with a non-image brand (e.g. mp4)", () => {
+    // "ftyp" + "isom" (an MP4 brand) must not pass as an image
+    const bytes = new Uint8Array([
+      0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6f, 0x6d,
+    ]);
+    expect(sniffImageType(bytes)).toBeNull();
+  });
 });

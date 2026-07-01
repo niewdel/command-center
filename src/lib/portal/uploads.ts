@@ -161,6 +161,24 @@ function isWebp(bytes: Uint8Array): boolean {
   return true;
 }
 
+// HEIC/HEIF (iPhone photos) are ISOBMFF containers: bytes 4-7 are "ftyp"
+// and bytes 8-11 are the major brand. iPhones shoot HEIC by default, so the
+// portal MUST accept these or client photo uploads from a phone get rejected.
+const FTYP = [0x66, 0x74, 0x79, 0x70]; // "ftyp"
+const HEIC_BRANDS = new Set(["heic", "heix", "heim", "heis", "hevc", "hevx", "hevm", "hevs"]);
+const HEIF_BRANDS = new Set(["mif1", "msf1", "heif"]);
+
+function sniffHeif(bytes: Uint8Array): string | null {
+  if (bytes.length < 12) return null;
+  for (let i = 0; i < 4; i++) {
+    if (bytes[4 + i] !== FTYP[i]) return null;
+  }
+  const brand = String.fromCharCode(bytes[8], bytes[9], bytes[10], bytes[11]).toLowerCase();
+  if (HEIC_BRANDS.has(brand)) return "image/heic";
+  if (HEIF_BRANDS.has(brand)) return "image/heif";
+  return null;
+}
+
 // Sniffs the true image type from magic bytes, ignoring any client-declared
 // content type. Returns the canonical mime type string for a recognized
 // image format, or null if the bytes don't match any allowed signature.
@@ -169,5 +187,5 @@ export function sniffImageType(bytes: Uint8Array): string | null {
   if (matchesSignature(bytes, JPEG_SIGNATURE)) return "image/jpeg";
   if (matchesSignature(bytes, GIF_SIGNATURE)) return "image/gif";
   if (isWebp(bytes)) return "image/webp";
-  return null;
+  return sniffHeif(bytes);
 }
