@@ -201,6 +201,26 @@ describe("proposals API", () => {
       expect(json.data.status).toBe("void");
     });
 
+    it("voiding a signed proposal cannot piggyback edits to other fields in the same request", async () => {
+      const proposal = await createProposal();
+      await itemPATCH(
+        makeJsonRequest(`http://localhost/api/pipeline/proposals/${proposal.id}`, "PATCH", { status: "signed" }),
+        { params: Promise.resolve({ id: proposal.id }) }
+      );
+      const res = await itemPATCH(
+        makeJsonRequest(`http://localhost/api/pipeline/proposals/${proposal.id}`, "PATCH", {
+          status: "void",
+          title: "hacked",
+        }),
+        { params: Promise.resolve({ id: proposal.id }) }
+      );
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json.data.status).toBe("void");
+      expect(json.data.title).toBe(proposal.title);
+      expect(json.data.title).not.toBe("hacked");
+    });
+
     it("rejects further edits once void", async () => {
       const proposal = await createProposal();
       await itemPATCH(

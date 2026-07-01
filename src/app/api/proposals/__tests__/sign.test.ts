@@ -250,6 +250,79 @@ describe("POST /api/proposals/[id]/sign", () => {
     );
     expect(res.status).toBe(409);
   });
+
+  it("rejects signing a draft proposal (never formally sent) with 409", async () => {
+    seedProposal({ status: "draft" });
+
+    const res = await signPOST(
+      makeRequest("http://localhost/api/proposals/prop-1/sign", {
+        token: VALID_TOKEN,
+        signerName: "New Signer",
+        consent: true,
+      }),
+      { params: Promise.resolve({ id: "prop-1" }) }
+    );
+    expect(res.status).toBe(409);
+    const json = await res.json();
+    expect(json.error).toBe("This proposal is not open for signature");
+  });
+
+  it("still allows signing a 'sent' proposal (happy path)", async () => {
+    seedProposal({ status: "sent" });
+
+    const res = await signPOST(
+      makeRequest("http://localhost/api/proposals/prop-1/sign", {
+        token: VALID_TOKEN,
+        signerName: "Jane Doe",
+        consent: true,
+      }),
+      { params: Promise.resolve({ id: "prop-1" }) }
+    );
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.data.status).toBe("signed");
+  });
+
+  it("makes the sign atomic: a status flip that lands between the initial read and the final write loses the race with 409, not a silent overwrite", async () => {
+    seedProposal({ status: "sent" });
+
+    // Simulate a concurrent request winning the race: right as this request
+    // reads the persisted line items (the step immediately before the final
+    // conditional "set signed" update), another request flips the proposal's
+    // status out from under it. The final update is keyed on
+    // .in("status", ["sent", "viewed"]), so it should now match 0 rows.
+    const originalFrom = fake.client.from.bind(fake.client);
+    let flipped = false;
+    fake.client.from = ((table: string) => {
+      const builder = originalFrom(table);
+      if (table === "crm_proposal_line_items" && !flipped) {
+        const originalThen = builder.then.bind(builder);
+        builder.then = ((onFulfilled: unknown, onRejected: unknown) => {
+          flipped = true;
+          const row = fake.store.crm_proposals?.find((p) => p.id === "prop-1");
+          if (row) row.status = "signed";
+          return originalThen(onFulfilled as never, onRejected as never);
+        }) as typeof builder.then;
+      }
+      return builder;
+    }) as typeof fake.client.from;
+
+    const res = await signPOST(
+      makeRequest("http://localhost/api/proposals/prop-1/sign", {
+        token: VALID_TOKEN,
+        signerName: "Second Signer",
+        consent: true,
+      }),
+      { params: Promise.resolve({ id: "prop-1" }) }
+    );
+    expect(res.status).toBe(409);
+    const json = await res.json();
+    expect(json.error).toBe("Already signed");
+
+    // The concurrent (simulated) signer's name must not have been clobbered.
+    const proposal = fake.store.crm_proposals?.find((p) => p.id === "prop-1");
+    expect(proposal?.status).toBe("signed");
+  });
 });
 
 describe("POST /api/proposals/[id]/view", () => {

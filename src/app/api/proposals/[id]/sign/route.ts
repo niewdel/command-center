@@ -102,6 +102,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (proposal.status === "signed" || proposal.status === "void") {
     return NextResponse.json({ error: `This proposal is already ${proposal.status}` }, { status: 409 });
   }
+  if (proposal.status !== "sent" && proposal.status !== "viewed") {
+    return NextResponse.json({ error: "This proposal is not open for signature" }, { status: 409 });
+  }
 
   // Apply the client's option choices to the persisted line items. Only
   // is_selected changes here -- amounts, kinds, and cadences are never
@@ -130,7 +133,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const userAgent = req.headers.get("user-agent");
   const signedAt = new Date().toISOString();
 
-  const { data: updated, error: updateError } = await sb
+  // Conditional on the row still being sent/viewed at update time -- this is
+  // what makes the sign atomic against a concurrent double-sign (TOCTOU): if
+  // another request already flipped the status between our read above and
+  // this write, this update matches 0 rows and we return 409 below instead of
+  // silently overwriting an already-signed proposal.
+  const { data: updatedRows, error: updateError } = await sb
     .from("crm_proposals")
     .update({
       status: "signed",
@@ -146,10 +154,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     })
     .eq("workspace_id", workspace_id)
     .eq("id", id)
-    .select("*")
-    .single();
+    .in("status", ["sent", "viewed"])
+    .select("*");
 
   if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 });
+
+  const updated = updatedRows?.[0] ?? null;
+  if (!updated) {
+    return NextResponse.json({ error: "Already signed" }, { status: 409 });
+  }
 
   await sb.from("crm_proposal_events").insert({
     workspace_id,

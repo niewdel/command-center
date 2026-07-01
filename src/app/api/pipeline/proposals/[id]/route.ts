@@ -84,37 +84,48 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   const patch: Record<string, unknown> = {};
-  for (const k of PATCHABLE_FIELDS) {
-    if (k in body) patch[k] = body[k];
-  }
-
-  if ("title" in patch && !String(patch.title).trim()) {
-    return NextResponse.json({ error: "title cannot be empty" }, { status: 400 });
-  }
-  if ("title" in patch) patch.title = String(patch.title).trim();
-
-  if ("type" in body) {
-    if (!PROPOSAL_TYPES.includes(body.type)) {
-      return NextResponse.json({ error: `Invalid type: ${body.type}` }, { status: 400 });
-    }
-    patch.type = body.type;
-  }
-  if ("theme" in body && !PROPOSAL_THEMES.includes(body.theme)) {
-    return NextResponse.json({ error: `Invalid theme: ${body.theme}` }, { status: 400 });
-  }
   let shouldLogSentEvent = false;
-  if ("status" in body) {
-    if (!PROPOSAL_STATUSES.includes(body.status)) {
-      return NextResponse.json({ error: `Invalid status: ${body.status}` }, { status: 400 });
+
+  if (isTransitionToVoid) {
+    // Voiding a signed (or otherwise locked) proposal must not let other
+    // body fields piggyback on the same request -- apply ONLY the status
+    // transition and its bookkeeping. title/type/theme/content/etc in the
+    // body are ignored entirely here, even though the guard above let this
+    // request through.
+    patch.status = "void";
+    patch.declined_at = null;
+  } else {
+    for (const k of PATCHABLE_FIELDS) {
+      if (k in body) patch[k] = body[k];
     }
-    patch.status = body.status;
-    if (body.status === "void") patch.declined_at = patch.declined_at ?? null;
-    // Sending is idempotent: only stamp sent_at + log the event the first
-    // time a proposal transitions into 'sent' (currentStatus is 'draft' at
-    // that point since 'signed'/'void' are already rejected above).
-    if (body.status === "sent" && currentStatus !== "sent") {
-      patch.sent_at = new Date().toISOString();
-      shouldLogSentEvent = true;
+
+    if ("title" in patch && !String(patch.title).trim()) {
+      return NextResponse.json({ error: "title cannot be empty" }, { status: 400 });
+    }
+    if ("title" in patch) patch.title = String(patch.title).trim();
+
+    if ("type" in body) {
+      if (!PROPOSAL_TYPES.includes(body.type)) {
+        return NextResponse.json({ error: `Invalid type: ${body.type}` }, { status: 400 });
+      }
+      patch.type = body.type;
+    }
+    if ("theme" in body && !PROPOSAL_THEMES.includes(body.theme)) {
+      return NextResponse.json({ error: `Invalid theme: ${body.theme}` }, { status: 400 });
+    }
+    if ("status" in body) {
+      if (!PROPOSAL_STATUSES.includes(body.status)) {
+        return NextResponse.json({ error: `Invalid status: ${body.status}` }, { status: 400 });
+      }
+      patch.status = body.status;
+      if (body.status === "void") patch.declined_at = patch.declined_at ?? null;
+      // Sending is idempotent: only stamp sent_at + log the event the first
+      // time a proposal transitions into 'sent' (currentStatus is 'draft' at
+      // that point since 'signed'/'void' are already rejected above).
+      if (body.status === "sent" && currentStatus !== "sent") {
+        patch.sent_at = new Date().toISOString();
+        shouldLogSentEvent = true;
+      }
     }
   }
 
