@@ -6,13 +6,14 @@
 
 ---
 
-## Review these 3 PRs (merge order matters — they're stacked)
+## Review these 4 PRs (merge order matters — three are stacked)
 
-1. **#13 — Customer Portal** (`feat/customer-portal`) — token-gated client portal: live reporting, ads, live spend counter, managed-site link, "what we did," photo uploads. Security-reviewed overnight (see verdict below).
+1. **#13 — Customer Portal** (`feat/customer-portal`) — token-gated client portal: live reporting, ads, live spend counter, managed-site link, "what we did," photo uploads. Security-reviewed + hardened (see verdict below). Independent — merge anytime.
 2. **#14 — CRM Elevation** (`feat/crm-elevation`) — turns `/pipeline` into a real CRM. Reviewed; one real bug found + fixed.
-3. **#15 — Proposal Builder + E-Sign** (`feat/proposals`, stacked on #14) — **merge #14 first.** Security-reviewed; cleared + hardened.
+3. **#15 — Proposal Builder + E-Sign** (`feat/proposals`, stacked on #14). Security-reviewed; cleared + hardened.
+4. **#16 — MRR + ARR** (`feat/mrr`, stacked on #15) — recurring-revenue tracking from signed proposals.
 
-Merge #13 and #14 in either order, then #15.
+**Merge order:** #13 anytime. For the stack: **#14 → #15 → #16.** (GitHub will retarget each onto main as the one below it merges.)
 
 ---
 
@@ -52,14 +53,16 @@ The "create a proposal system with sign links, know how my business runs" ask. S
 
 ## #13 — Customer Portal
 
-Built earlier tonight (token-gated client portal with photo uploads). I ran a dedicated security review overnight focused on the public upload endpoint. **See the PR / the review comment for the verdict** (it was still finishing as I wrote this — check `.superpowers/sdd/` or ask me).
+Token-gated client portal: live reporting, ads, a live spend counter, managed-site link, "what we did," and client photo uploads for campaigns.
+
+**Security review result:** *Nothing blocks merge.* Token gating is consistent on all three surfaces (page, upload, photos), a bad token is a 404 with no id-existence oracle, a token for one client can't be forged into another's, the upload path is fully server-scoped (no `../` traversal, no overwriting others' files), the photo bucket is private with short-lived signed URLs, and no ad-account secret reaches the client bundle. It flagged two hardening items on the public upload endpoint — unbounded body buffering + no file-count cap (a forwarded link could fill storage), and trusting the client-declared file type. **Both being fixed now** (size precheck + per-client file cap + magic-byte sniffing), plus a minor error-leak fix.
 
 ---
 
 ## Stripe / MRR invoicing — planned + partially built
 
 The "custom invoicing, recurring payments, track MRR, replace Wave" ask. This genuinely needs your Stripe keys to build safely — I refused to ship untested Stripe API code (you said don't hallucinate). So:
-- **Built (verifiable, no keys):** MRR/ARR computed from signed-proposal recurring revenue + a revenue panel. *(On branch `feat/mrr` — see that PR.)*
+- **Built (verifiable, no keys):** MRR/ARR computed from signed-proposal recurring revenue + a `/pipeline/revenue` panel. **PR #16** (`feat/mrr`, stacked on #15). Green, 237 tests.
 - **Planned (needs keys):** `docs/superpowers/plans/2026-07-02-stripe-invoicing.md` — customer/invoice/subscription creation from a signed proposal (50/50 deposit, recurring, handoff), signed webhook sync, invoicing dashboard. The proposal line-item model maps 1:1 to Stripe, so this is wiring, not redesign.
 - **To unblock:** drop `STRIPE_SECRET_KEY` (start with `sk_test_...`), `STRIPE_WEBHOOK_SECRET`, `STRIPE_PUBLISHABLE_KEY` into Railway and say go.
 

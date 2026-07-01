@@ -12,3 +12,4 @@
 [03:29 EDT] P2 (311da1d) + P3 (6e1b4f4) done, 194 tests, build green. Dispatching P4 builder UI.
 [03:51 EDT] P4 (e8f3857) + P5 (b1ea251) done, 215 tests, build green. E-sign audit trail + token gating in place. Dispatching P6 deal integration.
 [04:05 EDT] P6 done: deal page Proposals section + new-proposal flow, deal_id filter on the proposals list route, sent/signed activity logging onto the deal timeline, scope/discovery/proposal → build stage nudge on sign. 219 tests, tsc/build green. Branch complete, ready for PR.
+[04:23 EDT] Portal #13 security review: nothing blocks merge (token gating/path scoping/no secret leak all solid); 2 upload hardenings + 1 error-leak fix dispatched (isolated worktree). MRR slice done (da8e3f7, 237 tests) → PR #16. 4 PRs open. Updated morning brief.
