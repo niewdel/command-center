@@ -122,11 +122,28 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user || !ALLOWED_EMAILS.has((user.email ?? "").toLowerCase())) {
+  if (!user) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.search = "";
     return NextResponse.redirect(url);
+  }
+
+  // Core operators + env-listed emails always pass. Everyone else must be
+  // provisioned: a member of at least one workspace (workspace_members is
+  // RLS-readable by its own user). admin@ passes purely via its Demo
+  // membership — no env var needed.
+  if (!ALLOWED_EMAILS.has((user.email ?? "").toLowerCase())) {
+    const { data: membership } = await supabase
+      .from("workspace_members")
+      .select("workspace_id")
+      .limit(1);
+    if (!membership || membership.length === 0) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.search = "?error=no-access";
+      return NextResponse.redirect(url);
+    }
   }
 
   return response;
