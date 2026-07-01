@@ -138,6 +138,25 @@ export const FINDING_CODES = [
   "trust.testimonials.missing",
   "trust.schema.missing",
   "trust.aboutpage.missing",
+
+  // content.* — Content Quality scorer codes (src/lib/audit/scoring/content.ts)
+  "content.pages.none",
+  "content.homepage.words.moderate",
+  "content.homepage.words.thin",
+  "content.homepage.words.severelythin",
+  "content.avgwords.below",
+  "content.avgwords.thin",
+  "content.thinpages.one",
+  "content.thinpages.many",
+  "content.titles.duplicate",
+  "content.emptypages.one",
+  "content.emptypages.many",
+  "content.brokenimages",
+  "content.blog.missing",
+  "content.freshness.missing",
+  "content.ratio.thin",
+  "content.meta.thin",
+  "content.depth.limited",
 ] as const;
 
 export type KnownCode = (typeof FINDING_CODES)[number];
