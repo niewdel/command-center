@@ -30,3 +30,4 @@ Token-gated `/portal/[id]` where a client sees their live reporting: 30/60/90 ra
 
 ## Churn log
 - 2026-07-01 01:37 EDT — report initialized; customer portal foundation building.
+- 01:39 EDT — portal foundation done (60d range, /portal/[id] token-gated, shell). Starting reporting panels + spend counter.
